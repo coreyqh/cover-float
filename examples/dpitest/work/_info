@@ -11,26 +11,52 @@ cModel Technology
 Z0 d/home/chickson/cover-float/examples/dpitest
 Xcoverfloat_pkg
 2../../src/coverfloat_pkg.sv
-DXx6 sv_std 3 std 0 22 9oUSJO;AeEaW`l:M@^WG92
-!s110 1759620081
+Z1 DXx6 sv_std 3 std 0 22 9oUSJO;AeEaW`l:M@^WG92
+Z2 !s110 1759741643
 !i10b 1
-!s100 jJbQ00;bX5?5R<3E@B=bo1
-IS2cAZE>PCNEJ[YkKKE;U`0
+!s100 dKTk_cDWS4_Mk53`IV>[T0
+Ica@YM3[;YEYim`D6n@XMO2
 S1
 R0
-w1759620067
+w1759741434
 8../../src/coverfloat_pkg.sv
 F../../src/coverfloat_pkg.sv
-!i122 0
+!i122 5
 L0 1 0
-VS2cAZE>PCNEJ[YkKKE;U`0
-OL;L;2023.4_4;77
+Vca@YM3[;YEYim`D6n@XMO2
+Z3 OL;L;2023.4_4;77
 r1
 !s85 0
 31
-!s108 1759620081.000000
+Z4 !s108 1759741643.000000
 !s107 ../../src/coverfloat_pkg.sv|
 !s90 -sv|-work|work|../../src/coverfloat_pkg.sv|../../src/coverfloat.c|
 !i113 0
-o-sv -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
-tCvgOpt 0
+Z5 o-sv -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+Z6 tCvgOpt 0
+vtb
+2./tb.sv
+R1
+DXx4 work 14 coverfloat_pkg 0 22 ca@YM3[;YEYim`D6n@XMO2
+R2
+!i10b 1
+!s100 loM?2VIUVSGSk8b^F0Ndz3
+IMVeB^9?ekFDNS?a:>hI1A2
+S1
+R0
+w1759620103
+8./tb.sv
+F./tb.sv
+!i122 6
+L0 1 26
+VDg1SIo80bB@j0V0VzS_@n1
+R3
+r1
+!s85 0
+31
+R4
+!s107 ./tb.sv|
+!s90 -sv|-work|work|./tb.sv|
+!i113 0
+R5
+R6

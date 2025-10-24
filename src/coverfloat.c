@@ -22,4 +22,3 @@ void softfloat_getIntermResults (intermResult_t * result) {
     result->sigExtra = softfloat_intermediateResult->sigExtra;
 
 }
-

@@ -1,4 +1,4 @@
-interface coverfloat_interface; import coverfloat_pkg::*;
+interface coverfloat_interface; import coverfloat_pkg::*; // TODO: add params for covervector / DUT modes?
 
     // logic         clk;
 

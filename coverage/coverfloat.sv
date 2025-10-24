@@ -1,10 +1,11 @@
-module coverfloat (coverfloat_interface CFI); import coverfloat_pkg::*;
+module coverfloat (); import coverfloat_pkg::*; // TODO: maybe rename...
 
     logic clk;
     logic [31:0] vectornum;
     logic [ghghgh:0] covervectors [10000:0];
 
-    coverfloat_coverage  coverage_inst;
+    coverfloat_coverage coverage_inst;
+    coverfloat_interface CFI;
 
     initial begin
 
@@ -12,6 +13,7 @@ module coverfloat (coverfloat_interface CFI); import coverfloat_pkg::*;
 
         vectornum = 0;
         
+        CFI           = new();
         coverage_inst = new(CFI);
 
     end

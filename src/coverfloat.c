@@ -27,16 +27,8 @@ void softfloat_getIntermResults (intermResult_t * result) {
 }
 
 /*
-
 AI CODE NEEDS MODIFICATION
 */
-
-#define TEST_VECTOR_SIZE // TODO
-#define COVER_VECTOR_SIZE // TODO
-
-#define MAX_LINE_LEN 256
-#define MAX_TOKEN_LEN 128
-
 
 // Parse a hex string into a 128-bit integer (uint128_t)
 uint128_t parse_hex_128(const char *hex) {
@@ -55,24 +47,7 @@ uint128_t parse_hex_128(const char *hex) {
     return value;
 }
 
-// // Print a 128-bit integer in hex
-// void print_uint128(uint128_t value) {
-//     if (value == 0) {
-//         printf("0");
-//         return;
-//     }
 
-//     char buf[40]; // enough for 128 bits in hex
-//     int i = 39;
-//     buf[i] = '\0';
-
-//     while (value > 0 && i > 0) {
-//         uint8_t digit = value & 0xF;
-//         buf[--i] = "0123456789abcdef"[digit];
-//         value >>= 4;
-//     }
-//     printf("%s", &buf[i]);
-// }
 
 
 void reference_model( const uint32_t       * op,

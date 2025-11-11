@@ -21,3 +21,4 @@
             bins op_fnmadd = {OP_FNMADD};
             bins op_fnmsub = {OP_FNMSUB};
             bins op_sqrt   = {OP_SQRT & ~32'hF};
+            

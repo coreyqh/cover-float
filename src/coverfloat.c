@@ -189,21 +189,28 @@ void reference_model( const uint32_t       * op,
 
 // TODO needs complete refactor...
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <input_file> <output_file>\n", argv[0]);
+    bool suppress_error_check = false;
+
+    if (argc < 3 || argc > 4) {
+        fprintf(stderr, "Usage: %s <input_file|- for stdin> <output_file|- for stdout> [--no-error-check]\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    FILE *fin = fopen(argv[1], "r");
+    if (argc == 4 && strcmp(argv[3], "--no-error-check") == 0) {
+        suppress_error_check = true;
+    }
+
+
+    FILE *fin = strcmp(argv[1], "-") == 0 ? stdin : fopen(argv[1], "r");
     if (!fin) {
         perror("Error opening input file");
         return EXIT_FAILURE;
     }
 
-    FILE *fout = fopen(argv[2], "w");
+    FILE *fout = strcmp(argv[2], "-") == 0 ? stdout : fopen(argv[2], "w");
     if (!fout) {
         perror("Error opening output file");
-        fclose(fin);
+        if (fin != stdin) fclose(fin);
         return EXIT_FAILURE;
     }
 
@@ -265,30 +272,38 @@ int main(int argc, char *argv[]) {
 
         // Write cover vector (append intermediate result to test vector)
         switch (resFmt) {
+            // if (suppress_error_check) {
+            //     line = "%08x_%02x_%016x_%016x_%016x_%016x_%016x_%016x_%02x_%016x_%016x_%02x_%02x"
+            // }
 
             case FMT_QUAD: {
-                fprintf(fout, "%s_%01x_%08x_%016x%016x%016x\n", 
-                        line, intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
+                fprintf(fout, "%08x_%02x_%016x_%016x_%016x_%016x_%016x_%016x_%02x_%016x_%016x_%02x_%02x_%01x_%08x_%016x%016x%016x\n", 
+                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
+                        intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
                 break;
             }
             case FMT_DOUBLE: {
-                fprintf(fout, "%s_%01x_%08x_%016x%016x%016x\n", 
-                        line, intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
+                fprintf(fout, "%08x_%02x_%016x_%016x_%016x_%016x_%016x_%016x_%02x_%016x_%016x_%02x_%02x_%01x_%08x_%016x%016x%016x\n", 
+                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
+                        intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
                 break;
             }
             case FMT_SINGLE: {
-                fprintf(fout, "%s_%01x_%08x_%08x%08x%016x%016x\n", 
-                        line, intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
+                fprintf(fout, "%08x_%02x_%016x_%016x_%016x_%016x_%016x_%016x_%02x_%016x_%016x_%02x_%02x_%01x_%08x_%08x%08x%016x%016x\n", 
+                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
+                        intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
                 break;
             }
             case FMT_HALF: {
-                fprintf(fout, "%s_%01x_%08x_%04x%012x%016x%016x\n", 
-                        line, intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
+                fprintf(fout, "%08x_%02x_%016x_%016x_%016x_%016x_%016x_%016x_%02x_%016x_%016x_%02x_%02x_%01x_%08x_%04x%012x%016x%016x\n", 
+                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
+                        intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
                 break;
             }
             case FMT_BF16: {
-                fprintf(fout, "%s_%01x_%08x_%04x%012x%016x%016x\n", 
-                        line, intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
+                fprintf(fout, "%08x_%02x_%016x_%016x_%016x_%016x_%016x_%016x_%02x_%016x_%016x_%02x_%02x_%01x_%08x_%04x%012x%016x%016x\n", 
+                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
+                        intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
                 break;
             }
         }
@@ -297,18 +312,20 @@ int main(int argc, char *argv[]) {
         // printf("INTERM SIG IS %016x\n\n", intermRes.sig64);
 
         // confirm softfloat output matches testvectors
-        if (res.upper   != newRes.upper   || res.lower   != newRes.lower ||     // outputs don't match
-            flags != newFlags                                              ) {  // flags   don't match
-            fprintf(stderr, "Error: testvector output doesn't match expected value\nTestVector output: %016x%016x\nExpected output: %016x%016x\nTestVector Flags: %02x\nExpected Flags: %02x\n", 
-                res.upper, res.lower, newRes.upper, newRes.lower, flags, newFlags);
-            fclose(fin);
-            fclose(fout);
-            return EXIT_FAILURE;
-        }
+        if (!suppress_error_check) {
+            if (res.upper   != newRes.upper   || res.lower   != newRes.lower ||     // outputs don't match
+                flags != newFlags                                              ) {  // flags   don't match
+                fprintf(stderr, "Error: testvector output doesn't match expected value\nTestVector output: %016x%016x\nExpected output: %016x%016x\nTestVector Flags: %02x\nExpected Flags: %02x\n", 
+                    res.upper, res.lower, newRes.upper, newRes.lower, flags, newFlags);
+                fclose(fin);
+                fclose(fout);
+                return EXIT_FAILURE;
+            }
+        } 
     }
 
-    fclose(fin);
-    fclose(fout);
+    if (fin  != stdin)  fclose(fin);
+    if (fout != stdout) fclose(fout);
 
     return EXIT_SUCCESS;
 }

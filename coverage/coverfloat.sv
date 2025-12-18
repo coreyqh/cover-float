@@ -14,7 +14,6 @@ module coverfloat (); import coverfloat_pkg::*; // TODO: maybe rename...
 
     initial begin
 
-        // $readmemh("../tests/covervectors/test.txt", covervectors); // TODO: need to replace with many coverage vector files eventually...
         int fd;
         fd = $fopen("../tests/covervectors/B1_cv.txt", "r");
 
@@ -45,13 +44,10 @@ module coverfloat (); import coverfloat_pkg::*; // TODO: maybe rename...
         // collect coverage 
         coverage_inst.sample();
 
-        $display("test number %d with operation code %h", vectornum, CFI.op);
+        // $display("%h (%h) %h = %h_%h_%h", CFI.a, CFI.op, CFI.b, CFI.intermS, CFI.intermX, CFI.intermM[191:30]);
 
         vectornum = vectornum + 1;
 
-        // if (covervectors[vectornum] === `COVER_VECTOR_WIDTH'bx) begin
-        //     $stop;
-        // end
     end
 
 endmodule

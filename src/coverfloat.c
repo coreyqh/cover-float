@@ -725,7 +725,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    resultf.v = (af.v & 0x7FFFFFFF) | ~(bf.v & 0x80000000);
+                    resultf.v = (af.v & 0x7FFFFFFF) | (~(bf.v) & 0x80000000);
                     FLOAT32_TO_UINT128(result, resultf);
                     break;
                 }
@@ -734,7 +734,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    resultf.v = (af.v & 0x7FFFFFFFFFFFFFFF) | ~(bf.v & 0x8000000000000000);
+                    resultf.v = (af.v & 0x7FFFFFFFFFFFFFFF) | (~(bf.v) & 0x8000000000000000);
                     FLOAT64_TO_UINT128(result, resultf);
                     break;
                 }
@@ -743,7 +743,7 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | ~(bf.v[0] & 0x8000000000000000);
+                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | (~(bf.v[0]) & 0x8000000000000000);
                     resultf.v[1] = af.v[1];
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
@@ -753,7 +753,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    resultf.v = (af.v & 0x7FFF) | ~(bf.v & 0x8000);
+                    resultf.v = (af.v & 0x7FFF) | (~(bf.v) & 0x8000);
                     FLOAT16_TO_UINT128(result, resultf);
                     break;
                 }
@@ -762,7 +762,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    resultf.v = (af.v & 0x7FFF) | ~(bf.v & 0x8000);
+                    resultf.v = (af.v & 0x7FFF) | (~(bf.v) & 0x8000);
                     FLOAT16_TO_UINT128(result, resultf);
                     break;
                 }

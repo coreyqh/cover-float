@@ -1,6 +1,8 @@
 import subprocess
 import random
 
+import coverfloat
+
 TEST_VECTOR_WIDTH_HEX  = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = (TEST_VECTOR_WIDTH_HEX + 8)
 
@@ -327,6 +329,8 @@ BASIC_TYPES = {
 }
 
 def coverfloat_reference(line):
+    raise DeprecationWarning("Use python coverfloat module")
+
     assert len(line) == TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS + 1 
     #                                                           ^~~~~~~~~ newline character
     try:
@@ -358,7 +362,7 @@ def write1SrcTests(f, fmt):
         print(f"OP IS: {op}")
         # print(f"FMT IS: {fmt}")
         for val in BASIC_TYPES[fmt]:
-            print(coverfloat_reference(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            print(coverfloat.reference(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
 
 def writeCvtTests(f, fmt):
     
@@ -374,7 +378,7 @@ def writeCvtTests(f, fmt):
         for resultFmt in fmts:
             if resultFmt != fmt:
                 for val in BASIC_TYPES[fmt]:
-                    print(coverfloat_reference(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{resultFmt}_00\n"), file=f)
+                    print(coverfloat.reference(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{resultFmt}_00\n"), file=f)
 
 
 def write2SrcTests(f, fmt):
@@ -386,7 +390,7 @@ def write2SrcTests(f, fmt):
         print(f"OP IS: {op}")
         for val1 in BASIC_TYPES[fmt]:
             for val2 in BASIC_TYPES[fmt]:
-                print(coverfloat_reference(f"{op}_{rm}_{val1}_{val2}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+                print(coverfloat.reference(f"{op}_{rm}_{val1}_{val2}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
 
 
 def write3SrcTests(f, fmt):
@@ -399,7 +403,7 @@ def write3SrcTests(f, fmt):
         for val1 in BASIC_TYPES[fmt]:
             for val2 in BASIC_TYPES[fmt]:
                 for val3 in BASIC_TYPES[fmt]:
-                    print(coverfloat_reference(f"{op}_{rm}_{val1}_{val2}_{val3}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+                    print(coverfloat.reference(f"{op}_{rm}_{val1}_{val2}_{val3}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
 
 
 

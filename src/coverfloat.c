@@ -1571,6 +1571,75 @@ float128_t f128_max(float128_t a, float128_t b)
 }
 
 
+// Kind of hacky right now, I don't like how it is repeating itself ...
+int coverfloat_runtestvector(const char* input, size_t buffer_size, char* output, size_t output_size, bool suppress_error_check) {
+    char     op_str[MAX_TOKEN_LEN + 1]; // plus one for space for null terminator
+    char     rm_str[MAX_TOKEN_LEN + 1];
+    char      a_str[MAX_TOKEN_LEN + 1];
+    char      b_str[MAX_TOKEN_LEN + 1];
+    char      c_str[MAX_TOKEN_LEN + 1];
+    char  opFmt_str[MAX_TOKEN_LEN + 1];
+    char    res_str[MAX_TOKEN_LEN + 1];
+    char resFmt_str[MAX_TOKEN_LEN + 1];
+    char  flags_str[MAX_TOKEN_LEN + 1];
+
+
+    if (sscanf(input, "%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_ \t\r\n]", 
+        op_str, rm_str, a_str, b_str, c_str, opFmt_str, res_str, resFmt_str, flags_str) != 9) {
+        return 2; // PLACEHOLDER FOR NOW (FIXME)
+    }
+
+
+    // unpack test vector tokens into integers to pass to the reference model
+
+    uint32_t       op        = parse_hex_128(op_str       ).lower;
+    uint8_t        rm        = parse_hex_128(rm_str       ).lower;
+    uint128_t      a         = parse_hex_128(a_str        )      ;
+    uint128_t      b         = parse_hex_128(b_str        )      ;
+    uint128_t      c         = parse_hex_128(c_str        )      ;
+    uint8_t        opFmt     = parse_hex_128(opFmt_str    ).lower;
+    uint8_t        resFmt    = parse_hex_128(resFmt_str   ).lower;
+    uint128_t      res       = parse_hex_128(res_str      )      ;
+    uint8_t        flags     = parse_hex_128(flags_str    ).lower;
+    
+    
+    uint128_t      newRes;
+    uint8_t        newFlags;
+    intermResult_t intermRes;
+
+    // Call reference model
+            
+    int success = reference_model(&op,
+                                    &rm,
+                                    &a, 
+                                    &b, 
+                                    &c, 
+                                    &opFmt, 
+                                    &resFmt,
+
+                                    &newRes,
+                                    &newFlags,
+                                    &intermRes);
+
+    if (success == EXIT_FAILURE) return EXIT_FAILURE;
+
+    snprintf(output, output_size, "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx%016llx%016llx\n", 
+                    op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
+                    intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
+
+    if (!suppress_error_check) {
+        if (res.upper   != newRes.upper   || res.lower   != newRes.lower ||     // outputs don't match
+            flags != newFlags                                              ) {  // flags   don't match
+            fprintf(stderr, "Error: testvector output doesn't match expected value\nTestVector output: %016llx%016llx\nExpected output:   %016llx%016llx\nTestVector Flags: %02x\nExpected Flags: %02x\nOperation: %08x\n", 
+                res.upper, res.lower, newRes.upper, newRes.lower, flags, newFlags, op);
+            return EXIT_FAILURE;
+        }
+    } 
+
+    return EXIT_SUCCESS;
+}
+
+
 
 int main(int argc, char *argv[]) {
     bool suppress_error_check = false;

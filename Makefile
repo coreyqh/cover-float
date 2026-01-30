@@ -1,5 +1,6 @@
 # --- Project Configuration ---
 TARGET_EXEC ?= coverfloat_reference
+TARGET_SHARED ?= lib_coverfloat_reference.so
 BUILD_DIR   ?= ./build
 SRC_DIRS    ?= ./src ./submodules/spike/softfloat/
 
@@ -31,7 +32,7 @@ RM_CMD      ?= rm -rf
 
 .PHONY: build clean sim B1
 
-build: $(BUILD_DIR)/$(TARGET_EXEC)
+build: $(BUILD_DIR)/$(TARGET_EXEC) $(BUILD_DIR)/$(TARGET_SHARED)
 
 # Rule to create the final executable
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
@@ -39,12 +40,17 @@ $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(OBJS) -o $@ $(LDFLAGS)
 
+$(BUILD_DIR)/$(TARGET_SHARED): $(OBJS)
+	@echo "Linking Shared Library: @a"
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(OBJS) -fPIC -shared -o $@ $(LDFLAGS)
+
 # Rule to compile C source files into object files
 # $< is the prerequisite (source file), $@ is the target (object file)
 $(BUILD_DIR)/%.o: $(SRC_DIRS)/%.c
 	@echo "Compiling C file: $<"
 	$(MKDIR_P) $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c $< -o $@
 
 sim: 
 	cd sim && vsim -c -do "do run.do"

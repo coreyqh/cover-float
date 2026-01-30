@@ -113,6 +113,8 @@ void softFloat_setRoundingMode ( uint_fast8_t );
 
 void softfloat_getIntermResults ( intermResult_t * );
 
+int coverfloat_runtestvector(const char* input, size_t buffer_size, char* output, size_t output_size, bool suppress_error_check);
+
 // TODO move to own file
 float128_t f128_min(float128_t a, float128_t b);
 float128_t f128_max(float128_t a, float128_t b);

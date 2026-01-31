@@ -13,3 +13,6 @@ _vmake
 *.log
 *.ucdb
 *.o
+__pycache__/
+tests/covervectors/B*_cv.txt
+tests/testvectors/B*_tv.txt

@@ -67,5 +67,15 @@ package coverfloat_pkg;
     const logic [7:0] FMT_UINT   = 8'b 1_1_000001;
     const logic [7:0] FMT_LONG   = 8'b 1_0_000010;
     const logic [7:0] FMT_ULONG  = 8'b 1_1_000010;
+
+    
+    // TODO: expand with other relvelant parameters
+
+    // Precision (p = number of significand bits)
+    const int F16_M_BITS   = 10;
+    const int BF16_M_BITS  = 7;
+    const int F32_M_BITS   = 23;
+    const int F64_M_BITS   = 52;
+    const int F128_M_BITS  = 112;
     
 endpackage

@@ -56,7 +56,7 @@ covergroup B10_cg (virtual coverfloat_interface CFI);
 
     // TODO: re-work ranges with constants instead of these magic numbers
 
-    F16_exp_diff: coverpoint $signed(int'(CFI.a[14:7]) - int'(CFI.b[14:7])) {
+    F16_exp_diff: coverpoint $signed(int'(CFI.a[14:10]) - int'(CFI.b[14:10])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(F16_M_BITS + 4) : 0]};

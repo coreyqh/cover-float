@@ -26,8 +26,8 @@ package coverfloat_pkg;
     const logic [31:0] OP_FMSUB  = 32'h5_2; // multiply-subtract
     const logic [31:0] OP_FNMADD = 32'h5_3; // negated (multiply-add)
     const logic [31:0] OP_FNMSUB = 32'h5_4; // negated (multiply-sub)
-    const logic [31:0] OP_SQRT   = 32'h6_0;
-    const logic [31:0] OP_REM    = 32'h7_0;
+    const logic [31:0] OP_SQRT   = 32'h6_0; // square root
+    const logic [31:0] OP_REM    = 32'h7_0; 
     const logic [31:0] OP_CFI    = 32'h8_0;
     const logic [31:0] OP_CFF    = 32'h9_0;
     const logic [31:0] OP_CIF    = 32'hA_0;

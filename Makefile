@@ -63,6 +63,9 @@ B10:
 	python3 script/B10.py && ./build/coverfloat_reference ./tests/testvectors/B10_tv.txt ./tests/covervectors/B10_cv.txt
 	# TODO: Add more as needed
 
+B9:
+	python3 script/B9.py && ./build/coverfloat_reference ./tests/testvectors/B9_tv.txt ./tests/covervectors/B9_cv.txt
+
 # Clean target to remove build artifacts
 clean:
 	@echo "Cleaning build directory..."

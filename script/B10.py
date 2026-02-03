@@ -62,6 +62,8 @@ TEST_VECTOR_WIDTH_HEX  = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = (TEST_VECTOR_WIDTH_HEX + 8)
 
 OP_ADD    = "00000010"
+OP_SUB    = "00000020"
+
 ROUND_NEAR_EVEN   = "00"
 
 FMT_INVAL  = "FF" # 11111111
@@ -102,8 +104,8 @@ BIASED_EXP = { # Range of biased exponents based on precision
     FMT_BF16 : [1, 254]
 }
 
-a_mant = 200 #random values because the mantissas don't matter
-b_mant = 2000
+a_mant = 2 #random values because the mantissas don't matter
+b_mant = 2
 
 
 def decimalComponentsToHex(fmt, sign, biased_exp, mantissa):
@@ -115,7 +117,7 @@ def decimalComponentsToHex(fmt, sign, biased_exp, mantissa):
     return h_complete
 
 
-def innerTest(f):
+def innerTest(f, op):
     for fmt in FMTS:
         p = MANTISSA_BITS[fmt] + 1
         min_exp = BIASED_EXP[fmt][0]
@@ -130,7 +132,7 @@ def innerTest(f):
             complete_a = decimalComponentsToHex(fmt, 0, a_exp, a_mant)
             complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
             
-            print(coverfloat.reference(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            print(coverfloat.reference(f"{op}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
 
             b_exp +=1 #Final statement, increments 1 over
              
@@ -142,12 +144,12 @@ def innerTest(f):
         for i in range(0, p+4):
             complete_a = decimalComponentsToHex(fmt, 0, a_exp, a_mant)
             complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
-            print(coverfloat.reference(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            print(coverfloat.reference(f"{op}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
 
             b_exp -=1 #Final statement, decrements 1 under
     
 
-def outerTest(isTestOne, f):
+def outerTest(isTestOne, f, op):
     for fmt in FMTS:
         p = MANTISSA_BITS[fmt] + 1
         min_exp = BIASED_EXP[fmt][0]
@@ -162,16 +164,17 @@ def outerTest(isTestOne, f):
         complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
                 
         if(isTestOne):
-            print(coverfloat.reference(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            print(coverfloat.reference(f"{op}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
         else:
-            print(coverfloat.reference(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_b}_{complete_a}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)    
+            print(coverfloat.reference(f"{op}_{ROUND_NEAR_EVEN}_{complete_b}_{complete_a}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)    
 
 
 def main():
     with open("./tests/testvectors/B10_tv.txt", "w") as f:
-        outerTest(True, f) #Test #1
-        innerTest(f) #Test #2
-        outerTest(False, f) #Test #3
+        for op in [OP_ADD, OP_SUB]:
+            outerTest(True, f, op) #Test #1
+            innerTest(f, op) #Test #2
+            outerTest(False, f, op) #Test #3
     
     # decimalComponentsToHex(FMT_HALF, 0, 25, 976)2000, correct
     # decimalComponentsToHex(FMT_HALF, 0, 19, 256)200, correct

@@ -82,7 +82,7 @@ BIASED_EXP = { # Range of biased exponents based on precision
     FMT_BF16 : [1, 254]
 }
 
-# Tesst vector widths
+# Test vector widths
 
 TEST_VECTOR_WIDTH_HEX  = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = (TEST_VECTOR_WIDTH_HEX + 8)

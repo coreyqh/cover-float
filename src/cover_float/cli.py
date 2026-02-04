@@ -24,7 +24,14 @@ def main() -> None:
 
 def testgen() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--models", action="extend", nargs="+", help="List of models to generate test vectors for")
+    parser.add_argument(
+        "--model",
+        "--models",
+        dest="models",
+        action="extend",
+        nargs="+",
+        help="Model(s) to generate test vectors for",
+    )
     parser.add_argument("--output-dir", type=str, default="tests", help="Directory to save generated test vectors")
     args = parser.parse_args()
 

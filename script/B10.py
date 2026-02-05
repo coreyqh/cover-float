@@ -104,14 +104,14 @@ BIASED_EXP = { # Range of biased exponents based on precision
     FMT_BF16 : [1, 254]
 }
 
-a_mant = 2 #random values because the mantissas don't matter
-b_mant = 2
+a_mant = 100 #random values because the mantissas don't matter
+b_mant = 20 #TODO: Change to actual random values which are generated based on precision
 
 
-def decimalComponentsToHex(fmt, sign, biased_exp, mantissa):
+def decimalComponentsToHex(fmt, sign, biased_exp):
     b_sign = f"{sign:01b}"
     b_exponent = f"{biased_exp:0{EXPONENT_BITS[fmt]}b}"
-    b_mantissa = f"{mantissa:0{MANTISSA_BITS[fmt]}b}"
+    b_mantissa = f"{random.getrandbits(MANTISSA_BITS[fmt]):0{MANTISSA_BITS[fmt]}b}"
     b_complete = b_sign + b_exponent + b_mantissa
     h_complete = f"{int(b_complete, 2):032X}"
     return h_complete
@@ -129,8 +129,8 @@ def innerTest(f, op):
         b_exp = a_exp
         
         for i in range(0, p+5):
-            complete_a = decimalComponentsToHex(fmt, 0, a_exp, a_mant)
-            complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
+            complete_a = decimalComponentsToHex(fmt, 0, a_exp)
+            complete_b = decimalComponentsToHex(fmt, 0, b_exp)
             
             print(coverfloat.reference(f"{op}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
 
@@ -142,8 +142,8 @@ def innerTest(f, op):
         b_exp = a_exp-1
         
         for i in range(0, p+4):
-            complete_a = decimalComponentsToHex(fmt, 0, a_exp, a_mant)
-            complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
+            complete_a = decimalComponentsToHex(fmt, 0, a_exp)
+            complete_b = decimalComponentsToHex(fmt, 0, b_exp)
             print(coverfloat.reference(f"{op}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
 
             b_exp -=1 #Final statement, decrements 1 under
@@ -160,8 +160,8 @@ def outerTest(isTestOne, f, op):
         min_b_exp = max_exp - b_exp_nums
         b_exp = random.randint(min_b_exp, max_exp)
         
-        complete_a = decimalComponentsToHex(fmt, 0, a_exp, a_mant)
-        complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
+        complete_a = decimalComponentsToHex(fmt, 0, a_exp)
+        complete_b = decimalComponentsToHex(fmt, 0, b_exp)
                 
         if(isTestOne):
             print(coverfloat.reference(f"{op}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)

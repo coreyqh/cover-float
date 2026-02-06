@@ -1285,7 +1285,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    UINT128_TO_FLOAT32(cf, b);
+                    UINT128_TO_FLOAT32(cf, c);
                     resultf = f32_mulAdd(af, bf, cf);
                     FLOAT32_TO_UINT128(result, resultf);
                     break;
@@ -1295,7 +1295,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    UINT128_TO_FLOAT64(cf, b);
+                    UINT128_TO_FLOAT64(cf, c);
                     resultf = f64_mulAdd(af, bf, cf);
                     FLOAT64_TO_UINT128(result, resultf);
                     break;
@@ -1315,7 +1315,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(cf, b);
+                    UINT128_TO_FLOAT16(cf, c);
                     resultf = f16_mulAdd(af, bf, cf);
                     FLOAT16_TO_UINT128(result, resultf);
                     break;
@@ -1343,7 +1343,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    UINT128_TO_FLOAT32(cf, b);
+                    UINT128_TO_FLOAT32(cf, c);
                     cf.v ^= 0x80000000; // flip sign
                     resultf = f32_mulAdd(af, bf, cf);
                     FLOAT32_TO_UINT128(result, resultf);
@@ -1354,7 +1354,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    UINT128_TO_FLOAT64(cf, b);
+                    UINT128_TO_FLOAT64(cf, c);
                     cf.v ^= 0x8000000000000000; // flip sign
                     resultf = f64_mulAdd(af, bf, cf);
                     FLOAT64_TO_UINT128(result, resultf);
@@ -1376,7 +1376,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(cf, b);
+                    UINT128_TO_FLOAT16(cf, c);
                     cf.v ^= 0x8000; // flip sign
                     resultf = f16_mulAdd(af, bf, cf);
                     FLOAT16_TO_UINT128(result, resultf);
@@ -1406,7 +1406,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    UINT128_TO_FLOAT32(cf, b);
+                    UINT128_TO_FLOAT32(cf, c);
                     af.v ^= 0x80000000; // flip sign
                     cf.v ^= 0x80000000; // flip sign
                     resultf = f32_mulAdd(af, bf, cf);
@@ -1418,7 +1418,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    UINT128_TO_FLOAT64(cf, b);
+                    UINT128_TO_FLOAT64(cf, c);
                     af.v ^= 0x8000000000000000; // flip sign
                     cf.v ^= 0x8000000000000000; // flip sign
                     resultf = f64_mulAdd(af, bf, cf);
@@ -1442,7 +1442,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(cf, b);
+                    UINT128_TO_FLOAT16(cf, c);
                     af.v ^= 0x8000; // flip sign
                     cf.v ^= 0x8000; // flip sign
                     resultf = f16_mulAdd(af, bf, cf);
@@ -1474,7 +1474,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    UINT128_TO_FLOAT32(cf, b);
+                    UINT128_TO_FLOAT32(cf, c);
                     af.v ^= 0x80000000; // flip sign
                     resultf = f32_mulAdd(af, bf, cf);
                     FLOAT32_TO_UINT128(result, resultf);
@@ -1485,7 +1485,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    UINT128_TO_FLOAT64(cf, b);
+                    UINT128_TO_FLOAT64(cf, c);
                     af.v ^= 0x8000000000000000; // flip sign
                     resultf = f64_mulAdd(af, bf, cf);
                     FLOAT64_TO_UINT128(result, resultf);
@@ -1507,7 +1507,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(cf, b);
+                    UINT128_TO_FLOAT16(cf, c);
                     af.v ^= 0x8000; // flip sign
                     resultf = f16_mulAdd(af, bf, cf);
                     FLOAT16_TO_UINT128(result, resultf);

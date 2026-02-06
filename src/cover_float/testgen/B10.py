@@ -60,9 +60,6 @@ import subprocess
 from cover_float.reference import run_and_store_test_vector
 from cover_float.common.constants import *
 
-a_mant = 100 #random values because the mantissas don't matter
-b_mant = 20 #TODO: Change to actual random values which are generated based on precision
-
 
 def decimalComponentsToHex(fmt, sign, biased_exp):
     b_sign = f"{sign:01b}"

@@ -2,10 +2,10 @@
 #define COVERFLOAT_H_INCLUDED
 
 #include <stdint.h>
-#include "../submodules/spike/softfloat/platform.h"
-#include "../submodules/spike/softfloat/internals.h"
-#include "../submodules/spike/softfloat/specialize.h"
-#include "../submodules/spike/softfloat/softfloat.h"
+#include "softfloat/platform.h"
+#include "softfloat/internals.h"
+#include "softfloat/specialize.h"
+#include "softfloat/softfloat.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,6 +16,8 @@ extern "C" {
 
 #define TEST_VECTOR_WIDTH_HEX  144
 #define COVER_VECTOR_WIDTH_HEX 201
+
+#define COVER_VECTOR_WIDTH_HEX_WITH_SEPARATORS (COVER_VECTOR_WIDTH_HEX + 11)
 
 // #define TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS (TEST_VECTOR_WIDTH_HEX + 8)
 // #define MAX_LINE_LEN (TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS + 10)

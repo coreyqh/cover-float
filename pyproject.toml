@@ -1,0 +1,29 @@
+[project]
+name = "cover-float"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Corey Hickson", email = "chickson@hmc.edu" },
+    { name = "Ryan Wolk", email = "rwolk@hmc.edu" },
+    { name = "Lamarr Olive", email = "lolive@g.hmc.edu" },
+    { name = "Sisi Wang", email = "siswang@g.hmc.edu" },
+    { name = "Angela Zheng", email = "angzheng@g.hmc.edu" },
+]
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+cover-float-reference = "cover_float.cli:main"
+cover-float-testgen = "cover_float.cli:testgen"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+build-dir = "build/{wheel_tag}"
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "src/**/*.{h,c,hpp,cpp}" }, { file = "CMakeLists.txt" }]
+
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11"]
+build-backend = "scikit_build_core.build"

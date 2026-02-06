@@ -16,7 +16,7 @@
 #2) All values in the range [-(p+4), (p+4)]
 #3) 1 value larger than (p+4)
 #
-# hypothetical vectors generated: 473
+# hypothetical vectors generated: 473(3)
 #-------- Test # 1 --------
 # (1 value smaller than -(p+4))
 # a_exp - b_exp < -(p + 4)

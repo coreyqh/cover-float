@@ -1,6 +1,8 @@
 import ctypes
 import os
 
+raise ImportError("coverfloat.py is deprecated")
+
 filename = os.path.join(os.path.dirname(__file__), "../build/lib_coverfloat_reference.so")
 try:
     lib = ctypes.CDLL(filename)

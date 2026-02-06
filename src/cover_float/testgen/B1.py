@@ -1,62 +1,8 @@
 import subprocess
 import random
 
-import coverfloat
-
-TEST_VECTOR_WIDTH_HEX  = 144
-TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = (TEST_VECTOR_WIDTH_HEX + 8)
-
-OP_ADD    = "00000010"
-OP_SUB    = "00000020"
-OP_MUL    = "00000030"
-OP_DIV    = "00000040"
-OP_FMA    = "00000050"
-OP_FMADD  = "00000051"
-OP_FMSUB  = "00000052"
-OP_FNMADD = "00000053"
-OP_FNMSUB = "00000054"
-OP_SQRT   = "00000060"
-OP_REM    = "00000070"
-OP_CFI    = "00000080"
-OP_FCVTW  = "00000081"
-OP_FCVTWU = "00000082"
-OP_FCVTL  = "00000083"
-OP_FCVTLU = "00000084"
-OP_CFF    = "00000090"
-OP_CIF    = "000000A0"
-OP_QC     = "000000B0"
-OP_FEQ    = "000000B1"
-OP_SC     = "000000C0"
-OP_FLT    = "000000C1"
-OP_FLE    = "000000C2"
-OP_CLASS  = "000000D0"
-OP_MIN    = "000000E0"
-OP_MAX    = "000000F0"
-OP_CSN    = "00000100"
-OP_FSGNJ  = "00000101"
-OP_FSGNJN = "00000102"
-OP_FSGNJX = "00000103"
-
-FMT_INVAL  = "FF" # 11111111
-FMT_HALF   = "00" # 00000000
-FMT_SINGLE = "01" # 00000001
-FMT_DOUBLE = "02" # 00000010
-FMT_QUAD   = "03" # 00000011
-FMT_BF16   = "04" # 00000100
-FMT_INT    = "81" # 10000001
-FMT_UINT   = "C1" # 11000001
-FMT_LONG   = "82" # 10000010
-FMT_ULONG  = "C2" # 11000010
-
-FMTS     = [FMT_SINGLE, FMT_DOUBLE, FMT_QUAD, FMT_HALF, FMT_BF16]
-INT_FMTS = [FMT_INT, FMT_UINT, FMT_LONG, FMT_ULONG]
-
-ROUND_NEAR_EVEN   = "00"
-ROUND_MINMAG      = "01"
-ROUND_MIN         = "02"
-ROUND_MAX         = "03"
-ROUND_NEAR_MAXMAG = "04"
-ROUND_ODD         = "05"
+from cover_float.reference import run_and_store_test_vector
+from cover_float.common.constants import *
 
 SRC1_OPS = [OP_SQRT,
             OP_CLASS]
@@ -328,92 +274,69 @@ BASIC_TYPES = {
     ]
 }
 
-def coverfloat_reference(line):
-    raise DeprecationWarning("Use python coverfloat module")
-
-    assert len(line) == TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS + 1 
-    #                                                           ^~~~~~~~~ newline character
-    try:
-        result = subprocess.run(
-            ["./build/coverfloat_reference", "-", "-", "--no-error-check"],
-            input=line,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-        output = result.stdout
-        # print(f"OUT:  {output}")
-    except subprocess.CalledProcessError as e:
-        print("Error:", e.stderr)
-
-    return output[0:TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS]
-    # print(output[0:TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS], file=f)
-
-
-def write1SrcTests(f, fmt):
+def write1SrcTests(test_f, cover_f, fmt):
     
     rm = ROUND_NEAR_EVEN
 
     # print("\n//", file=f)
-    print("// 1 source operations, all basic type input combinations", file=f)
+    print("// 1 source operations, all basic type input combinations", file=test_f)
     # print("//", file=f)
     for op in SRC1_OPS:
         print(f"OP IS: {op}")
         # print(f"FMT IS: {fmt}")
         for val in BASIC_TYPES[fmt]:
-            print(coverfloat.reference(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            run_and_store_test_vector(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
-def writeCvtTests(f, fmt):
+def writeCvtTests(test_f, cover_f, fmt):
     
     rm = ROUND_NEAR_EVEN
 
     # print("\n//", file=f)
-    print("// 1 source convert operations, all basic type input and result format combinations", file=f)
+    print("// 1 source convert operations, all basic type input and result format combinations", file=test_f)
     # print("//", file=f)
     for op in CVT_OPS:
         print(f"OP IS: {op}")
         # print(f"FMT IS: {fmt}")
-        fmts = FMTS if op == OP_CFF else INT_FMTS
+        fmts = FLOAT_FMTS if op == OP_CFF else INT_FMTS
         for resultFmt in fmts:
             if resultFmt != fmt:
                 for val in BASIC_TYPES[fmt]:
-                    print(coverfloat.reference(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{resultFmt}_00\n"), file=f)
+                    run_and_store_test_vector(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{resultFmt}_00", test_f, cover_f)
 
 
-def write2SrcTests(f, fmt):
+def write2SrcTests(test_f, cover_f, fmt):
     
     rm = ROUND_NEAR_EVEN
 
-    print("// 2 source operations, all basic type input combinations", file=f)
+    print("// 2 source operations, all basic type input combinations", file=test_f)
     for op in SRC2_OPS:
         print(f"OP IS: {op}")
         for val1 in BASIC_TYPES[fmt]:
             for val2 in BASIC_TYPES[fmt]:
-                print(coverfloat.reference(f"{op}_{rm}_{val1}_{val2}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+                run_and_store_test_vector(f"{op}_{rm}_{val1}_{val2}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
 
-def write3SrcTests(f, fmt):
+def write3SrcTests(test_f, cover_f, fmt):
     
     rm = ROUND_NEAR_EVEN
 
-    print("// 3 source operations, all basic type input combinations", file=f)
+    print("// 3 source operations, all basic type input combinations", file=test_f)
     for op in SRC3_OPS:
         print(f"OP IS: {op}")
         for val1 in BASIC_TYPES[fmt]:
             for val2 in BASIC_TYPES[fmt]:
                 for val3 in BASIC_TYPES[fmt]:
-                    print(coverfloat.reference(f"{op}_{rm}_{val1}_{val2}_{val3}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+                    run_and_store_test_vector(f"{op}_{rm}_{val1}_{val2}_{val3}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
 
 
 def main():
-    with open("./tests/testvectors/B1_tv.txt", "w") as f:
-        for fmt in FMTS:
-            write1SrcTests(f, fmt)
-            write2SrcTests(f, fmt)
-            write3SrcTests(f, fmt)
-            writeCvtTests (f, fmt)
+    with open("./tests/testvectors/B1_tv.txt", "w") as test_vectors, open("./tests/covervectors/B1_cv.txt", "w") as cover_vectors:
+        for fmt in FLOAT_FMTS:
+            write1SrcTests(test_vectors, cover_vectors, fmt)
+            write2SrcTests(test_vectors, cover_vectors, fmt)
+            write3SrcTests(test_vectors, cover_vectors, fmt)
+            writeCvtTests (test_vectors, cover_vectors, fmt)
             # writeResultTests(f, fmt)
 
 if __name__ == "__main__":

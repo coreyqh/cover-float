@@ -27,7 +27,7 @@ package coverfloat_pkg;
     const logic [31:0] OP_FNMADD = 32'h5_3; // negated (multiply-add)
     const logic [31:0] OP_FNMSUB = 32'h5_4; // negated (multiply-sub)
     const logic [31:0] OP_SQRT   = 32'h6_0;
-    const logic [31:0] OP_REM    = 32'h7_0;
+    const logic [31:0] OP_REM    = 32'h7_0; // TODO: unused? Remove?
     const logic [31:0] OP_CFI    = 32'h8_0;
     const logic [31:0] OP_CFF    = 32'h9_0;
     const logic [31:0] OP_CIF    = 32'hA_0;
@@ -77,5 +77,11 @@ package coverfloat_pkg;
     const int F32_M_BITS   = 23;
     const int F64_M_BITS   = 52;
     const int F128_M_BITS  = 112;
+
+    const int F16_P   = F16_M_BITS  + 1;
+    const int BF16_P  = BF16_M_BITS + 1;
+    const int F32_P   = F32_M_BITS  + 1;
+    const int F64_P   = F64_M_BITS  + 1;
+    const int F128_P  = F128_M_BITS + 1;
     
 endpackage

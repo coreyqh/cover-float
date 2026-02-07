@@ -12,9 +12,9 @@
 // `define COVER_B9
 `define COVER_B10
 // `define COVER_B11
-// `define COVER_B12
+`define COVER_B12
 // `define COVER_B13
-// `define COVER_B14
+`define COVER_B14
 // `define COVER_B15
 // `define COVER_B16
 // `define COVER_B17

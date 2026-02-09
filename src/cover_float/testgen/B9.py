@@ -1,8 +1,9 @@
 # Created By: Ryan Wolk (rwolk@hmc.edu) on 1/29/2026
 
-import coverfloat
 import random 
 import itertools
+from cover_float.reference import run_and_store_test_vector
+from cover_float.common.util import generate_test_vector
 
 from typing import Generator, List, TextIO
 
@@ -60,7 +61,7 @@ OP_FSGNJX = "00000103"
 
 TWO_SRC_OPS = [
     OP_DIV,
-    OP_REM,
+    # OP_REM,
     OP_MUL,
 ]
 
@@ -76,20 +77,22 @@ FMT_BF16   = "04" # 00000100
 
 def generate_checkerboards(length: int) -> Generator[str, None, None]:
     for zeros_length in range(1, length // 2 + 1):
-        for ones_length in range(1, length // 2 + 1):
-            pattern = '0' * zeros_length + '1' * ones_length
-            pattern *= length // (zeros_length + ones_length) + 1
-            yield pattern[:length]
-            yield pattern[::-1][:length]
+        # for ones_length in range(1, length // 2 + 1):
+        ones_length = zeros_length
+
+        pattern = '0' * zeros_length + '1' * ones_length
+        pattern *= length // (zeros_length + ones_length) + 1
+        yield pattern[:length]
+        yield pattern[::-1][:length]
 
 def generate_leading_and_trailing_zeros(length: int) -> Generator[str, None, None]:
-    for zeros_length in range(1, length):
+    for zeros_length in range(1, length + 1):
         pattern = '0' * zeros_length + '1' + bin(random.getrandbits(length))[2:]
         yield pattern[:length]
         yield pattern[:length][::-1]
 
 def generate_leading_and_trailing_ones(length: int) -> Generator[str, None, None]:
-    for ones_length in range(1, length):
+    for ones_length in range(1, length + 1):
         pattern = '1' * ones_length + '0' + bin(random.getrandbits(length))[2:]
         yield pattern[:length]
         yield pattern[:length][::-1]
@@ -104,20 +107,22 @@ def generate_with_k_ones(k: int, length: int, limit: int) -> Generator[str, None
         yield ''.join(bits)
 
 def generate_with_long_runs(min_run_length: int, length: int) -> Generator[str, None, None]:
-    for start in range(length - min_run_length + 1):
-        # Generate a pattern with random digits
-        pattern = list(bin(random.getrandbits(length))[2:].zfill(length))
+    # for start in range(length - min_run_length + 1):
+    start = random.randint(0, length - min_run_length)
 
-        # Fill in a run of ones
-        ones_pattern = pattern[:]
-        for i in range(start, start + min_run_length):
-            ones_pattern[i] = '1'
-        yield ''.join(ones_pattern)
+    # Generate a pattern with random digits
+    pattern = list(bin(random.getrandbits(length))[2:].zfill(length))
 
-        zeros_pattern = pattern[:]
-        for i in range(start, start + min_run_length):
-            zeros_pattern[i] = '0'
-        yield ''.join(zeros_pattern)
+    # Fill in a run of ones
+    ones_pattern = pattern[:]
+    for i in range(start, start + min_run_length):
+        ones_pattern[i] = '1'
+    yield ''.join(ones_pattern)
+
+    zeros_pattern = pattern[:]
+    for i in range(start, start + min_run_length):
+        zeros_pattern[i] = '0'
+    yield ''.join(zeros_pattern)
 
 FMT_INVAL  = "FF" # 11111111
 FMT_HALF   = "00" # 00000000
@@ -163,79 +168,76 @@ EXPONENT_BITS = {
     FMT_BF16 : 8
 }
 
-def generate_special_significands(fmt: str) -> List[List[str]]:
+def generate_special_significands(fmt: str) -> List[str]:
     mantissa_length = MANTISSA_BITS[fmt]
     ans = []
 
     # Leading zeros
-    ans.append(list(generate_leading_and_trailing_zeros(mantissa_length)))
+    ans.extend(generate_leading_and_trailing_zeros(mantissa_length))
 
     # Leading ones
-    ans.append(list(generate_leading_and_trailing_ones(mantissa_length)))
+    ans.extend(generate_leading_and_trailing_ones(mantissa_length))
 
     # Small number of 1s
-    small_ones = []
-    for k in range(1, mantissa_length // 4 + 1):
-        small_ones.extend(generate_with_k_ones(k, mantissa_length, 100))
-    ans.append(small_ones)
+    for k in range(1, mantissa_length // 2 + 1):
+        ans.extend(generate_with_k_ones(k, mantissa_length, 1))
 
     # Small number of 0s
-    small_zeros = []
-    for k in range(1, mantissa_length // 4 + 1):
-        small_zeros.extend(generate_with_k_ones(mantissa_length - k, mantissa_length, 100))
-    ans.append(small_zeros)
+    for k in range(1, mantissa_length // 2 + 1):
+        ans.extend(generate_with_k_ones(mantissa_length - k, mantissa_length, 1))
 
     # Checkerboard patterns
-    ans.append(list(generate_checkerboards(mantissa_length)))
+    ans.extend(generate_checkerboards(mantissa_length))
 
     # Long runs of 1s and 0s
-    long_runs = []
-    for run_length in range(mantissa_length // 4, mantissa_length // 2 + 1):
-        long_runs.extend(generate_with_long_runs(run_length, mantissa_length))
-    ans.append(long_runs)
+    for run_length in range(1, mantissa_length + 1):
+        ans.extend(generate_with_long_runs(run_length, mantissa_length))
 
     return ans
 
-def generate_test_vector_fmt(op, in1, in2, fmt1, fmt2, rnd_mode="00"):
-    zero_padding = '0' * 32
-    return f"{op}_{rnd_mode}_{in1:#032x}_{in2:#032x}_{zero_padding}_{fmt1}_{zero_padding}_{fmt2}_00\n"
+# def generate_test_vectors(special_significands: List[List[str]], fmt: str, test_f: TextIO, cover_f: TextIO) -> int:
+def generate_test_vectors(special_significands: List[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> int:
+    total_tests = len(special_significands) ** 2 * len(TWO_SRC_OPS) + len(special_significands) * len(ONE_SRC_OPS)
 
-def generate_test_vectors(special_significands: List[List[str]], fmt: str, f: TextIO) -> int:
-    total_significands = 0
+    for significand_a in special_significands:
+        sign = '0' # We need positive for sqrt
 
-    for significand_array in special_significands:
-        total_significands += len(significand_array)
-        for significand_a in significand_array:
-            sign = '0' # Only positive
-            # The idea here is to get a biased exponent of 1
-            exponent = bin(2 ** (EXPONENT_BITS[fmt] - 1))[2:].zfill(EXPONENT_BITS[fmt])
-            a = sign + exponent + significand_a
-            a = int(a, 2)
+        exponent = bin(2 ** (EXPONENT_BITS[fmt] - 1))[2:].zfill(EXPONENT_BITS[fmt])
+        a = sign + exponent + significand_a
+        a = int(a, 2)
 
-            for op in ONE_SRC_OPS:
-                test_vector = generate_test_vector_fmt(op, a, 0, fmt, fmt)
-                print(coverfloat.reference(test_vector), file=f)
+        # The only SRC1_OP is SQRT
+        test_vector = generate_test_vector(OP_SQRT, a, 0, 0, fmt, fmt)
+        run_and_store_test_vector(test_vector, test_f, cover_f)
 
-            for significands_by_type in special_significands:
-                for significand_b in random.sample(significands_by_type, 5):
-                    sign = '0' # Only positive
-                    # The idea here is to get a biased exponent of 1
-                    exponent = bin(2 ** (EXPONENT_BITS[fmt] - 1))[2:].zfill(EXPONENT_BITS[fmt])
-                    b = sign + exponent + significand_b
-                    b = int(b, 2)
+        for significand_b in special_significands:
+            for op in TWO_SRC_OPS:
+                sign = '0'
+                exponent = bin(2 ** (EXPONENT_BITS[fmt] - 1))[2:].zfill(EXPONENT_BITS[fmt])
+                a = sign + exponent + significand_a
+                # breakpoint()
+                a = int(a, 2)
 
-                    for op in TWO_SRC_OPS:
-                        test_vector = generate_test_vector_fmt(op, a, b, fmt, fmt)
-                        print(coverfloat.reference(test_vector), file=f)
+                sign = '0' # Only positive
+                # The idea here is to get a biased exponent of 1
+                exponent = bin(2 ** (EXPONENT_BITS[fmt] - 1))[2:].zfill(EXPONENT_BITS[fmt])
+                b = sign + exponent + significand_b
+                b = int(b, 2)
 
-    return total_significands * (len(special_significands) * 5 * len(TWO_SRC_OPS) + len(ONE_SRC_OPS))
+                test_vector = generate_test_vector(op, a, b, 0, fmt, fmt)
+                
+                run_and_store_test_vector(test_vector, test_f, cover_f)
+
+    return total_tests
+
 def main():
     total_tests: int = 0
 
-    with open("tests/testvectors/B9_tv.txt", "w") as f:
+    with open("tests/testvectors/B9_tv.txt", "w") as test_f, open("tests/covervectors/B9_cv.txt", "w") as cover_f:
         for fmt in FMTS_TO_TEST:
-            special_significands = list(generate_special_significands(fmt))
-            generated = generate_test_vectors(special_significands, fmt, f)
+            special_significands = generate_special_significands(fmt)
+
+            generated = generate_test_vectors(special_significands, fmt, test_f, cover_f)
             total_tests += generated
 
     print(f"Generated {total_tests} tests for B9.")

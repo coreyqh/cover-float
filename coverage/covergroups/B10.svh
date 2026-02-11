@@ -59,45 +59,45 @@ covergroup B10_cg (virtual coverfloat_interface CFI);
     F16_exp_diff: coverpoint $signed(int'(CFI.a[14:10]) - int'(CFI.b[14:10])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(F16_M_BITS + 4) : 0]};
-        bins mid_diff[] = {[-(F16_M_BITS + 4) : (F16_M_BITS + 4)]};
-        bins large_diff = {[ (F16_M_BITS + 4) : $]};
+        bins small_diff = {[-(F16_P + 5) : 0]};
+        bins mid_diff[] = {[-(F16_P + 4) : (F16_P + 4)]};
+        bins large_diff = {[ (F16_P + 5) : $]};
 
     }
 
     BF16_exp_diff: coverpoint $signed(int'(CFI.a[14:7]) - int'(CFI.b[14:7])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(BF16_M_BITS + 4) : 0]};
-        bins mid_diff[] = {[-(BF16_M_BITS + 4) : (BF16_M_BITS + 4)]};
-        bins large_diff = {[ (BF16_M_BITS + 4) : $]};
+        bins small_diff = {[-(BF16_P + 5) : 0]};
+        bins mid_diff[] = {[-(BF16_P + 4) : (BF16_P + 4)]};
+        bins large_diff = {[ (BF16_P + 5) : $]};
 
     }
 
     F32_exp_diff: coverpoint $signed(int'(CFI.a[30:23]) - int'(CFI.b[30:23])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(F32_M_BITS + 4) : 0]};
-        bins mid_diff[] = {[-(F32_M_BITS + 4) : (F32_M_BITS + 4)]};
-        bins large_diff = {[ (F32_M_BITS + 4) : $]};
+        bins small_diff = {[-(F32_P + 5) : 0]};
+        bins mid_diff[] = {[-(F32_P + 4) : (F32_P + 4)]};
+        bins large_diff = {[ (F32_P + 5) : $]};
 
     }
 
     F64_exp_diff: coverpoint $signed(int'(CFI.a[62:52]) - int'(CFI.b[62:52])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(F64_M_BITS + 4) : 0]};
-        bins mid_diff[] = {[-(F64_M_BITS + 4) : (F64_M_BITS + 4)]};
-        bins large_diff = {[ (F64_M_BITS + 4) : $]};
+        bins small_diff = {[-(F64_P + 5) : 0]};
+        bins mid_diff[] = {[-(F64_P + 4) : (F64_P + 4)]};
+        bins large_diff = {[ (F64_P + 5) : $]};
 
     }
 
     F128_exp_diff: coverpoint $signed(int'(CFI.a[126:112]) - int'(CFI.b[126:112])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(F128_M_BITS + 4) : 0]};
-        bins mid_diff[] = {[-(F128_M_BITS + 4) : (F128_M_BITS + 4)]};
-        bins large_diff = {[ (F128_M_BITS + 4) : $]};
+        bins small_diff = {[-(F128_P + 5) : 0]};
+        bins mid_diff[] = {[-(F128_P + 4) : (F128_P + 4)]};
+        bins large_diff = {[ (F128_P + 5) : $]};
 
     }
 

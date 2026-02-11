@@ -83,8 +83,8 @@ typedef struct {
 #define UINT128_TO_FLOAT32(f, x)  (f.v = (uint32_t) (x->lower & 0xFFFFFFFF))
 #define UINT128_TO_FLOAT64(f, x)  (f.v = (uint64_t) (x->lower))
 #define UINT128_TO_FLOAT128(f, x) do {                    \
-                                       f.v[0] = x->upper; \
-                                       f.v[1] = x->lower; \
+                                       f.v[1] = x->upper; \
+                                       f.v[0] = x->lower; \
                                      } while (0)
 
 #define FLOAT16_TO_UINT128(x, f)  do {                    \
@@ -103,8 +103,8 @@ typedef struct {
                                      } while (0)
 
 #define FLOAT128_TO_UINT128(x, f) do {                    \
-                                       x->upper = f.v[0]; \
-                                       x->lower = f.v[1]; \
+                                       x->upper = f.v[1]; \
+                                       x->lower = f.v[0]; \
                                      } while (0)
 
 void softFloat_clearFlags( uint_fast8_t );

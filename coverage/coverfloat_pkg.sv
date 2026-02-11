@@ -71,17 +71,194 @@ package coverfloat_pkg;
     
     // TODO: expand with other relvelant parameters
 
-    // Precision (p = number of significand bits)
-    const int F16_M_BITS   = 10;
-    const int BF16_M_BITS  = 7;
-    const int F32_M_BITS   = 23;
-    const int F64_M_BITS   = 52;
-    const int F128_M_BITS  = 112;
+    // Precision (p = number of significand bits + 1 implicit bits)
+    parameter int F16_M_BITS   = 10;
+    parameter int BF16_M_BITS  = 7;
+    parameter int F32_M_BITS   = 23;
+    parameter int F64_M_BITS   = 52;
+    parameter int F128_M_BITS  = 112;
 
-    const int F16_P   = F16_M_BITS  + 1;
-    const int BF16_P  = BF16_M_BITS + 1;
-    const int F32_P   = F32_M_BITS  + 1;
-    const int F64_P   = F64_M_BITS  + 1;
-    const int F128_P  = F128_M_BITS + 1;
-    
+    parameter int F16_P   = F16_M_BITS  + 1;
+    parameter int BF16_P  = BF16_M_BITS + 1;
+    parameter int F32_P   = F32_M_BITS  + 1;
+    parameter int F64_P   = F64_M_BITS  + 1;
+    parameter int F128_P  = F128_M_BITS + 1;
+
+    parameter int F16_E_UPPER  = 14;
+    parameter int F16_E_LOWER  = 10;
+    parameter int BF16_E_UPPER = 14;
+    parameter int BF16_E_LOWER = 7;
+    parameter int F32_E_UPPER  = 30;
+    parameter int F32_E_LOWER  = 23;
+    parameter int F64_E_UPPER  = 62;
+    parameter int F64_E_LOWER  = 52;
+    parameter int F128_E_UPPER = 126;
+    parameter int F128_E_LOWER = 112;
+
+    parameter int F16_M_UPPER  = F16_M_BITS - 1;
+    parameter int BF16_M_UPPER = BF16_M_BITS - 1;
+    parameter int F32_M_UPPER  = F32_M_BITS - 1;
+    parameter int F64_M_UPPER  = F64_M_BITS - 1;
+    parameter int F128_M_UPPER = F128_M_BITS - 1;
+
+
+    // Helper functions for difficult coverpoints
+
+    // Count leading zeros (from MSB downward)
+    function automatic int count_leading_zeros (
+        input logic [255:0] val,
+        input int width
+    );
+        int i;
+        begin
+            count_leading_zeros = 0;
+            for (i = width-1; i >= 0; i--) begin
+                if (val[i] == 0)
+                    count_leading_zeros++;
+                else
+                    break;
+            end
+        end
+    endfunction
+
+
+    // Count leading ones (from MSB downward)
+    function automatic int count_leading_ones (
+        input logic [255:0] val,
+        input int width
+    );
+        int i;
+        begin
+            count_leading_ones = 0;
+            for (i = width-1; i >= 0; i--) begin
+                if (val[i] == 1)
+                    count_leading_ones++;
+                else
+                    break;
+            end
+        end
+    endfunction
+
+
+    // Count trailing zeros (from LSB upward)
+    function automatic int count_trailing_zeros (
+        input logic [255:0] val,
+        input int width
+    );
+        int i;
+        begin
+            count_trailing_zeros = 0;
+            for (i = 0; i < width; i++) begin
+                if (val[i] == 0)
+                    count_trailing_zeros++;
+                else
+                    break;
+            end
+        end
+    endfunction
+
+
+    // Count trailing ones (from LSB upward)
+    function automatic int count_trailing_ones (
+        input logic [255:0] val,
+        input int width
+    );
+        int i;
+        begin
+            count_trailing_ones = 0;
+            for (i = 0; i < width; i++) begin
+                if (val[i] == 1)
+                    count_trailing_ones++;
+                else
+                    break;
+            end
+        end
+    endfunction
+
+    // Check for repeating checker pattern with optional partial final run
+    // Returns signed run length:
+    //   < 0 : first run is 1s
+    //   > 0 : first run is 0s
+    //   = 0 : invalid pattern
+    function automatic int checker_run_length (
+        input logic [255:0] val,
+        input int width
+    );
+        int run_len;
+        int i;
+        int run_idx;
+        logic first_bit;
+        logic expected;
+
+        begin
+            checker_run_length = 0;
+
+            if (width < 2)
+                return 0;
+
+            // Determine initial run length from MSB
+            first_bit = val[width-1];
+            run_len   = 0;
+
+            for (i = width-1; i >= 0; i--) begin
+                if (val[i] == first_bit)
+                    run_len++;
+                else
+                    break;
+            end
+
+            // Run length must be reasonable
+            if (run_len == 0 || run_len > (width >> 1))
+                return 0;
+
+            // Verify alternating pattern, allowing partial final run
+            for (i = width-1; i >= 0; i--) begin
+                run_idx  = (width-1 - i) / run_len;
+                expected = (run_idx % 2 == 0) ? first_bit : ~first_bit;
+
+                if (val[i] != expected)
+                    return 0;
+            end
+
+            // Encode polarity in sign
+            checker_run_length = first_bit ? -run_len : run_len;
+        end
+    endfunction
+
+    // Find the longest contiguous run of ones in the signal
+    // Returns length of longest run, or 0 if no ones
+    function automatic int longest_seq_of_ones (
+        input logic [255:0] val,
+        input int width
+    );
+        int i;
+        int curr_len;
+        int max_len;
+
+        begin
+            longest_seq_of_ones = 0;
+
+            if (width <= 0)
+                return 0;
+
+            curr_len = 0;
+            max_len  = 0;
+
+            // Scan from LSB to MSB (direction does not matter here)
+            for (i = 0; i < width; i++) begin
+                if (val[i] == 1) begin
+                    curr_len++;
+                    if (curr_len > max_len)
+                        max_len = curr_len;
+                end
+                else begin
+                    curr_len = 0;
+                end
+            end
+
+            longest_seq_of_ones = max_len;
+        end
+    endfunction
+
+
 endpackage

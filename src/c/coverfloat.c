@@ -420,8 +420,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = 0;
-                    resultf.v[1] = f128_eq(af, bf);
+                    resultf.v[1] = 0;
+                    resultf.v[0] = f128_eq(af, bf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -474,8 +474,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = 0;
-                    resultf.v[1] = f128_lt(af, bf);
+                    resultf.v[1] = 0;
+                    resultf.v[0] = f128_lt(af, bf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -528,8 +528,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = 0;
-                    resultf.v[1] = f128_le(af, bf);
+                    resultf.v[1] = 0;
+                    resultf.v[0] = f128_le(af, bf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -690,8 +690,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | (bf.v[0] & 0x8000000000000000);
-                    resultf.v[1] = af.v[1];
+                    resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | (bf.v[1] & 0x8000000000000000);
+                    resultf.v[0] = af.v[0];
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -744,8 +744,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | (~(bf.v[0]) & 0x8000000000000000);
-                    resultf.v[1] = af.v[1];
+                    resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | (~(bf.v[1]) & 0x8000000000000000);
+                    resultf.v[0] = af.v[0];
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -798,8 +798,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | ((af.v[0] ^ bf.v[0]) & 0x8000000000000000);
-                    resultf.v[1] = af.v[1];
+                    resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | ((af.v[1] ^ bf.v[1]) & 0x8000000000000000);
+                    resultf.v[0] = af.v[0];
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -1251,8 +1251,8 @@ int reference_model( const uint32_t       * op,
                 case FMT_QUAD: {
                     float128_t af, resultf;
                     UINT128_TO_FLOAT128(af, a);
-                    resultf.v[0] = 0;
-                    resultf.v[1] = f128_classify(af);
+                    resultf.v[1] = 0;
+                    resultf.v[0] = f128_classify(af);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -1366,7 +1366,7 @@ int reference_model( const uint32_t       * op,
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
                     UINT128_TO_FLOAT128(cf, c);
-                    cf.v[0] ^= 0x8000000000000000; // flip sign
+                    cf.v[1] ^= 0x8000000000000000; // flip sign
                     resultf = f128_mulAdd(af, bf, cf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
@@ -1431,8 +1431,8 @@ int reference_model( const uint32_t       * op,
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
                     UINT128_TO_FLOAT128(cf, c);
-                    af.v[0] ^= 0x8000000000000000; // flip sign
-                    cf.v[0] ^= 0x8000000000000000; // flip sign
+                    af.v[1] ^= 0x8000000000000000; // flip sign
+                    cf.v[1] ^= 0x8000000000000000; // flip sign
                     resultf = f128_mulAdd(af, bf, cf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
@@ -1497,7 +1497,7 @@ int reference_model( const uint32_t       * op,
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
                     UINT128_TO_FLOAT128(cf, c);
-                    af.v[0] ^= 0x8000000000000000; // flip sign
+                    af.v[1] ^= 0x8000000000000000; // flip sign
                     resultf = f128_mulAdd(af, bf, cf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
@@ -1544,9 +1544,9 @@ int reference_model( const uint32_t       * op,
 float128_t f128_min(float128_t a, float128_t b) 
 { 
     bool less = f128_lt_quiet(a, b) || 
-                (f128_eq(a, b) && signF128UI64(a.v[0])); 
+                (f128_eq(a, b) && signF128UI64(a.v[1])); 
 
-    if (isNaNF128UI(a.v[0], a.v[1]) && isNaNF128UI(b.v[0], b.v[1])) { 
+    if (isNaNF128UI(a.v[1], a.v[0]) && isNaNF128UI(b.v[1], b.v[0])) { 
         union ui128_f128 ui; 
         ui.ui.v64 = defaultNaNF128UI64; 
         ui.ui.v0  = defaultNaNF128UI0; 
@@ -1559,9 +1559,9 @@ float128_t f128_min(float128_t a, float128_t b)
 float128_t f128_max(float128_t a, float128_t b)
 {
     bool greater = f128_lt_quiet(b, a) ||
-                   (f128_eq(b, a) && signF128UI64(b.v[0]));
+                   (f128_eq(b, a) && signF128UI64(b.v[1]));
 
-    if (isNaNF128UI(a.v[0], a.v[1]) && isNaNF128UI(b.v[0], b.v[1])) {
+    if (isNaNF128UI(a.v[1], a.v[0]) && isNaNF128UI(b.v[1], b.v[0])) {
         union ui128_f128 ui;
         ui.ui.v64 = defaultNaNF128UI64;
         ui.ui.v0  = defaultNaNF128UI0;

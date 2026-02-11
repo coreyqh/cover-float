@@ -2,10 +2,10 @@
 #define COVERFLOAT_H_INCLUDED
 
 #include <stdint.h>
-#include "../submodules/spike/softfloat/platform.h"
-#include "../submodules/spike/softfloat/internals.h"
-#include "../submodules/spike/softfloat/specialize.h"
-#include "../submodules/spike/softfloat/softfloat.h"
+#include "softfloat/platform.h"
+#include "softfloat/internals.h"
+#include "softfloat/specialize.h"
+#include "softfloat/softfloat.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,6 +16,8 @@ extern "C" {
 
 #define TEST_VECTOR_WIDTH_HEX  144
 #define COVER_VECTOR_WIDTH_HEX 201
+
+#define COVER_VECTOR_WIDTH_HEX_WITH_SEPARATORS (COVER_VECTOR_WIDTH_HEX + 11)
 
 // #define TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS (TEST_VECTOR_WIDTH_HEX + 8)
 // #define MAX_LINE_LEN (TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS + 10)
@@ -81,8 +83,8 @@ typedef struct {
 #define UINT128_TO_FLOAT32(f, x)  (f.v = (uint32_t) (x->lower & 0xFFFFFFFF))
 #define UINT128_TO_FLOAT64(f, x)  (f.v = (uint64_t) (x->lower))
 #define UINT128_TO_FLOAT128(f, x) do {                    \
-                                       f.v[0] = x->upper; \
-                                       f.v[1] = x->lower; \
+                                       f.v[1] = x->upper; \
+                                       f.v[0] = x->lower; \
                                      } while (0)
 
 #define FLOAT16_TO_UINT128(x, f)  do {                    \
@@ -101,8 +103,8 @@ typedef struct {
                                      } while (0)
 
 #define FLOAT128_TO_UINT128(x, f) do {                    \
-                                       x->upper = f.v[0]; \
-                                       x->lower = f.v[1]; \
+                                       x->upper = f.v[1]; \
+                                       x->lower = f.v[0]; \
                                      } while (0)
 
 void softFloat_clearFlags( uint_fast8_t );

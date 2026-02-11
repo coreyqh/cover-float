@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include "coverfloat.h"
 
 void softFloat_clearFlags( uint_fast8_t clearMask) {
@@ -419,8 +420,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = 0;
-                    resultf.v[1] = f128_eq(af, bf);
+                    resultf.v[1] = 0;
+                    resultf.v[0] = f128_eq(af, bf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -473,8 +474,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = 0;
-                    resultf.v[1] = f128_lt(af, bf);
+                    resultf.v[1] = 0;
+                    resultf.v[0] = f128_lt(af, bf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -527,8 +528,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = 0;
-                    resultf.v[1] = f128_le(af, bf);
+                    resultf.v[1] = 0;
+                    resultf.v[0] = f128_le(af, bf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -689,8 +690,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | (bf.v[0] & 0x8000000000000000);
-                    resultf.v[1] = af.v[1];
+                    resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | (bf.v[1] & 0x8000000000000000);
+                    resultf.v[0] = af.v[0];
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -743,8 +744,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | (~(bf.v[0]) & 0x8000000000000000);
-                    resultf.v[1] = af.v[1];
+                    resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | (~(bf.v[1]) & 0x8000000000000000);
+                    resultf.v[0] = af.v[0];
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -797,8 +798,8 @@ int reference_model( const uint32_t       * op,
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | ((af.v[0] ^ bf.v[0]) & 0x8000000000000000);
-                    resultf.v[1] = af.v[1];
+                    resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | ((af.v[1] ^ bf.v[1]) & 0x8000000000000000);
+                    resultf.v[0] = af.v[0];
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -1250,8 +1251,8 @@ int reference_model( const uint32_t       * op,
                 case FMT_QUAD: {
                     float128_t af, resultf;
                     UINT128_TO_FLOAT128(af, a);
-                    resultf.v[0] = 0;
-                    resultf.v[1] = f128_classify(af);
+                    resultf.v[1] = 0;
+                    resultf.v[0] = f128_classify(af);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
                 }
@@ -1284,7 +1285,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    UINT128_TO_FLOAT32(cf, b);
+                    UINT128_TO_FLOAT32(cf, c);
                     resultf = f32_mulAdd(af, bf, cf);
                     FLOAT32_TO_UINT128(result, resultf);
                     break;
@@ -1294,7 +1295,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    UINT128_TO_FLOAT64(cf, b);
+                    UINT128_TO_FLOAT64(cf, c);
                     resultf = f64_mulAdd(af, bf, cf);
                     FLOAT64_TO_UINT128(result, resultf);
                     break;
@@ -1314,7 +1315,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(cf, b);
+                    UINT128_TO_FLOAT16(cf, c);
                     resultf = f16_mulAdd(af, bf, cf);
                     FLOAT16_TO_UINT128(result, resultf);
                     break;
@@ -1342,7 +1343,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    UINT128_TO_FLOAT32(cf, b);
+                    UINT128_TO_FLOAT32(cf, c);
                     cf.v ^= 0x80000000; // flip sign
                     resultf = f32_mulAdd(af, bf, cf);
                     FLOAT32_TO_UINT128(result, resultf);
@@ -1353,7 +1354,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    UINT128_TO_FLOAT64(cf, b);
+                    UINT128_TO_FLOAT64(cf, c);
                     cf.v ^= 0x8000000000000000; // flip sign
                     resultf = f64_mulAdd(af, bf, cf);
                     FLOAT64_TO_UINT128(result, resultf);
@@ -1365,7 +1366,7 @@ int reference_model( const uint32_t       * op,
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
                     UINT128_TO_FLOAT128(cf, c);
-                    cf.v[0] ^= 0x8000000000000000; // flip sign
+                    cf.v[1] ^= 0x8000000000000000; // flip sign
                     resultf = f128_mulAdd(af, bf, cf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
@@ -1375,7 +1376,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(cf, b);
+                    UINT128_TO_FLOAT16(cf, c);
                     cf.v ^= 0x8000; // flip sign
                     resultf = f16_mulAdd(af, bf, cf);
                     FLOAT16_TO_UINT128(result, resultf);
@@ -1405,7 +1406,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    UINT128_TO_FLOAT32(cf, b);
+                    UINT128_TO_FLOAT32(cf, c);
                     af.v ^= 0x80000000; // flip sign
                     cf.v ^= 0x80000000; // flip sign
                     resultf = f32_mulAdd(af, bf, cf);
@@ -1417,7 +1418,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    UINT128_TO_FLOAT64(cf, b);
+                    UINT128_TO_FLOAT64(cf, c);
                     af.v ^= 0x8000000000000000; // flip sign
                     cf.v ^= 0x8000000000000000; // flip sign
                     resultf = f64_mulAdd(af, bf, cf);
@@ -1430,8 +1431,8 @@ int reference_model( const uint32_t       * op,
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
                     UINT128_TO_FLOAT128(cf, c);
-                    af.v[0] ^= 0x8000000000000000; // flip sign
-                    cf.v[0] ^= 0x8000000000000000; // flip sign
+                    af.v[1] ^= 0x8000000000000000; // flip sign
+                    cf.v[1] ^= 0x8000000000000000; // flip sign
                     resultf = f128_mulAdd(af, bf, cf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
@@ -1441,7 +1442,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(cf, b);
+                    UINT128_TO_FLOAT16(cf, c);
                     af.v ^= 0x8000; // flip sign
                     cf.v ^= 0x8000; // flip sign
                     resultf = f16_mulAdd(af, bf, cf);
@@ -1473,7 +1474,7 @@ int reference_model( const uint32_t       * op,
                     float32_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT32(af, a);
                     UINT128_TO_FLOAT32(bf, b);
-                    UINT128_TO_FLOAT32(cf, b);
+                    UINT128_TO_FLOAT32(cf, c);
                     af.v ^= 0x80000000; // flip sign
                     resultf = f32_mulAdd(af, bf, cf);
                     FLOAT32_TO_UINT128(result, resultf);
@@ -1484,7 +1485,7 @@ int reference_model( const uint32_t       * op,
                     float64_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT64(af, a);
                     UINT128_TO_FLOAT64(bf, b);
-                    UINT128_TO_FLOAT64(cf, b);
+                    UINT128_TO_FLOAT64(cf, c);
                     af.v ^= 0x8000000000000000; // flip sign
                     resultf = f64_mulAdd(af, bf, cf);
                     FLOAT64_TO_UINT128(result, resultf);
@@ -1496,7 +1497,7 @@ int reference_model( const uint32_t       * op,
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
                     UINT128_TO_FLOAT128(cf, c);
-                    af.v[0] ^= 0x8000000000000000; // flip sign
+                    af.v[1] ^= 0x8000000000000000; // flip sign
                     resultf = f128_mulAdd(af, bf, cf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
@@ -1506,7 +1507,7 @@ int reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(cf, b);
+                    UINT128_TO_FLOAT16(cf, c);
                     af.v ^= 0x8000; // flip sign
                     resultf = f16_mulAdd(af, bf, cf);
                     FLOAT16_TO_UINT128(result, resultf);
@@ -1543,9 +1544,9 @@ int reference_model( const uint32_t       * op,
 float128_t f128_min(float128_t a, float128_t b) 
 { 
     bool less = f128_lt_quiet(a, b) || 
-                (f128_eq(a, b) && signF128UI64(a.v[0])); 
+                (f128_eq(a, b) && signF128UI64(a.v[1])); 
 
-    if (isNaNF128UI(a.v[0], a.v[1]) && isNaNF128UI(b.v[0], b.v[1])) { 
+    if (isNaNF128UI(a.v[1], a.v[0]) && isNaNF128UI(b.v[1], b.v[0])) { 
         union ui128_f128 ui; 
         ui.ui.v64 = defaultNaNF128UI64; 
         ui.ui.v0  = defaultNaNF128UI0; 
@@ -1558,9 +1559,9 @@ float128_t f128_min(float128_t a, float128_t b)
 float128_t f128_max(float128_t a, float128_t b)
 {
     bool greater = f128_lt_quiet(b, a) ||
-                   (f128_eq(b, a) && signF128UI64(b.v[0]));
+                   (f128_eq(b, a) && signF128UI64(b.v[1]));
 
-    if (isNaNF128UI(a.v[0], a.v[1]) && isNaNF128UI(b.v[0], b.v[1])) {
+    if (isNaNF128UI(a.v[1], a.v[0]) && isNaNF128UI(b.v[1], b.v[0])) {
         union ui128_f128 ui;
         ui.ui.v64 = defaultNaNF128UI64;
         ui.ui.v0  = defaultNaNF128UI0;
@@ -1571,8 +1572,9 @@ float128_t f128_max(float128_t a, float128_t b)
 }
 
 
-// Kind of hacky right now, I don't like how it is repeating itself ...
 int coverfloat_runtestvector(const char* input, size_t buffer_size, char* output, size_t output_size, bool suppress_error_check) {
+    (void)buffer_size; // Unused for now, in theory it should be passed to sscanf, but that is not supported :(
+
     char     op_str[MAX_TOKEN_LEN + 1]; // plus one for space for null terminator
     char     rm_str[MAX_TOKEN_LEN + 1];
     char      a_str[MAX_TOKEN_LEN + 1];
@@ -1586,7 +1588,9 @@ int coverfloat_runtestvector(const char* input, size_t buffer_size, char* output
 
     if (sscanf(input, "%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_ \t\r\n]", 
         op_str, rm_str, a_str, b_str, c_str, opFmt_str, res_str, resFmt_str, flags_str) != 9) {
-        return 2; // PLACEHOLDER FOR NOW (FIXME)
+        snprintf(output, output_size, "Error: malformed testvector: %s\n", input);
+
+        return EXIT_FAILURE; 
     }
 
 
@@ -1630,8 +1634,9 @@ int coverfloat_runtestvector(const char* input, size_t buffer_size, char* output
     if (!suppress_error_check) {
         if (res.upper   != newRes.upper   || res.lower   != newRes.lower ||     // outputs don't match
             flags != newFlags                                              ) {  // flags   don't match
-            fprintf(stderr, "Error: testvector output doesn't match expected value\nTestVector output: %016llx%016llx\nExpected output:   %016llx%016llx\nTestVector Flags: %02x\nExpected Flags: %02x\nOperation: %08x\n", 
+            snprintf(output, output_size, "Error: testvector output doesn't match expected value\nTestVector output: %016llx%016llx\nExpected output:   %016llx%016llx\nTestVector Flags: %02x\nExpected Flags: %02x\nOperation: %08x\n", 
                 res.upper, res.lower, newRes.upper, newRes.lower, flags, newFlags, op);
+
             return EXIT_FAILURE;
         }
     } 
@@ -1639,154 +1644,3 @@ int coverfloat_runtestvector(const char* input, size_t buffer_size, char* output
     return EXIT_SUCCESS;
 }
 
-
-
-int main(int argc, char *argv[]) {
-    bool suppress_error_check = false;
-
-    if (argc < 3 || argc > 4) {
-        fprintf(stderr, "Usage: %s <input_file|- for stdin> <output_file|- for stdout> [--no-error-check]\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    if (argc == 4 && strcmp(argv[3], "--no-error-check") == 0) {
-        suppress_error_check = true;
-    }
-
-
-    FILE *fin = strcmp(argv[1], "-") == 0 ? stdin : fopen(argv[1], "r");
-    if (!fin) {
-        perror("Error opening input file");
-        return EXIT_FAILURE;
-    }
-
-    FILE *fout = strcmp(argv[2], "-") == 0 ? stdout : fopen(argv[2], "w");
-    if (!fout) {
-        perror("Error opening output file");
-        if (fin != stdin) fclose(fin);
-        return EXIT_FAILURE;
-    }
-
-    char line[MAX_LINE_LEN];
-    while (fgets(line, sizeof(line), fin)) {
-        // Strip newline
-        line[strcspn(line, "\r\n")] = '\0';
-
-        char     op_str[MAX_TOKEN_LEN + 1]; // plus one for space for null terminator
-        char     rm_str[MAX_TOKEN_LEN + 1];
-        char      a_str[MAX_TOKEN_LEN + 1];
-        char      b_str[MAX_TOKEN_LEN + 1];
-        char      c_str[MAX_TOKEN_LEN + 1];
-        char  opFmt_str[MAX_TOKEN_LEN + 1];
-        char    res_str[MAX_TOKEN_LEN + 1];
-        char resFmt_str[MAX_TOKEN_LEN + 1];
-        char  flags_str[MAX_TOKEN_LEN + 1];
-
-        if (line[0] == '/' && line[1] == '/') continue;
-
-        if (sscanf(line, "%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_ \t\r\n]", 
-            op_str, rm_str, a_str, b_str, c_str, opFmt_str, res_str, resFmt_str, flags_str) != 9) {
-            fprintf(stderr, "Skipping malformed line: %s\n", line);
-            continue;
-        }
-
-
-        // unpack test vector tokens into integers to pass to the reference model
-
-        uint32_t       op        = parse_hex_128(op_str       ).lower;
-        uint8_t        rm        = parse_hex_128(rm_str       ).lower;
-        uint128_t      a         = parse_hex_128(a_str        )      ;
-        uint128_t      b         = parse_hex_128(b_str        )      ;
-        uint128_t      c         = parse_hex_128(c_str        )      ;
-        uint8_t        opFmt     = parse_hex_128(opFmt_str    ).lower;
-        uint8_t        resFmt    = parse_hex_128(resFmt_str   ).lower;
-        uint128_t      res       = parse_hex_128(res_str      )      ;
-        uint8_t        flags     = parse_hex_128(flags_str    ).lower;
-        
-        
-        uint128_t      newRes;
-        uint8_t        newFlags;
-        intermResult_t intermRes;
-
-
-        // Call reference model
-                
-        int success = reference_model(&op,
-                                      &rm,
-                                      &a, 
-                                      &b, 
-                                      &c, 
-                                      &opFmt, 
-                                      &resFmt,
-
-                                      &newRes,
-                                      &newFlags,
-                                      &intermRes );
-
-        if (success == EXIT_FAILURE) return EXIT_FAILURE;
-
-        // Write cover vector (append intermediate result to test vector)
-
-        fprintf(fout, "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx%016llx%016llx\n", 
-                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
-                        intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
-        /*
-        switch (resFmt) {
-            // if (suppress_error_check) {
-            //     line = "%08x_%02x_%016x_%016x_%016x_%016x_%016x_%016x_%02x_%016x_%016x_%02x_%02x"
-            // }
-
-            case FMT_QUAD: {
-                fprintf(fout, "%08x_%02x_%016x%016x_%016x%016x_%016x%016x_%02x_%016x%016x_%02x_%02x_%01x_%08x_%016x%016x%016x\n", 
-                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
-                        intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
-                break;
-            }
-            case FMT_DOUBLE: {
-                fprintf(fout, "%08x_%02x_%016x%016x_%016x%016x_%016x%016x_%02x_%016x%016x_%02x_%02x_%01x_%08x_%016x%016x%016x\n", 
-                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
-                        intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
-                break;
-            }
-            case FMT_SINGLE: {
-                fprintf(fout, "%08x_%02x_%016x%016x_%016x%016x_%016x%016x_%02x_%016x%016x_%02x_%02x_%01x_%08x_%08x%08x%016x%016x\n", 
-                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
-                        intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
-                break;
-            }
-            case FMT_HALF: {
-                fprintf(fout, "%08x_%02x_%016x%016x_%016x%016x_%016x%016x_%02x_%016x%016x_%02x_%02x_%01x_%08x_%04x%012x%016x%016x\n", 
-                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
-                        intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
-                break;
-            }
-            case FMT_BF16: {
-                fprintf(fout, "%08x_%02x_%016x%016x_%016x%016x_%016x%016x_%02x_%016x%016x_%02x_%02x_%01x_%08x_%04x%012x%016x%016x\n", 
-                        op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt, newFlags, 
-                        intermRes.sign, intermRes.exp, intermRes.sig64, 0x0, intermRes.sig0, intermRes.sigExtra);
-                break;
-            }
-        }
-            */
-
-
-        // printf("INTERM SIG IS %016x\n\n", intermRes.sig64);
-
-        // confirm softfloat output matches testvectors
-        if (!suppress_error_check) {
-            if (res.upper   != newRes.upper   || res.lower   != newRes.lower ||     // outputs don't match
-                flags != newFlags                                              ) {  // flags   don't match
-                fprintf(stderr, "Error: testvector output doesn't match expected value\nTestVector output: %016llx%016llx\nExpected output:   %016llx%016llx\nTestVector Flags: %02x\nExpected Flags: %02x\nOperation: %08x\n", 
-                    res.upper, res.lower, newRes.upper, newRes.lower, flags, newFlags, op);
-                fclose(fin);
-                fclose(fout);
-                return EXIT_FAILURE;
-            }
-        } 
-    }
-
-    if (fin  != stdin)  fclose(fin);
-    if (fout != stdout) fclose(fout);
-
-    return EXIT_SUCCESS;
-}

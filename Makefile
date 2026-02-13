@@ -29,6 +29,9 @@ B10:
 B12:
 	uv run --managed-python cover-float-testgen --model B12
 
+B11:
+	uv run --managed-python cover-float-testgen --model B11
+
 # Clean target to remove build artifacts
 clean:
 	@echo "Cleaning build directory..."

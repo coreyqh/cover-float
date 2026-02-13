@@ -13,8 +13,8 @@
 
 
 import random
-import subprocess
-import coverfloat
+from cover_float.reference import run_and_store_test_vector
+from cover_float.common.constants import *
 
 TEST_VECTOR_WIDTH_HEX  = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = (TEST_VECTOR_WIDTH_HEX + 8)
@@ -84,7 +84,7 @@ def decimalComponentsToHex(fmt, sign, biased_exp, mantissa):
 
 
 
-def generate_b14_tests(f,fmt):
+def generate_b14_tests(test_f,cover_f,fmt):
     p = MANTISSA_BITS[fmt] + 1 #defines the precision we are working with
     bias = (1 << (EXPONENT_BITS[fmt] - 1)) - 1 #calculates the correct bias depending on fmt
     min_exp = BIASED_EXP[fmt][0]
@@ -151,12 +151,12 @@ def generate_b14_tests(f,fmt):
                 hex_b = decimalComponentsToHex(fmt, sign_b, exp_b, mant_b)
                 hex_c = decimalComponentsToHex(fmt, sign_c, exp_c, mant_c)  
 
-                print(coverfloat.reference(f"{op}_{ROUND_NEAR_EVEN}_{hex_a}_{hex_b}_{hex_c}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+                run_and_store_test_vector(f"{op}_{ROUND_NEAR_EVEN}_{hex_a}_{hex_b}_{hex_c}_{fmt}_{32*'0'}_{fmt}_00",test_f,cover_f)
 
 def main():
-    with open("./tests/testvectors/B14_tv.txt", "w") as f:
+    with open("./tests/testvectors/B14_tv.txt", "w") as test_f, open("./tests/covervectors/B14_cv.txt", "w") as cover_f:
         for fmt in FMTS:
-            generate_b14_tests(f,fmt)
+            generate_b14_tests(test_f,cover_f,fmt)
 
 
 if __name__ == "__main__":

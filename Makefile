@@ -30,7 +30,7 @@ B12:
 	uv run --managed-python cover-float-testgen --model B12
 
 B14:
-	python3 script/B14.py && ./build/coverfloat_reference ./tests/testvectors/B14_tv.txt ./tests/covervectors/B14_cv.txt
+	uv run --managed-python cover-float-testgen --model B14
 	# TODO: Add more as needed
 
 # Clean target to remove build artifacts

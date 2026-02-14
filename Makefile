@@ -2,7 +2,7 @@
 
 RM_CMD ?= rm -rf
 
-.PHONY: build clean sim all B1 B2 B9 B10 B12
+.PHONY: build clean sim all B1 B9 B10 B12
 
 # Notice that we pass --managed-python, we do this so that uv (scikit-build-core)
 # will have a python enviornment with Python.h to build with.
@@ -23,10 +23,6 @@ parse_vectors = @mkdir -p tests/readable && uv run --managed-python script/parse
 B1:
 	uv run --managed-python cover-float-testgen --model B1
 	$(call parse_vectors,B1)
-
-B2:
-	uv run --managed-python cover-float-testgen --model B2
-	$(call parse_vectors,B2)
 
 B9:
 	uv run --managed-python cover-float-testgen --model B9

@@ -1075,7 +1075,11 @@ int reference_model( const uint32_t       * op,
                             break;
                         }
                         case FMT_BF16: {
-                            bfloat16_t resultf = f32_to_bf16(f128_to_f32(af));
+                            softFloat_setRoundingMode(softfloat_round_odd);
+                            float32_t af_32 = f128_to_f32(af);
+                            softFloat_setRoundingMode(*rm);
+
+                            bfloat16_t resultf = f32_to_bf16(af_32);
                             FLOAT16_TO_UINT128(result, resultf);
                             break;
                         }

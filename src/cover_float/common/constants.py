@@ -47,6 +47,13 @@ FMT_ULONG  = "C2" # 11000010
 FLOAT_FMTS = [FMT_SINGLE, FMT_DOUBLE, FMT_QUAD, FMT_HALF, FMT_BF16]
 INT_FMTS   = [FMT_INT, FMT_UINT, FMT_LONG, FMT_ULONG]
 
+INT_SIZES = {
+    FMT_INT: 32,
+    FMT_UINT: 32,
+    FMT_LONG: 64,
+    FMT_ULONG: 64,
+}
+
 # Codes for rounding modes in test vectors
 
 ROUND_NEAR_EVEN   = "00"

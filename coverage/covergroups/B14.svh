@@ -61,7 +61,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
      ************************************************************************/
 
     // HALF
-    F16_madd_shift: coverpoint $signed(int'(CFI.result[14:10]) - int'(CFI.c[14:10])) {
+    F16_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_HALF) - int'(CFI.c[14:10])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(2*F16_M_BITS + 2) : 0]};
@@ -71,7 +71,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     }
 
     // BF16
-    BF16_madd_shift: coverpoint $signed(int'(CFI.result[14:7]) - int'(CFI.c[14:7])) {
+    BF16_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_BF16) - int'(CFI.c[14:7])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(2*BF16_M_BITS + 2) : 0]};
@@ -80,7 +80,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     }
 
     // SINGLE
-    F32_madd_shift: coverpoint $signed(int'(CFI.result[30:23]) - int'(CFI.c[30:23])) {
+    F32_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_SINGLE) - int'(CFI.c[30:23])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(2*F32_M_BITS + 2) : 0]};
@@ -89,7 +89,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     }
 
     // DOUBLE
-    F64_madd_shift: coverpoint $signed(int'(CFI.result[62:52]) - int'(CFI.c[62:52])) {
+    F64_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_DOUBLE) - int'(CFI.c[62:52])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(2*F64_M_BITS + 2) : 0]};
@@ -98,7 +98,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     }
 
     // QUAD
-    F128_madd_shift: coverpoint $signed(int'(CFI.result[126:112]) - int'(CFI.c[126:112])) {
+    F128_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_QUAD) - int'(CFI.c[126:112])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(2*F128_M_BITS + 2) : 0]};

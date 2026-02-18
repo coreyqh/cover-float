@@ -17,6 +17,8 @@ SRC3_OPS = [
             common.OP_FNMADD,
             common.OP_FNMSUB]
 
+TESTING = False
+
 # OP_QC     = "000000B0"
 # OP_FEQ    = "000000B1"
 # OP_SC     = "000000C0"
@@ -59,50 +61,17 @@ def generate_test_vector(op, in1, in2, in3, fmt1, fmt2, rnd_mode="00"):
 def extract_rounding_info(cover_vector):
     fields = cover_vector.split('_')
     sgn = fields[-3]
-    exp = int(fields[-2], 16)
     result_fmt = fields[-5]
-    # Sketchy convert to signed int
-    signed_exp = int.from_bytes(exp.to_bytes(4, 'little', signed=False), 'little', signed=True)
     
+    # Place in a leading one so that we get all the significant figures possible
     interm_significand = int('1' + fields[-1], 16)
-    # if result_fmt == common.FMT_QUAD:
-    #     interm_significand = bin(interm_significand)[2:][16:]
-    # else:
-    #     interm_significand = bin(interm_significand)[2:][2:]
     interm_significand = bin(interm_significand)[2:][1:]
-    if signed_exp < 0:
-        interm_significand = '0' * (-signed_exp + 1) + interm_significand
-
-    # breakpoint()
 
     mantissa_length = common.MANTISSA_BITS[result_fmt]
-
-    # if result_fmt == common.FMT_BF16:
-    #     return { 'Sign': 0, 'LSB': 0, 'Guard': 0, 'Sticky': 0 }
-    if interm_significand == '0':
-        # breakpoint()
-        return { 'Sign': 2, 'LSB': 0, 'Guard': 0, 'Sticky': 0 }
     
-    # if (signed_exp > 0 and int(fields[-1][0], 16) & 0x4 == 0) and not (result_fmt == common.FMT_QUAD and fields[-1][:4] == '0001'):
-    #     breakpoint()
-
     lsb = interm_significand[mantissa_length - 1]
     guard = interm_significand[mantissa_length]
     sticky = interm_significand[mantissa_length + 1:]
-
-    # if result_fmt == common.FMT_QUAD:
-    #     quad_offset = 15
-    #     lsb = interm_significand[mantissa_length - 1 + quad_offset]
-    #     guard = interm_significand[mantissa_length + quad_offset]
-    #     sticky = interm_significand[mantissa_length + 1 + quad_offset:]
-
-
-    f32_mantissa = int(fields[-1][:16], 16)
-
-    # breakpoint()
-
-    # print(bin(f32_mantissa & 0x1ff))
-    # print(sticky)
 
     return {
         'Sign': int(sgn),
@@ -208,8 +177,6 @@ def write_fma_tests(test_f, cover_f, fmt):
                     sigProd <<= 1
                     expProd -= 1
                 
-                # print("expProd (python):", expProd)
-
                 # The leading one should be in bit MANTISSA_BIT * 2 + 2, so
                 # bits MANTISSA_BIT * 2 + 1 --> MANTISSA_BIT + 2 (inclusive) are mantissa
                 # Thus, G = MANTISSA_BIT + 1, STICKY = MANTISSA_BIT --> 1
@@ -247,56 +214,56 @@ def write_fma_tests(test_f, cover_f, fmt):
                 new_rounding = sigZ64 & mask
                 new_sticky = new_rounding & (mask >> 1)
 
+                # Generate the FMA result
                 in1 = generate_float(signA, expA - common.EXPONENT_BIASES[fmt], sigA_initial, fmt)
                 in2 = generate_float(signB, expB - common.EXPONENT_BIASES[fmt], sigB_initial, fmt)
                 in3 = generate_float(signC, expC - common.EXPONENT_BIASES[fmt], sigC_initial, fmt)
 
-                negIn3 = generate_float(signC ^ 1, expC - common.EXPONENT_BIASES[fmt], sticky_bits, fmt)
-
                 tv = generate_test_vector(op, in1, in2, in3, fmt, fmt, mode)
-                fake_tv = generate_test_vector(op, in1, in2, 0, fmt, fmt, mode)
-                fake_tv_2 = generate_test_vector(common.OP_MUL, in1, in2, 0, fmt, fmt, mode)
-                fake_tv_3 = generate_test_vector(op, in1, in2, negIn3, fmt, fmt, mode)
                 result = run_test_vector(tv)
-                fake_result = run_test_vector(fake_tv)
-                fake_result_2 = run_test_vector(fake_tv_2)
-                fake_result_3 = run_test_vector(fake_tv_3)
 
-                sig_1 = bin(int(fake_result.split('_')[-1], 16))[2:]
-                sig_2 = bin(int(fake_result_2.split('_')[-1], 16))[2:]
-                sig_3 = bin(int('1' + fake_result_3.split('_')[-1], 16))[2:][1:]
+                if TESTING == True:
+                    # These are very useful things to use when we test coverfloat and softfloat, but not so necessary otherwise
+                    negIn3 = generate_float(signC ^ 1, expC - common.EXPONENT_BIASES[fmt], sticky_bits, fmt)
+                    fake_tv = generate_test_vector(op, in1, in2, 0, fmt, fmt, mode)
+                    fake_tv_2 = generate_test_vector(common.OP_MUL, in1, in2, 0, fmt, fmt, mode)
+                    fake_tv_3 = generate_test_vector(op, in1, in2, negIn3, fmt, fmt, mode)
+                    fake_result = run_test_vector(fake_tv)
+                    fake_result_2 = run_test_vector(fake_tv_2)
+                    fake_result_3 = run_test_vector(fake_tv_3)
 
-                expected_sig3 = bin(sigProd - ((1 << common.MANTISSA_BITS[fmt]) + sticky_bits))[2:]
-                expected_sig3 = expected_sig3[1:]
-                if not (sig_3.startswith(expected_sig3) or (fmt == common.FMT_QUAD and expected_sig3.startswith(sig_3))):
-                    breakpoint()
+                    sig_1 = bin(int(fake_result.split('_')[-1], 16))[2:]
+                    sig_2 = bin(int(fake_result_2.split('_')[-1], 16))[2:]
+                    sig_3 = bin(int('1' + fake_result_3.split('_')[-1], 16))[2:][1:]
 
-
-                shiftAmt = len(bin(sigProd)[2:]) - 1 - common.MANTISSA_BITS[fmt]
-                shiftedSigProd = sigProd >> shiftAmt
-                shiftedSigProd &= (1 << common.MANTISSA_BITS[fmt]) - 1
-                in4 = generate_float(signA ^ signB ^ 1, expProd - common.EXPONENT_BIASES[fmt], shiftedSigProd, fmt)
-                tv_4 = generate_test_vector(common.OP_FMADD, in1, in2, in4, fmt, fmt, mode)
-                out_4 = run_test_vector(tv_4)
-
-                sig_4 = bin(int('1' + out_4.split('_')[-1], 16))[2:][1:]
-                first_digit = int(out_4.split('_')[-1][0], 16)
-                expected_sig4 = sigProd - (((1 << common.MANTISSA_BITS[fmt]) + shiftedSigProd) << shiftAmt)
-
-                if fmt != common.FMT_QUAD:
-                    is_subnormal = int(out_4.split('_')[-2], 16) <= 0
-                    if not sig_4.startswith(bin(expected_sig4)[2:][1:]) and not is_subnormal: #or (is_subnormal and not sig_4.startswith(bin(expected_sig4)[2:].zfill(common.MANTISSA_BITS[fmt]-1))): # or (first_digit & 0b1100 != 0b0100 and expected_sig4 != 0 and not is_subnormal):
+                    expected_sig3 = bin(sigProd - ((1 << common.MANTISSA_BITS[fmt]) + sticky_bits))[2:]
+                    expected_sig3 = expected_sig3[1:]
+                    if not (sig_3.startswith(expected_sig3) or (fmt == common.FMT_QUAD and expected_sig3.startswith(sig_3))):
                         breakpoint()
 
-                # out exp should be exp prod
-                result_float = int(result.split('_')[-6], 16)
-                result_float >>= common.MANTISSA_BITS[fmt]
-                result_float &= (1 << common.EXPONENT_BITS[fmt]) - 1
+                    shiftAmt = len(bin(sigProd)[2:]) - 1 - common.MANTISSA_BITS[fmt]
+                    shiftedSigProd = sigProd >> shiftAmt
+                    shiftedSigProd &= (1 << common.MANTISSA_BITS[fmt]) - 1
+                    in4 = generate_float(signA ^ signB ^ 1, expProd - common.EXPONENT_BIASES[fmt], shiftedSigProd, fmt)
+                    tv_4 = generate_test_vector(common.OP_FMADD, in1, in2, in4, fmt, fmt, mode)
+                    out_4 = run_test_vector(tv_4)
 
-                inter_exp = int(result.split('_')[-2], 16)
+                    sig_4 = bin(int('1' + out_4.split('_')[-1], 16))[2:][1:]
+                    first_digit = int(out_4.split('_')[-1][0], 16)
+                    expected_sig4 = sigProd - (((1 << common.MANTISSA_BITS[fmt]) + shiftedSigProd) << shiftAmt)
 
-                if expProd != inter_exp and not (fmt == common.FMT_BF16 and abs(expProd - inter_exp) <= 1):
-                    breakpoint()
+                    if fmt != common.FMT_QUAD:
+                        is_subnormal = int(out_4.split('_')[-2], 16) <= 0
+                        if not sig_4.startswith(bin(expected_sig4)[2:][1:]) and not is_subnormal: 
+                            breakpoint()
+
+                    result_float = int(result.split('_')[-6], 16)
+                    result_float >>= common.MANTISSA_BITS[fmt]
+                    result_float &= (1 << common.EXPONENT_BITS[fmt]) - 1
+                    inter_exp = int(result.split('_')[-2], 16)
+
+                    if expProd != inter_exp and not (fmt == common.FMT_BF16 and abs(expProd - inter_exp) <= 1):
+                        breakpoint()
 
                 rounding = extract_rounding_info(result)
 
@@ -309,12 +276,11 @@ def write_fma_tests(test_f, cover_f, fmt):
                     print(result[:common.TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS], file=test_f)
                     print(result, file=cover_f)
 
-                    # This means were done
+                    # This means we're done
                     if len(to_cover) == 0:
                         break
             else:
                 # This catches a for loop that does not break, i.e. we don't hit every goal
-                # if fmt != common.FMT_BF16: # We have no rounding info extraction on BF16
                 print(fmt, mode, to_cover)
             
 def write_add_sub_tests(test_f, cover_f, fmt):
@@ -335,10 +301,7 @@ def write_add_sub_tests(test_f, cover_f, fmt):
 
     for op in ops:
         for mode in common.ROUNDING_MODES:
-            goals = targets[:]
-            for _ in range(100):
-                target = random.choice(targets)
-
+            for target in targets:
                 # Generate a random float for A
                 signA = target['Sign']
                 
@@ -367,19 +330,10 @@ def write_add_sub_tests(test_f, cover_f, fmt):
                 result = run_test_vector(tv)
 
                 info = extract_rounding_info(result)
-                if info in goals:
-                    goals.remove(info)
+                if info == target:
                     store_cover_vector(result, test_f, cover_f)
-
-                    if len(goals) == 0:
-                        # break
-                        pass
-                if target != info:
-                    breakpoint()
-            else:
-                if goals:
-                    print(f"write_add_sub_tests failed: cases remaining {goals}")
-                    breakpoint()
+                else:
+                    print(f"AddSub test generation failed: op={op}, target={target}, last_digits={last_digits}, A={A}, B={B}")
 
 def write_mul_tests(test_f, cover_f, fmt: str):
     targets = [
@@ -437,7 +391,7 @@ def write_mul_tests(test_f, cover_f, fmt: str):
                 if len(goals) == 0:
                     break
         else:
-            print("Failed to generate mul cover_vectors for fmt={fmt}, mode={mode}. Remaining cases {goals}")
+            print(f"Failed to generate mul cover_vectors for fmt={fmt}, mode={mode}. Remaining cases {goals}")
 
 def write_sqrt_tests(test_f, cover_f, fmt: str):
     """
@@ -560,17 +514,14 @@ def write_div_tests(test_f, cover_f, fmt: str):
             sig2 = sig2_mant << sig2_shift
             sign2 = sign1 ^ target['Sign']
 
-            # exp1 = random.randint(-common.EXPONENT_BIASES[fmt] // 2, -2)
             exp1 = random.randint(-common.EXPONENT_BIASES[fmt] + 1, -common.MANTISSA_BITS[fmt] + 1)
 
             # Mirroring soft_float calculation
-            # sig1_64 = sig1 << (31 if sig1 < sig2 else 30)
             sig1_64 = sig1 << (common.MANTISSA_BITS[fmt] + 1 if sig1 < sig2 else common.MANTISSA_BITS[fmt])
             sig_quotient = (sig1_64) // sig2
 
             if sig_quotient * sig2 != sig1_64:
-                print(f"Failure to generate exact division result, please investigate: K={K}, odd_factors={odd_factors}, sig1={sig1:x}, sig2={sig2:x}")
-                breakpoint()
+                print(f"Failed to generate exact division result, please investigate: target={target} K={K}, odd_factors={odd_factors}, sig1={sig1:x}, sig2={sig2:x}")
                 continue
         
             # We want an additional shift to get the lsb into guard
@@ -597,12 +548,14 @@ def write_div_tests(test_f, cover_f, fmt: str):
 
             if info != target:
                 print(info, target)
-                print(f"Failure to generate exact division result, please investigate: K={K}, odd_factors={odd_factors}, sig1={sig1:x}, sig2={sig2:x}")
+                print(f"Failed to generate exact division result, please investigate: target={target}, K={K}, odd_factors={odd_factors}, sig1={sig1:x}, sig2={sig2:x}")
             else:
                 store_cover_vector(result, test_f, cover_f)
 
 
 def test_interm(fmt: str):
+    # This could potentially be the basis of CVT tests
+
     cvt_ops = {
         common.OP_CFF: [common.FMT_HALF, common.FMT_SINGLE, common.FMT_DOUBLE, common.FMT_QUAD],
         common.OP_CIF: [common.FMT_INT, common.FMT_UINT, common.FMT_LONG, common.FMT_ULONG],
@@ -650,58 +603,15 @@ def test_interm(fmt: str):
                 first_digit = result.split('_')[-1][0]
                 ending_sig = bin(int(result.split('_')[-1], 16))[2:].zfill(192)
 
-                if (starting_sig[:-2] in ending_sig) or (fmt == common.FMT_BF16): # and int(first_digit, 16) & 0x4 or (cvt_from == 0 and ending_sig == 0):
-                    # print("success")
+                if (starting_sig[:-2] in ending_sig) or (fmt == common.FMT_BF16): 
                     pass
                 else:
                     breakpoint()
 
-    for op in arith_ops_2src + arith_ops_1src:
-        a = generate_random_float(common.MANTISSA_BITS[fmt] + 1, fmt)
-        b = generate_random_float(0, fmt)
-
-        tv = generate_test_vector(op, a, b, 0, fmt, fmt)
-        result = run_test_vector(tv)
-
-        mantissa = int(result.split('_')[-1], 16)
-        sigA = get_significand_from_float(a, fmt)
-        sigB = get_significand_from_float(b, fmt)
-
-        should_be = bin(sigA)[2:] + bin(sigB)[2:]
-
-        if not bin(mantissa)[2:].startswith(should_be):
-            # breakpoint()
-            pass
-
 
 def main():
-    # wtf = "00000010_00_00000000000000000000000040d76447_00000000000000000000000041d8af1d_00000000000000000000000000000000_01_00000000000000000000000042074417_01_01_0_00000084_362bc7400000000100000000000000000000000000000000"
-    # extract_rounding_info(run_test_vector(wtf))
-    # wtf2 = "00000010_00_0000000000000000000000000000431d_0000000000000000000000000000438e_00000000000000000000000000000000_00_00000000000000000000000000004756_00_01_0_00000011_1bd9f4c00000000000000000000000000000000000000000"
-    # extract_rounding_info(run_test_vector(wtf2))
-    # wtf3 = "00000020_00_4003b7b0646ec982599ca4e0eb60c4d1_4003aa281bc2af3f8a20282337bb1a19_00000000000000000000000000000000_03_3ffeb10915834859ef8f97b674b55700_03_00_0_00003ffe_0000b10915834859ef8f97b674b557000000000000000000"
-    # extract_rounding_info(run_test_vector(wtf3))
-    # wtf4 = "00000030_00_00000000000000004017e69d7cd24c38_00000000000000004021acd9f7533664_00000000000000000000000000000000_02_0000000000000000404a673c0ac99f5b_02_01_0_00000404_34ce7815933eb53d213b8c32bc0000000000000000000000"
-    # extract_rounding_info(run_test_vector(wtf4))
-    # wtf5 = "00000051_00_00000000000000004019d73273949a76_000000000000000040091b66a89ee668_000000000000000040426c256aa9fb52_02_0000000000000000404c8f455c263f49_02_01_0_00000404_288c7fc5f10fdd9986f3bf8c3f0000000000000000000000"
-    # extract_rounding_info(run_test_vector(wtf5))
-
-    # wtf = "00000051_03_00000000000000000000000000003f08_00000000000000000000000000003b8c_0000000000000000000000000000bea2_00_00000000000000000000000000000300_00_00_0_00000000_800000000000000000000000000000000000000000000000"
-    # wtf = "00000010_00_c00b45ab35852b25b8dc32ac3eacc3f9_c009317f228339a481d4cc0c7c9ca0f0_00000000000000000000000000000000_03_c00b920afe25f98ed95165af5dd3ec35_03_00_1_0000400b_0006482bf897e63b654596bd774fb0d40000000000000000"
-    # wtf = "00000010_00_3ffb11abfeb602871aa4cf914beb8c47_3ff962f214f9621999c4005e9e55bed0_00000000000000000000000000000000_03_3ffb6a6883f45b0d8115cfa8f380fbfb_03_00_0_00003ffb_b53441fa2d86c08ae7d479c07dfd80000000000000000000"
-    # result = run_test_vector(wtf)
-    # breakpoint()
-
-
-
     test_f = open("./tests/testvectors/B3_tv.txt", "w")
     cover_f = open("./tests/covervectors/B3_cv.txt", "w")
-
-    # FMTS = [common.FMT_BF16, common.FMT_HALF, common.FMT_SINGLE, common.FMT_DOUBLE]
-    # for fmt in FMTS:
-    #     write_fma_tests(test_f, cover_f, fmt)
-    #     test_interm(fmt)
-    # return
 
     # These are going to be for sticky = 0
     for fmt in FMTS:
@@ -710,7 +620,8 @@ def main():
         write_div_tests(test_f, cover_f, fmt)
         write_sqrt_tests(test_f, cover_f, fmt)
         write_fma_tests(test_f, cover_f, fmt)
-        test_interm(fmt)
+        if TESTING == True:
+            test_interm(fmt)
 
     targets = [
         {
@@ -743,9 +654,6 @@ def main():
                     tv = generate_test_vector(op, in1, in2, in3, fmt, fmt, mode)
                     cv = run_test_vector(tv)
 
-                    # if op == OP_REM:
-                    #     breakpoint()
-
                     rounding_results = extract_rounding_info(cv)
 
                     if rounding_results in cover_goals:
@@ -761,17 +669,7 @@ def main():
                     misses += len(cover_goals)
                 total += len(targets)
 
-    print(f"Hit rate: {emmitted/total}, {emmitted}, {total}")
+    print("B3 Tests Generated!")
 
 if __name__ == "__main__":
     main()
-
-"""
-in1 = generate_random_float32(1)
-in2 = generate_random_float32(3)
-
-tv = generate_test_vector(OP_ADD, in1, in2, FMT_SINGLE, FMT_SINGLE)
-cv = coverfloat.reference(tv)
-
-info = extract_rounding_info(cv)
-"""

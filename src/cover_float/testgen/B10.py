@@ -7,7 +7,7 @@ import subprocess
 
 
 from cover_float.reference import run_and_store_test_vector
-from cover_float.common.constants import *
+from cover_float.common.constants import FLOAT_FMTS, EXPONENT_BITS, MANTISSA_BITS, BIASED_EXP, ROUND_NEAR_EVEN, OP_ADD, OP_SUB
 
 
 

@@ -71,13 +71,19 @@ package coverfloat_pkg;
     
     // TODO: expand with other relvelant parameters
 
-    // Precision (p = number of significand bits + 1 implicit bits)
+    parameter int F16_E_BITS = 5;
+    parameter int BF16_E_BITS = 8;
+    parameter int F32_E_BITS = 8;
+    parameter int F64_E_BITS = 11;
+    parameter int F128_E_BITS = 15;
+
     parameter int F16_M_BITS   = 10;
     parameter int BF16_M_BITS  = 7;
     parameter int F32_M_BITS   = 23;
     parameter int F64_M_BITS   = 52;
     parameter int F128_M_BITS  = 112;
 
+    // Precision (p = number of significand bits + 1 implicit bits)
     parameter int F16_P   = F16_M_BITS  + 1;
     parameter int BF16_P  = BF16_M_BITS + 1;
     parameter int F32_P   = F32_M_BITS  + 1;
@@ -100,6 +106,58 @@ package coverfloat_pkg;
     parameter int F32_M_UPPER  = F32_M_BITS - 1;
     parameter int F64_M_UPPER  = F64_M_BITS - 1;
     parameter int F128_M_UPPER = F128_M_BITS - 1;
+
+    // IEEE-754 floating-point format–derived exponent constants
+    // Definitions are derived from IEEE 754-2019, §3.4 (Formats) and §3.5 (Subnormal numbers)
+    // See: https://ieeexplore.ieee.org/document/8766229
+    // General formulas:
+    //   bias              = 2^(E-1) - 1
+    //   MinNorm.exp       = 1 - bias
+    //   MinSubNorm.exp    = (1 - bias) - (P - 1)
+    // where:
+    //   E = number of exponent bits
+    //   P = precision = fraction bits + hidden leading 1
+
+    // -----------------------------
+    // Half precision (binary16)
+    // E = 5, P = 11
+    // -----------------------------
+    parameter int F16_EXP_BIAS        = (1 << (F16_E_BITS - 1)) - 1;
+    parameter int F16_MIN_NORM_EXP    = 1 - F16_EXP_BIAS;
+    parameter int F16_MIN_SUBNORM_EXP = (1 - F16_EXP_BIAS) - (F16_P - 1);
+
+    // -----------------------------
+    // BFloat16
+    // E = 8, P = 8
+    // -----------------------------
+    parameter int BF16_EXP_BIAS        = (1 << (BF16_E_BITS - 1)) - 1;
+    parameter int BF16_MIN_NORM_EXP    = 1 - BF16_EXP_BIAS;
+    parameter int BF16_MIN_SUBNORM_EXP = (1 - BF16_EXP_BIAS) - (BF16_P - 1);
+
+    // -----------------------------
+    // Single precision (binary32)
+    // E = 8, P = 24
+    // -----------------------------
+    parameter int F32_EXP_BIAS        = (1 << (F32_E_BITS - 1)) - 1;
+    parameter int F32_MIN_NORM_EXP    = 1 - F32_EXP_BIAS;
+    parameter int F32_MIN_SUBNORM_EXP = (1 - F32_EXP_BIAS) - (F32_P - 1);
+
+    // -----------------------------
+    // Double precision (binary64)
+    // E = 11, P = 53
+    // -----------------------------
+    parameter int F64_EXP_BIAS        = (1 << (F64_E_BITS - 1)) - 1;
+    parameter int F64_MIN_NORM_EXP    = 1 - F64_EXP_BIAS;
+    parameter int F64_MIN_SUBNORM_EXP = (1 - F64_EXP_BIAS) - (F64_P - 1);
+
+    // -----------------------------
+    // Quad precision (binary128)
+    // E = 15, P = 113
+    // -----------------------------
+    parameter int F128_EXP_BIAS        = (1 << (F128_E_BITS - 1)) - 1;
+    parameter int F128_MIN_NORM_EXP    = 1 - F128_EXP_BIAS;
+    parameter int F128_MIN_SUBNORM_EXP = (1 - F128_EXP_BIAS) - (F128_P - 1);
+
 
 
     // Helper functions for difficult coverpoints
@@ -259,6 +317,116 @@ package coverfloat_pkg;
             longest_seq_of_ones = max_len;
         end
     endfunction
+
+
+    function automatic int get_product_exponent (
+        input logic [127:0] a,
+        input logic [127:0] b,
+        input logic [7:0]   fmt
+    );
+
+        int E_a;
+        int E_b;
+
+        case (fmt)
+
+            // --------------------------------------------------
+            // HALF (16-bit)
+            // sign[15] exp[14:10] frac[9:0]
+            // --------------------------------------------------
+            FMT_HALF: begin
+                logic [F16_E_BITS-1:0] exp_a = a[14:10];
+                logic [F16_E_BITS-1:0] exp_b = b[14:10];
+
+                E_a = (exp_a == 0) ?
+                        (1 - F16_EXP_BIAS) :
+                        (int'(exp_a) - F16_EXP_BIAS);
+
+                E_b = (exp_b == 0) ?
+                        (1 - F16_EXP_BIAS) :
+                        (int'(exp_b) - F16_EXP_BIAS);
+            end
+
+            // --------------------------------------------------
+            // BF16 (16-bit)
+            // sign[15] exp[14:7] frac[6:0]
+            // --------------------------------------------------
+            FMT_BF16: begin
+                logic [BF16_E_BITS-1:0] exp_a = a[14:7];
+                logic [BF16_E_BITS-1:0] exp_b = b[14:7];
+
+                E_a = (exp_a == 0) ?
+                        (1 - BF16_EXP_BIAS) :
+                        (int'(exp_a) - BF16_EXP_BIAS);
+
+                E_b = (exp_b == 0) ?
+                        (1 - BF16_EXP_BIAS) :
+                        (int'(exp_b) - BF16_EXP_BIAS);
+            end
+
+            // --------------------------------------------------
+            // SINGLE (32-bit)
+            // sign[31] exp[30:23] frac[22:0]
+            // --------------------------------------------------
+            FMT_SINGLE: begin
+                logic [F32_E_BITS-1:0] exp_a = a[30:23];
+                logic [F32_E_BITS-1:0] exp_b = b[30:23];
+
+                E_a = (exp_a == 0) ?
+                        (1 - F32_EXP_BIAS) :
+                        (int'(exp_a) - F32_EXP_BIAS);
+
+                E_b = (exp_b == 0) ?
+                        (1 - F32_EXP_BIAS) :
+                        (int'(exp_b) - F32_EXP_BIAS);
+            end
+
+            // --------------------------------------------------
+            // DOUBLE (64-bit)
+            // sign[63] exp[62:52] frac[51:0]
+            // --------------------------------------------------
+            FMT_DOUBLE: begin
+                logic [F64_E_BITS-1:0] exp_a = a[62:52];
+                logic [F64_E_BITS-1:0] exp_b = b[62:52];
+
+                E_a = (exp_a == 0) ?
+                        (1 - F64_EXP_BIAS) :
+                        (int'(exp_a) - F64_EXP_BIAS);
+
+                E_b = (exp_b == 0) ?
+                        (1 - F64_EXP_BIAS) :
+                        (int'(exp_b) - F64_EXP_BIAS);
+            end
+
+            // --------------------------------------------------
+            // QUAD (128-bit)
+            // sign[127] exp[126:112] frac[111:0]
+            // --------------------------------------------------
+            FMT_QUAD: begin
+                logic [F128_E_BITS-1:0] exp_a = a[126:112];
+                logic [F128_E_BITS-1:0] exp_b = b[126:112];
+
+                E_a = (exp_a == 0) ?
+                        (1 - F128_EXP_BIAS) :
+                        (int'(exp_a) - F128_EXP_BIAS);
+
+                E_b = (exp_b == 0) ?
+                        (1 - F128_EXP_BIAS) :
+                        (int'(exp_b) - F128_EXP_BIAS);
+
+            end
+
+            default: begin
+                return 0;
+            end
+
+        endcase
+
+        return (E_a + E_b);
+
+    endfunction
+
+
 
 
 endpackage

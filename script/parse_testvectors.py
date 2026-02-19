@@ -54,11 +54,9 @@ def parse_fp_value(hex_val, fmt_code):
     if not spec:
         return None
     
-    # Get the full value with proper bit width
     total_bits = spec["total_bits"]
     val = int(hex_val, 16)
     
-    # Extract components
     sign = (val >> (total_bits - 1)) & 1
     exp_bits = spec["exp_bits"]
     man_bits = spec["man_bits"]
@@ -66,13 +64,11 @@ def parse_fp_value(hex_val, fmt_code):
     biased_exp = (val >> man_bits) & ((1 << exp_bits) - 1)
     mantissa = val & ((1 << man_bits) - 1)
     
-    # Determine special cases
     is_zero = (biased_exp == 0 and mantissa == 0)
     is_inf = (biased_exp == ((1 << exp_bits) - 1) and mantissa == 0)
     is_nan = (biased_exp == ((1 << exp_bits) - 1) and mantissa != 0)
     is_subnormal = (biased_exp == 0 and mantissa != 0)
     
-    # Compute actual exponent
     if is_zero or is_subnormal:
         actual_exp = 1 - spec["bias"]
     else:
@@ -93,21 +89,18 @@ def parse_fp_value(hex_val, fmt_code):
 def format_mantissa(mantissa, man_bits):
     """Format mantissa as hex with leading 1."""
     if mantissa == 0:
-        return "0.000000"
-    
-    # Convert to hex string with leading 1 (implicit bit)
-    hex_str = f"{mantissa:X}"
-    
-    # Pad to appropriate length
-    hex_digits = (man_bits + 3) // 4  # Round up to nearest hex digit
-    hex_str = hex_str.zfill(hex_digits)
-    
-    # Insert decimal point after first digit
-    if len(hex_str) > 1:
-        return "1." + hex_str[:6].ljust(6, '0')
-    else:
-        return "1.000000"
+        return "0.0"
 
+    hex_str = f"{mantissa:X}"
+
+    hex_digits = (man_bits + 3) // 4  # round up to whole hex digits
+    hex_str = hex_str.zfill(hex_digits)
+
+    # Put the "1." in front of the fraction
+    if len(hex_str) >= 1:
+        return "1." + hex_str
+    else:
+        return "1.0"
 
 def fp_to_string(parsed_fp, fmt_code):
     """Convert parsed FP to human-readable string."""
@@ -136,87 +129,104 @@ def parse_test_vector(line):
     line = line.strip()
     if not line or line.startswith("//"):
         return None
-    
+
     parts = line.split("_")
     if len(parts) < 9:
         return None
-    
+
+    op_code = parts[0]
+    rnd_code = parts[1]
+    a_val = parts[2]
+    b_val = parts[3]
+    c_val = parts[4]
+    op_fmt = parts[5]
+    result_val = parts[6]
+    result_fmt = parts[7]
+    flags = parts[8] if len(parts) > 8 else "00"
+
+    op_name = OP_NAMES.get(op_code, "?")
+    rnd_name = ROUND_NAMES.get(rnd_code, "?")
+
+    op_spec = FMT_SPECS.get(op_fmt)
+    res_spec = FMT_SPECS.get(result_fmt)
+    if not op_spec or not res_spec:
+        # unknown format code
+        return None
+
+    op_hex_chars = op_spec["total_bits"] // 4
+    res_hex_chars = res_spec["total_bits"] // 4
+
+    # format each operand to fixed width; c_val is only used for FMAs but
+    # always present in the vector string
+    def fixwidth(val, width):
+        return val[-width:] if len(val) >= width else val.zfill(width)
+
+    a_val_formatted = fixwidth(a_val, op_hex_chars)
+    b_val_formatted = fixwidth(b_val, op_hex_chars)
+    c_val_formatted = fixwidth(c_val, op_hex_chars)
+    result_val_formatted = fixwidth(result_val, res_hex_chars)
+
     try:
-        op_code = parts[0]
-        rnd_code = parts[1]
-        a_val = parts[2]
-        b_val = parts[3]
-        c_val = parts[4]  # Unused for ADD/SUB
-        op_fmt = parts[5]  # Format for operands
-        result_val = parts[6]
-        result_fmt = parts[7]
-        flags = parts[8] if len(parts) > 8 else "00"
-        
-        op_name = OP_NAMES.get(op_code, "?")
-        rnd_name = ROUND_NAMES.get(rnd_code, "?")
-        
-        # Determine the number of hex characters needed for each format
-        op_spec = FMT_SPECS.get(op_fmt)
-        res_spec = FMT_SPECS.get(result_fmt)
-        if not op_spec or not res_spec:
-            return None
-        
-        op_hex_chars = op_spec["total_bits"] // 4
-        res_hex_chars = res_spec["total_bits"] // 4
-        
-        # Extract operands using the correct bit width
-        a_val_formatted = a_val[-op_hex_chars:] if len(a_val) >= op_hex_chars else a_val.zfill(op_hex_chars)
-        b_val_formatted = b_val[-op_hex_chars:] if len(b_val) >= op_hex_chars else b_val.zfill(op_hex_chars)
-        result_val_formatted = result_val[-res_hex_chars:] if len(result_val) >= res_hex_chars else result_val.zfill(res_hex_chars)
-        
         a_parsed = parse_fp_value(a_val_formatted, op_fmt)
         b_parsed = parse_fp_value(b_val_formatted, op_fmt)
         result_parsed = parse_fp_value(result_val_formatted, result_fmt)
-        
-        if not a_parsed or not b_parsed or not result_parsed:
-            return None
-        
-        a_str = fp_to_string(a_parsed, op_fmt)
-        b_str = fp_to_string(b_parsed, op_fmt)
-        result_str = fp_to_string(result_parsed, result_fmt)
-        
-        # Determine format code for output
-        fmt_name = op_spec["name"]
-
-        options = {
-            "add": "+",
-            "sub": "-",
-            "mul": "*",
-            "div": "/",
-            "fmadd": "*+",
-            "fmsub": "*-",
-            "fnmadd": "-*+",
-            "fnmsub": "-*-",
-            "sqrt": "v-",
-            "rem": "mod"
-        }
-        op_sym = options.get(op_name)
-        
-        # Determine flags output
-        flags_str = "x" if flags != "00" else ""
-        
-        return {
-            "format": f"{fmt_name}{op_sym}",
-            "round": rnd_name,
-            "op_a": a_str,
-            "op_b": b_str,
-            "result": result_str,
-            "flags": flags_str,
-            "full_line": line,
-        }
-    except (ValueError, IndexError):
+        # parse c only if required
+        c_parsed = None
+        if op_name in ("fmadd", "fmsub", "fnmadd", "fnmsub"):
+            c_parsed = parse_fp_value(c_val_formatted, op_fmt)
+    except Exception as err:
+        # Parsing failure shouldn't happen; log and skip
+        print(f"warning: failed to parse line {line!r}: {err}")
         return None
 
+    if not a_parsed or not b_parsed or not result_parsed or (
+        op_name in ("fmadd", "fmsub", "fnmadd", "fnmsub") and not c_parsed
+    ):
+        return None
+
+    a_str = fp_to_string(a_parsed, op_fmt)
+    b_str = fp_to_string(b_parsed, op_fmt)
+    result_str = fp_to_string(result_parsed, result_fmt)
+    c_str = fp_to_string(c_parsed, op_fmt) if c_parsed else None
+
+    fmt_name = op_spec["name"]
+    options = {
+        "add": "+",
+        "sub": "-",
+        "mul": "*",
+        "div": "/",
+        "fmadd": "*+",
+        "fmsub": "*-",
+        "fnmadd": "-*+",
+        "fnmsub": "-*-",
+        "sqrt": "v-",
+        "rem": "mod",
+    }
+    op_sym = options.get(op_name)
+    flags_str = "x" if flags != "00" else ""
+
+    result = {
+        "format": f"{fmt_name}{op_sym}",
+        "round": rnd_name,
+        "op_a": a_str,
+        "op_b": b_str,
+        "result": result_str,
+        "flags": flags_str,
+        "full_line": line,
+    }
+    if c_str:
+        result["op_c"] = c_str
+    return result
 
 def format_output(parsed):
-    """Format parsed test vector to output string."""
+    """Format parsed test vector to output string.
+        For FMAs, include the third operand between op_b and the arrow.
+    """
     flags = f" {parsed['flags']}" if parsed['flags'] else ""
-    return f"{parsed['format']} {parsed['round']} {parsed['op_a']} {parsed['op_b']} -> {parsed['result']}{flags}"
+    base = f"{parsed['format']} {parsed['round']} {parsed['op_a']} {parsed['op_b']}"
+    if 'op_c' in parsed:
+        base += f" {parsed['op_c']}"
+    return f"{base} -> {parsed['result']}{flags}"
 
 
 def main():
@@ -245,7 +255,7 @@ def main():
                 f.write(result + "\n")
         print(f"Parsed {len(results)} test vectors to {output_file}")
     else:
-        for result in results[:10]:  # Print first 10
+        for result in results[:10]:
             print(result)
         if len(results) > 10:
             print(f"... ({len(results) - 10} more vectors)")

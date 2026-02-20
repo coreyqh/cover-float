@@ -19,55 +19,8 @@ from cover_float.common.constants import *
 TEST_VECTOR_WIDTH_HEX  = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = (TEST_VECTOR_WIDTH_HEX + 8)
 
-
-# Dictionaries
-OP_ADD = "00000010"
-OP_FMA    = "00000050"
-OP_FMADD  = "00000051"
-OP_FMSUB  = "00000052"
-OP_FNMADD = "00000053"
-OP_FNMSUB = "00000054"
-ROUND_NEAR_EVEN = "00"
-
-FMT_INVAL  = "FF" # 11111111
-FMT_HALF   = "00" # 00000000
-FMT_SINGLE = "01" # 00000001
-FMT_DOUBLE = "02" # 00000010
-FMT_QUAD   = "03" # 00000011
-FMT_BF16   = "04" # 00000100
-FMT_INT    = "81" # 10000001
-FMT_UINT   = "C1" # 11000001
-FMT_LONG   = "82" # 10000010
-FMT_ULONG  = "C2" # 11000010
-
-
 FMTS     = [FMT_HALF, FMT_SINGLE, FMT_DOUBLE, FMT_QUAD, FMT_BF16]
 INT_FMTS = [FMT_INT, FMT_UINT, FMT_LONG, FMT_ULONG] 
-
-MANTISSA_BITS = {
-    FMT_HALF : 10,
-    FMT_SINGLE: 23,
-    FMT_DOUBLE: 52,
-    FMT_QUAD : 112,
-    FMT_BF16 : 7
-}
-
-EXPONENT_BITS = {
-    FMT_HALF : 5,
-    FMT_SINGLE: 8,
-    FMT_DOUBLE: 11,
-    FMT_QUAD : 15,
-    FMT_BF16 : 8
-}
-
-#safe operating range for exponents
-BIASED_EXP = { # Range of biased exponents based on precision
-    FMT_HALF : [1, 30], 
-    FMT_SINGLE : [1, 254], # ex: 0 is subnormal, 255 is Inf/NaN
-    FMT_DOUBLE: [1, 2046],
-    FMT_QUAD: [1, 32766],
-    FMT_BF16 : [1, 254]
-}
 
 OPS = [OP_FMADD, OP_FMSUB, OP_FNMADD, OP_FNMSUB]
 

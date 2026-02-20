@@ -114,7 +114,7 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
     `ifdef COVER_BF16
         B3_bf16: cross BF16_result_fmt, op_arith_conv, rounding_mode_all, f128_LSB, f128_guard, f128_sticky;
     `endif // COVER_BF16
-    
+
     `ifdef COVER_F128
         B3_f128: cross F128_result_fmt, op_arith_conv, rounding_mode_all, bf16_LSB, bf16_guard, bf16_sticky;
     `endif // COVER_F128

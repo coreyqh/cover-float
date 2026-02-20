@@ -27,17 +27,17 @@ The difference between the unbiased input exponents is:
 
 === Definitions
 
-`max_exp`:: Maximum exponent value based on precision  
-`min_exp`:: Minimum exponent value based on precision  
-`a`:: Operand 1  
-`b`:: Operand 2  
-`a_exp`:: Exponent of operand `a`, generally in `[min_exp, max_exp]`  
-`b_exp`:: Exponent of operand `b`, generally in `[min_exp, max_exp]`  
+`max_exp`:: Maximum exponent value based on precision
+`min_exp`:: Minimum exponent value based on precision
+`a`:: Operand 1
+`b`:: Operand 2
+`a_exp`:: Exponent of operand `a`, generally in `[min_exp, max_exp]`
+`b_exp`:: Exponent of operand `b`, generally in `[min_exp, max_exp]`
 `p`:: Number of significant bits (precision)
 
 == Background
 
-In floating point addition and subtraction, the processor must first align the significands of the operands so that both values share a common exponent before performing the arithmetic operation (Ercegovac, 418).  
+In floating point addition and subtraction, the processor must first align the significands of the operands so that both values share a common exponent before performing the arithmetic operation (Ercegovac, 418).
 
 This alignment is accomplished by shifting the significand of the operand with the smaller exponent until the exponents match. The magnitude of this shift is determined by the difference between the unbiased exponents of the two operands.
 
@@ -93,15 +93,15 @@ For extreme-region testing (i.e., values strictly less than `-(p+4)` or strictly
 
 This structured generation guarantees:
 
-* Full coverage of all shift magnitudes relevant to rounding correctness  
-* Proper testing of boundary exponent conditions  
-* Valid IEEE 754 representable exponent values  
+* Full coverage of all shift magnitudes relevant to rounding correctness
+* Proper testing of boundary exponent conditions
+* Valid IEEE 754 representable exponent values
 
 == Test Procedure
 
 === Test 1
-*Objective:* A value smaller than `-(p+4)`  
-*Operations:* Add, Subtract  
+*Objective:* A value smaller than `-(p+4)`
+*Operations:* Add, Subtract
 
 To cover this test, the inequality:
 
@@ -225,8 +225,8 @@ Both mantissa and sign bits are randomized independently.
 ---
 
 === Test 2
-*Objective:* All values in the range `[−(p+4), (p+4)]`  
-*Operations:* Add, Subtract  
+*Objective:* All values in the range `[−(p+4), (p+4)]`
+*Operations:* Add, Subtract
 
 To cover this test:
 

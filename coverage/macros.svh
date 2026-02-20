@@ -531,4 +531,3 @@
         @(negedge clk); \
         $fclose(fd); \
     `endif \
- 

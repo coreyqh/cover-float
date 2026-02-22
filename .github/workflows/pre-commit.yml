@@ -1,0 +1,29 @@
+# Source: jcarlin@hmc.edu on 19 Feb 2026
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Only run CI on the latest commit if a PR is updated
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Pre-commit check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          submodules: 'true'
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Ensure pre-commit checks pass
+        run: uvx pre-commit run --all-files --show-diff-on-failure --color=always

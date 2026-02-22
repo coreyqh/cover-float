@@ -40,12 +40,12 @@ module coverfloat (); import coverfloat_pkg::*; // TODO: maybe rename...
     end
 
     always @(posedge clk) begin
-        {CFI.op, CFI.rm, CFI.a, CFI.b, CFI.c, CFI.operandFmt, CFI.result, 
+        {CFI.op, CFI.rm, CFI.a, CFI.b, CFI.c, CFI.operandFmt, CFI.result,
          CFI.resultFmt, CFI.exceptionBits, discard[2:0], CFI.intermS, CFI.intermX, CFI.intermM} = covervectors;
     end
 
     always @(negedge clk) begin
-        // collect coverage 
+        // collect coverage
         coverage_inst.sample();
 
         // $display("%h (%h) %h = %h_%h_%h", CFI.a, CFI.op, CFI.b, CFI.intermS, CFI.intermX, CFI.intermM[191:30]);

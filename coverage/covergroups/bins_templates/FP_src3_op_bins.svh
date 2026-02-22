@@ -1,5 +1,5 @@
         // all operations where the third operand is FP
-    
+
         // 3 fp inputs
         bins op_fma    = {[OP_FMA : OP_FMA | 32'hF]};
         bins op_fmadd  = {OP_FMADD};

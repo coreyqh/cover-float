@@ -11,7 +11,7 @@
         bins posmaxnorm       = {16'h7BFF};
         bins negmaxnorm       = {16'hFBFF};
         bins posnorm          = {[16'h0401:16'h7BFE]};
-        bins negnorm          = {[16'h8401:16'hFBFE]};      
+        bins negnorm          = {[16'h8401:16'hFBFE]};
         bins posmax_subnorm   = {16'h03FF};
         bins negmax_subnorm   = {16'h83FF};
         // bins posmid_subnorm   = {16'h0200};
@@ -19,7 +19,7 @@
         bins posmin_subnorm   = {16'h0001};
         bins negmin_subnorm   = {16'h8001};
         bins pos_subnorm      = {[16'h0002:16'h03FE]};
-        bins neg_subnorm      = {[16'h8002:16'h83FE]};   
+        bins neg_subnorm      = {[16'h8002:16'h83FE]};
         bins posinfinity      = {16'h7C00};
         bins neginfinity      = {16'hFC00};
         `ifndef IGNORE_NANS

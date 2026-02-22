@@ -1,7 +1,9 @@
 import argparse
-from cover_float.reference import run_test_vector
+from pathlib import Path
 
 import cover_float.testgen as tg
+from cover_float.reference import run_test_vector
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -14,13 +16,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    with open(args.input_file, "r") as infile, open(args.output_file, "w") as outfile:
+    with Path(args.input_file).open("r") as infile, Path(args.output_file).open("w") as outfile:
         for line in infile:
             line = line.strip()
             if not line or line.startswith("//"):
                 continue  # Skip empty lines and comments
             result = run_test_vector(line, args.suppress_error_check)
             outfile.write(result)
+
 
 def testgen() -> None:
     parser = argparse.ArgumentParser()

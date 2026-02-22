@@ -14,7 +14,7 @@ build:
 	@echo "Building python module"
 	uv build --managed-python
 
-sim: 
+sim:
 	cd sim && vsim -c -do "do run.do"
 
 B1:
@@ -36,7 +36,7 @@ B14:
 clean:
 	@echo "Cleaning build directory..."
 	$(RM_CMD) build/
-	$(RM_CMD) dist/ 
+	$(RM_CMD) dist/
 	$(RM_CMD) src/cover_float/__pycache__/
 	$(RM_CMD) src/cover_float/testgen/__pycache__/
 	$(RM_CMD) sim/coverfloat_worklib/

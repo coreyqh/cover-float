@@ -1859,15 +1859,36 @@ int reference_model( const uint32_t       * op,
 
     // 1
     if (intermResult->exp <= 0) {
-        struct uint128_extra shifted_sig = softfloat_shiftRightJam128Extra(
-            intermResult->sig64,
-            intermResult->sig0,
-            intermResult->sigExtra,
-            -intermResult->exp + 1); // See s_roundPackToF32.c for why we add 1. Our exp is +1 theirs
-        
-        intermResult->sig64 = shifted_sig.v.v64;
-        intermResult->sig0 = shifted_sig.v.v0;
-        intermResult->sigExtra = shifted_sig.extra;
+        // See s_roundPackToF32.c for why we add 1. Our exp is +1 theirs
+        int32_t shift_dist = -intermResult->exp + 1;
+
+        // Unfortunately, softfloat doesn't give us a 192-bit right shift jam
+        // but look at softfloat_shiftRightJam128() for reference
+
+        if (shift_dist < 64) {
+            // Everything has a short shift here, most complex case, but look at reference from softfloat
+            intermResult->sigExtra = (intermResult->sigExtra >> shift_dist)
+                    | (intermResult->sig0 << (64 - shift_dist)) 
+                    | ((intermResult->sigExtra << (64 - shift_dist)) != 0); // This is the jam
+            intermResult->sig0 = (intermResult->sig0 >> shift_dist) | (intermResult->sig64 << (64 - shift_dist));
+            intermResult->sig64 = intermResult->sig64 >> shift_dist;
+        } else if (shift_dist < 128) {
+            // These two cases are the same as above but simpler
+            intermResult->sigExtra = (intermResult->sig0 >> (shift_dist - 64)) 
+                    | (((intermResult->sig0 << (128 - shift_dist)) | intermResult->sigExtra) != 0); // This is the jam
+            intermResult->sig0 = intermResult->sig64 >> (shift_dist - 64);
+            intermResult->sig64 = 0;
+        } else if (shift_dist < 192) {
+            intermResult->sigExtra = (intermResult->sig64 >> (shift_dist - 128)) 
+                    | (((intermResult->sig64 << (192 - shift_dist)) | intermResult->sigExtra | intermResult->sig0) != 0); // This is the jam
+            intermResult->sig0 = 0;
+            intermResult->sig64 = 0;
+        } else {
+            // Only a jam here
+            intermResult->sigExtra = (intermResult->sig0 | intermResult->sig64 | intermResult->sigExtra) != 0;
+            intermResult->sig0 = 0;
+            intermResult->sig64 = 0;
+        }
 
         intermResult->exp = 0;
     }

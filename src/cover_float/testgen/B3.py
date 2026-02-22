@@ -1,5 +1,7 @@
 import random
 import cover_float.common as common
+from pathlib import Path
+from typing import TextIO, Optional
 from cover_float.reference import run_test_vector, store_cover_vector
 
 SRC1_OPS = [common.OP_SQRT]
@@ -19,29 +21,13 @@ SRC3_OPS = [
 
 TESTING = False
 
-# OP_QC     = "000000B0"
-# OP_FEQ    = "000000B1"
-# OP_SC     = "000000C0"
-# OP_FLT    = "000000C1"
-# OP_FLE    = "000000C2"
-# OP_CLASS  = "000000D0"
-# OP_MIN    = "000000E0"
-# OP_MAX    = "000000F0"
-# OP_CSN    = "00000100"
-# OP_FSGNJ  = "00000101"
-# OP_FSGNJN = "00000102"
-# OP_FSGNJX = "00000103"
-
-FMTS     = [common.FMT_SINGLE, common.FMT_DOUBLE, common.FMT_HALF, common.FMT_BF16, common.FMT_QUAD]
-INT_FMTS = [common.FMT_INT, common.FMT_UINT, common.FMT_LONG, common.FMT_ULONG]
-
-
 def generate_float(sign: int, exponent: int, mantissa: int, fmt: str) -> int:
     exponent += common.EXPONENT_BIASES[fmt]
     return (sign << (common.MANTISSA_BITS[fmt] + common.EXPONENT_BITS[fmt])) | (exponent << common.MANTISSA_BITS[fmt]) | mantissa
 
-def generate_random_float(exponent: int, fmt: str) -> int:
-    sign = random.randint(0, 1)
+def generate_random_float(exponent: int, fmt: str, sign: Optional[int] = None) -> int:
+    if sign is None:
+        sign = random.randint(0, 1)
     # sign = 0
     mantissa = random.randint(0, (1 << common.MANTISSA_BITS[fmt]) - 1)
     # Add in the exponent bias for single-precision (127)
@@ -53,21 +39,30 @@ def get_significand_from_float(float_: int, fmt: str) -> int:
     mask = (1 << common.MANTISSA_BITS[fmt]) - 1
     return float_ & mask | (1 << common.MANTISSA_BITS[fmt])
 
-def generate_test_vector(op, in1, in2, in3, fmt1, fmt2, rnd_mode="00"):
+def generate_test_vector(op: str, in1: int, in2: int, in3: int, fmt1: str, fmt2: str, rnd_mode: str = "00") -> str:
     zero_padding = '0' * 32
     return f"{op}_{rnd_mode}_{in1:032x}_{in2:032x}_{in3:032x}_{fmt1}_{zero_padding}_{fmt2}_00\n"
 
 
-def extract_rounding_info(cover_vector):
+def extract_rounding_info(cover_vector: str) -> dict[str, int]:
     fields = cover_vector.split('_')
     sgn = fields[-3]
-    result_fmt = fields[-5]
+    result_fmt = fields[-5].upper()
+    operand_fmt = fields[5].upper()
     
     # Place in a leading one so that we get all the significant figures possible
     interm_significand = int('1' + fields[-1], 16)
     interm_significand = bin(interm_significand)[2:][1:]
 
-    mantissa_length = common.MANTISSA_BITS[result_fmt]
+    if result_fmt in common.FLOAT_FMTS:
+        mantissa_length = common.MANTISSA_BITS[result_fmt]
+    elif result_fmt in common.INT_FMTS:
+        mantissa_length = common.INT_MAX_EXPS[result_fmt]
+
+        if operand_fmt == common.FMT_HALF and result_fmt in [common.FMT_LONG, common.FMT_ULONG]:
+            mantissa_length -= 32 # Softfloat shenanigans are ruining my life again
+    else:
+        raise ValueError(f'Unknown Result Format: {result_fmt}')
     
     lsb = interm_significand[mantissa_length - 1]
     guard = interm_significand[mantissa_length]
@@ -80,7 +75,7 @@ def extract_rounding_info(cover_vector):
         'Sticky': 1 if any(x == '1' for x in sticky) else 0,
     }
 
-def write_fma_tests(test_f, cover_f, fmt):
+def write_fma_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     FMA_OPS = [
         common.OP_FMADD,
         common.OP_FMSUB,
@@ -283,7 +278,7 @@ def write_fma_tests(test_f, cover_f, fmt):
                 # This catches a for loop that does not break, i.e. we don't hit every goal
                 print(fmt, mode, to_cover)
             
-def write_add_sub_tests(test_f, cover_f, fmt):
+def write_add_sub_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     ops = [
         common.OP_ADD,
         common.OP_SUB,
@@ -335,7 +330,7 @@ def write_add_sub_tests(test_f, cover_f, fmt):
                 else:
                     print(f"AddSub test generation failed: op={op}, target={target}, last_digits={last_digits}, A={A}, B={B}")
 
-def write_mul_tests(test_f, cover_f, fmt: str):
+def write_mul_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     targets = [
         {
             'Sign': (x & 1),
@@ -355,7 +350,7 @@ def write_mul_tests(test_f, cover_f, fmt: str):
 
         goals = targets[:]
 
-        for _ in range(100):
+        for _ in range(200):
             # a_exp_length + b_exp_length = mantissa_length + 1
             # The idea here is that we multiply and get a product significand
             # with length mantissa_length + 1
@@ -393,7 +388,7 @@ def write_mul_tests(test_f, cover_f, fmt: str):
         else:
             print(f"Failed to generate mul cover_vectors for fmt={fmt}, mode={mode}. Remaining cases {goals}")
 
-def write_sqrt_tests(test_f, cover_f, fmt: str):
+def write_sqrt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     """
     SQRT is fun. LSB  = 1 and Guard = 1 is impossible. We know this because
     consider squaring a number with guard = 1 and an m bit mantissa
@@ -462,7 +457,7 @@ def write_sqrt_tests(test_f, cover_f, fmt: str):
         else:
             store_cover_vector(result, test_f, cover_f)
 
-def write_div_tests(test_f, cover_f, fmt: str):
+def write_div_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     """
     We can generate guard = 1, sticky = 0, unlike square root, but the machinery is going to be 
     very specific. When sticky = 0, we have an exact result. This means that the given quotient
@@ -494,7 +489,11 @@ def write_div_tests(test_f, cover_f, fmt: str):
     ]
 
     for mode in common.ROUNDING_MODES:
-        for target in targets:
+        # for target in targets:
+        # For now while we have spontaneous failures here, this is better
+        goals = targets[:]
+        for _ in range(100):
+            target = random.choice(goals)
             # Generate the subnormal significand that we want to get
             target_subnorm = (random.randint(1, (1 << (common.MANTISSA_BITS[fmt] // 2)) - 1) << 2) | (target['LSB'] << 1) | target['Guard']
             K = target_subnorm
@@ -546,82 +545,196 @@ def write_div_tests(test_f, cover_f, fmt: str):
 
             info = extract_rounding_info(result)
 
+            """
+            TODO: LOOK INTO DIV FAILURE: {'Sign': 1, 'LSB': 1, 'Guard': 0, 'Sticky': 0} {'Sign': 1, 'LSB': 1, 'Guard': 1, 'Sticky': 0}
+            Failed to generate exact division result, please investigate: target={'Sign': 1, 'LSB': 1, 'Guard': 1, 'Sticky': 0}, K=457750356368579, odd_factors=64835023161, sig1=188c9d6ccd1041a1c9fa6b0000000, sig2=1e30efe2720000000000000000000
+            """
+
             if info != target:
                 print(info, target)
                 print(f"Failed to generate exact division result, please investigate: target={target}, K={K}, odd_factors={odd_factors}, sig1={sig1:x}, sig2={sig2:x}")
             else:
+                goals.remove(info)
                 store_cover_vector(result, test_f, cover_f)
 
+                if len(goals) == 0:
+                    break
 
-def test_interm(fmt: str):
-    # This could potentially be the basis of CVT tests
 
-    cvt_ops = {
-        common.OP_CFF: [common.FMT_HALF, common.FMT_SINGLE, common.FMT_DOUBLE, common.FMT_QUAD],
-        common.OP_CIF: [common.FMT_INT, common.FMT_UINT, common.FMT_LONG, common.FMT_ULONG],
+def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
+    cvt_ops_targets = {
+        common.OP_CFI: common.INT_FMTS,
+        common.OP_CIF: common.INT_FMTS,
+        common.OP_CFF: common.FLOAT_FMTS,
     }
-    arith_ops_1src = [
-        common.OP_SQRT,
-    ]
-    arith_ops_2src = [
-        common.OP_ADD,
-        common.OP_DIV,
-        common.OP_MUL,
-        common.OP_SUB,
-        common.OP_REM,
+
+    targets = [
+        {
+            'Sign': (x & 1),
+            'LSB': (x & 2) >> 1,
+            'Guard': (x & 4) >> 2,
+            'Sticky': (x & 8) >> 3,
+        }
+        for x in range(16)
     ]
 
-    for op in cvt_ops:
-        for target_fmt in cvt_ops[op]:
+    # CFI Test Gen
+    for mode in common.ROUNDING_MODES:
+        for target_fmt in cvt_ops_targets[common.OP_CFI]:
+            goals = targets[:]
+            
+            for _ in range(10000):
+                sig_override = 0
+                if random.random() < 0.5:
+                    # Generate a case where we can hit sticky = 0
+                    if common.MANTISSA_BITS[fmt] < common.INT_MAX_EXPS[target_fmt]:
+                        # Something that it is reasonable we could hit sticky = 0 with
+                        exp = random.randint(common.MANTISSA_BITS[fmt] - 6, common.MANTISSA_BITS[fmt] - 4)
+                    else:
+                        # We need to generate our own significand
+                        exp = random.randint(10, common.INT_MAX_EXPS[target_fmt] - 3)
+
+                        # We can have a guard in these cases, leading one lets us get to this
+                        # so our significand only needs exp bits to overflow by 1
+                        upper_bits = random.getrandbits(exp + 1)
+
+                        sig_override = upper_bits << (common.MANTISSA_BITS[fmt] - exp - 1)
+                else:
+                    # Something a little more expansive, but don't overflow or make things so that
+                    # softfloat takes shortcuts (VERY trivial rounding)
+                    exp = random.randint(1, min(common.MANTISSA_BITS[fmt] - 1, common.INT_MAX_EXPS[target_fmt] - 1))
+
+                sign = random.randint(0, 1)
+                if not sig_override:
+                    cvt_from = generate_random_float(exp, fmt, sign)
+                else:
+                    cvt_from = generate_float(sign, exp, sig_override, fmt)
+                tv = generate_test_vector(common.OP_CFI, cvt_from, 0, 0, fmt, target_fmt, mode)
+                results = run_test_vector(tv)
+                info = extract_rounding_info(results)
+
+                # Extract rounding bits
+                sig = bin(int(results.split('_')[-1], 16))[2:].zfill(192)
+                rounding_bits = sig[common.INT_MAX_EXPS[target_fmt]:]
+
+                # Calculate rounding bits
+                real_significand = get_significand_from_float(cvt_from, fmt)
+                if exp >= 0:
+                    non_rounding_bit_count = exp
+                    rounding_bit_count = common.MANTISSA_BITS[fmt] - non_rounding_bit_count
+                    real_rounding_bits = real_significand & ((1 << rounding_bit_count) - 1)
+                    real_rounding_bits = bin(real_rounding_bits)[2:].zfill(rounding_bit_count)
+
+                    lsb = int((real_significand & (1 << rounding_bit_count)) != 0)
+                else:
+                    real_rounding_bits = '0' * (-exp - 1) + bin(real_significand)[2:]
+                    lsb = 0
+                
+                expected_result = {
+                    'Sign': sign,
+                    'LSB': lsb,
+                    'Guard': int(real_rounding_bits[0] == '1'),
+                    'Sticky': int(any(x == '1' for x in real_rounding_bits[1:]))
+                }
+
+                if expected_result != info:
+                    print(f"CFI Generation Unexpected Value, fmt={fmt}, target={target_fmt}, mode={mode}, cvt_from={cvt_from:x}")
+                    breakpoint()
+                elif info in goals:
+                    goals.remove(info)
+                    store_cover_vector(results, test_f, cover_f)
+
+                    if len(goals) == 0:
+                        break
+            else:
+                print(f"CFI Generation Failed: fmt={fmt}, target={target_fmt}, mode={mode}, remaining_goals={goals}")
+                breakpoint()
+
+    # CFF Test Gen: We choose fmt to be the target
+    for mode in common.ROUNDING_MODES:
+        for target_fmt in cvt_ops_targets[common.OP_CFF]:
+            mantissa_diff = common.MANTISSA_BITS[target_fmt] - common.MANTISSA_BITS[fmt]
+
             if target_fmt == fmt:
                 continue
-
-            if fmt == common.FMT_BF16 and target_fmt in [common.FMT_LONG, common.FMT_ULONG]:
+            elif mantissa_diff <= 0:
+                # If fmt (target) has more precision than the other format, then this is not a narrowing conversion, so
+                # no rounding happens
                 continue
 
-            for _ in range(10000):
-                cvt_from = 0
-                if target_fmt.startswith("0"):
-                    cvt_from = generate_random_float(10, target_fmt)
+            goals = targets[:]
+            for _ in range(1000):
+                if random.random() < 0.5:
+                    # Generate a test where is going to be likely to be zero
+                    mantissa = random.getrandbits(common.MANTISSA_BITS[fmt] + 1) << (mantissa_diff - 1)
+                    exp = random.randint(-10, 10)
+
+                    cvt_from = generate_float(random.randint(0, 1), exp, mantissa, target_fmt)
                 else:
-                    cvt_from = random.randint(0, (1 << common.INT_SIZES[target_fmt]) - 1)
-                    if random.random() < 0.5:
-                        cvt_from = random.randint(0, 1000)
+                    exp = random.randint(-10, 10)
+                    cvt_from = generate_random_float(exp, target_fmt)
+                
+                tv = generate_test_vector(common.OP_CFF, cvt_from, 0, 0, target_fmt, fmt, mode)
+                results = run_test_vector(tv)
+                info = extract_rounding_info(results)
 
-                tv = generate_test_vector(op, cvt_from, 0, 0, target_fmt, fmt)
-                result = run_test_vector(tv)
+                if info in goals:
+                    goals.remove(info)
 
-                starting_sig = 0
-                if target_fmt.startswith("0"):
-                    starting_sig = bin(get_significand_from_float(cvt_from, target_fmt))[3:].rstrip('0')
+                    if len(goals) == 0:
+                        break
+            else:
+                print(f"CFF Generation Failed: fmt={fmt}, target_fmt={target_fmt}, mode={mode}, remaining_goals={goals}")
+
+    # CIF Test Gen:
+    for mode in common.ROUNDING_MODES:
+        for target_fmt in cvt_ops_targets[common.OP_CIF]:
+            # -1 for the leading 1!
+            mantissa_diff = common.INT_MAX_EXPS[target_fmt] - common.MANTISSA_BITS[fmt] - 1
+            if mantissa_diff <= 0:
+                # Not a narrowing conversion (e.g. int to double)
+                continue
+
+            goals = targets[:]
+            if not common.INT_SIGNED[target_fmt]:
+                goals = [goal for goal in goals if goal['Sign'] == 0]
+
+            for _ in range(2000):
+                if random.random() < 0.5:
+                    # Generate a test for sticky = 0
+                    integer = (1 << common.INT_MAX_EXPS[target_fmt] - 1) | (random.getrandbits(common.MANTISSA_BITS[fmt] + 1) << (mantissa_diff - 1))
                 else:
-                    starting_sig = cvt_from
-                    if target_fmt in [common.FMT_INT, common.FMT_LONG] and starting_sig & (1 << (common.INT_SIZES[target_fmt] - 1)):
-                        starting_sig = -(starting_sig - 2 ** (common.INT_SIZES[target_fmt]))
-                    starting_sig = bin(starting_sig)[3:] # no leading one
+                    integer = random.getrandbits(common.INT_MAX_EXPS[target_fmt])
 
-                first_digit = result.split('_')[-1][0]
-                ending_sig = bin(int(result.split('_')[-1], 16))[2:].zfill(192)
+                if common.INT_SIGNED[target_fmt]:
+                    integer *= (-1) ** (random.randint(0, 1))
 
-                if (starting_sig[:-2] in ending_sig) or (fmt == common.FMT_BF16): 
-                    pass
-                else:
-                    breakpoint()
+                tv = generate_test_vector(common.OP_CIF, integer & ((1 << common.INT_SIZES[target_fmt]) - 1), 0, 0, target_fmt, fmt, mode)
+                results = run_test_vector(tv)
+                info = extract_rounding_info(results)
 
+                if info in goals:
+                    goals.remove(info)
+
+                    if len(goals) == 0:
+                        break
+            else:
+                print(f"CIF Test Gen Failed: fmt={fmt}, from={target_fmt}, mode={mode}, remaining_goals={goals}")
 
 def main():
-    test_f = open("./tests/testvectors/B3_tv.txt", "w")
-    cover_f = open("./tests/covervectors/B3_cv.txt", "w")
+    print("Running B3 :)")
+
+    test_f = Path("./tests/testvectors/B3_tv.txt").open("w")
+    cover_f = Path("./tests/covervectors/B3_cv.txt").open("w")
 
     # These are going to be for sticky = 0
-    for fmt in FMTS:
+    for fmt in common.FLOAT_FMTS:
         write_add_sub_tests(test_f, cover_f, fmt)
         write_mul_tests(test_f, cover_f, fmt)
         write_div_tests(test_f, cover_f, fmt)
         write_sqrt_tests(test_f, cover_f, fmt)
         write_fma_tests(test_f, cover_f, fmt)
-        if TESTING == True:
-            test_interm(fmt)
+        write_cvt_tests(test_f, cover_f, fmt)
 
     targets = [
         {
@@ -640,7 +753,7 @@ def main():
     total = 0
 
     for op in [*SRC1_OPS, *SRC2_OPS, *SRC3_OPS]:
-        for fmt in FMTS:
+        for fmt in common.FLOAT_FMTS:
             for mode in common.ROUNDING_MODES:
                 cover_goals = targets[:]
                 if op == common.OP_SQRT or op == common.OP_REM:

@@ -53,8 +53,10 @@ OP_NAMES: dict[str, str] = {
 
 ROUND_NAMES: dict[str, str] = {"00": "=0"}
 
+
 def hex_to_binary(hex_str: str, bits: int) -> str:
     return bin(int(hex_str, 16))[2:].zfill(bits)
+
 
 def parse_int_value(hex_val: str, spec: dict[str, Any]) -> dict[str, Any]:
     bits: int = spec["total_bits"]
@@ -66,28 +68,29 @@ def parse_int_value(hex_val: str, spec: dict[str, Any]) -> dict[str, Any]:
         value: int = unsigned
     return {"value": value, "signed": spec.get("signed", False), "raw": hex_val}
 
+
 def parse_fp_value(hex_val: str, fmt_code: str) -> Optional[dict[str, Any]]:
     spec = FMT_SPECS.get(fmt_code)
     if not spec:
         return None
-    
+
     total_bits: int = spec["total_bits"]
     val: int = int(hex_val, 16)
-    
+
     sign: int = (val >> (total_bits - 1)) & 1
     exp_bits: int = spec["exp_bits"]
     man_bits: int = spec["man_bits"]
-    
+
     biased_exp: int = (val >> man_bits) & ((1 << exp_bits) - 1)
     mantissa: int = val & ((1 << man_bits) - 1)
-    
+
     is_zero: bool = biased_exp == 0 and mantissa == 0
     is_inf: bool = biased_exp == ((1 << exp_bits) - 1) and mantissa == 0
     is_nan: bool = biased_exp == ((1 << exp_bits) - 1) and mantissa != 0
     is_subnormal: bool = biased_exp == 0 and mantissa != 0
-    
+
     actual_exp: int = (1 - spec["bias"]) if (is_zero or is_subnormal) else (biased_exp - spec["bias"])
-    
+
     return {
         "sign": sign,
         "exp": actual_exp,
@@ -98,6 +101,7 @@ def parse_fp_value(hex_val: str, fmt_code: str) -> Optional[dict[str, Any]]:
         "is_nan": is_nan,
         "is_subnormal": is_subnormal,
     }
+
 
 def format_mantissa(parsed: dict[str, Any]) -> str:
     mantissa: int = parsed["mantissa"]
@@ -110,6 +114,7 @@ def format_mantissa(parsed: dict[str, Any]) -> str:
     hex_digits: int = (man_bits + 3) // 4
     hex_str: str = f"{mantissa:0{hex_digits}X}"
     return f"{lead_bit}.{hex_str}"
+
 
 def decode_class_mask(val: int) -> str:
     """Decodes fclass bitmask."""
@@ -127,6 +132,7 @@ def decode_class_mask(val: int) -> str:
     }
     active = [name for bit, name in masks.items() if (val >> bit) & 1]
     return "|".join(active) if active else hex(val)
+
 
 def value_to_string(parsed: Optional[dict[str, Any]], fmt_code: str, is_class: bool = False) -> str:
     if parsed is None:
@@ -150,6 +156,7 @@ def value_to_string(parsed: Optional[dict[str, Any]], fmt_code: str, is_class: b
 
     sign_char: str = "-" if parsed["sign"] else "+"
     return f"{sign_char}{format_mantissa(parsed)}P{parsed['exp']}"
+
 
 def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
     line = line.strip()
@@ -181,7 +188,7 @@ def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
 
     a_parsed = (
         parse_fp_value(fixwidth(a_val, op_hex_chars), op_fmt)
-        if op_spec["type"] == "float" 
+        if op_spec["type"] == "float"
         else parse_int_value(fixwidth(a_val, op_hex_chars), op_spec)
     )
     
@@ -189,7 +196,7 @@ def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
     if op_name not in one_op_names:
         b_parsed = (
             parse_fp_value(fixwidth(b_val, op_hex_chars), op_fmt)
-            if op_spec["type"] == "float" 
+            if op_spec["type"] == "float"
             else parse_int_value(fixwidth(b_val, op_hex_chars), op_spec)
         )
 
@@ -241,14 +248,15 @@ def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
         "res_fmt_name": res_spec["name"],
     }
 
+
 def format_output(parsed: dict[str, Any]) -> str:
     """Format parsed test vector to output string based on operand count."""
-    flags: str = f" {parsed['flags']}" if parsed['flags'] else ""
-    op: str = parsed['format']
-    rnd: str = parsed['round']
-    a: str = parsed['op_a']
-    b: Optional[str] = parsed.get('op_b')
-    c: Optional[str] = parsed.get('op_c')
+    flags: str = f" {parsed['flags']}" if parsed["flags"] else ""
+    op: str = parsed["format"]
+    rnd: str = parsed["round"]
+    a: str = parsed["op_a"]
+    b: Optional[str] = parsed.get("op_b")
+    c: Optional[str] = parsed.get("op_c")
 
     if "v-" in op or any(x in op for x in ["cfi", "cff", "cif", "cls"]):
         base = f"{op} {rnd} {a}"
@@ -256,5 +264,5 @@ def format_output(parsed: dict[str, Any]) -> str:
         base = f"{op} {rnd} {a} {b} {c}"
     else:
         base = f"{op} {rnd} {a} {b}"
-    
+
     return f"{base} -> {parsed['result']} ({parsed['res_fmt_name']}){flags}"

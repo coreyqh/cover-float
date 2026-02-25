@@ -25,6 +25,7 @@ def main() -> None:
             result = run_test_vector(line, args.suppress_error_check)
             outfile.write(result)
 
+
 def auto_parse(model_name: str, output_dir: str) -> None:
     input_path = Path(output_dir) / "testvectors" / f"{model_name}_tv.txt"
     output_path = Path(output_dir) / "readable" / f"{model_name}_parsed.txt"
@@ -39,6 +40,7 @@ def auto_parse(model_name: str, output_dir: str) -> None:
                 outfile.write(format_output(parsed) + "\n")
                 count += 1
     print(f"Parsed {count} {model_name} vectors to {output_path}")
+
 
 def testgen() -> None:
     parser = argparse.ArgumentParser()

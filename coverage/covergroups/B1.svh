@@ -34,7 +34,7 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
 
     FP_convert_fmt: coverpoint CFI.resultFmt {
         type_option.weight = 0;
-        // all formats to convert to 
+        // all formats to convert to
 
         `ifdef COVER_F16
             bins fmt_half   = {FMT_HALF};
@@ -43,15 +43,15 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         `ifdef COVER_F32
             bins fmt_single = {FMT_SINGLE};
         `endif // COVER_F32
-        
+
         `ifdef COVER_F64
             bins fmt_double = {FMT_DOUBLE};
         `endif // COVER_F64
-        
+
         `ifdef COVER_F128
             bins fmt_quad   = {FMT_QUAD};
         `endif // COVER_F128
-        
+
         `ifdef COVER_BF16
             bins fmt_bf16   = {FMT_BF16};
         `endif // COVER_BF16
@@ -69,7 +69,7 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         type_option.weight = 0;
         // checks that a convert is happening (F2X, X2F, or F2F)
         // operand and result formats infer which type
-        
+
         bins convert = {OP_CFI, OP_CFF, OP_CIF};
         // bins op_cfi
         // bins op_cff
@@ -116,7 +116,7 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         `include "bins_templates/F32_basic_types_bins.svh"
         `undef  IGNORE_NANS
     }
-   
+
 
     /************************************************************************
 
@@ -297,7 +297,7 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_F32_2_operands: cross FP_src2_ops,   F32_src1_basictypes, F32_src2_basictypes,                      F32_src_fmt;
         B1_F32_3_operands: cross FP_src3_ops,   F32_src1_basictypes, F32_src2_basictypes, F32_src3_basictypes, F32_src_fmt;
         B1_F32_result:     cross FP_result_ops, F32_result_basictypes,                                         F32_result_fmt {
-            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (F32_result_basictypes[31] == 1'b1);    
+            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (F32_result_basictypes[31] == 1'b1);
             // ignore_bins posinf_rem    = binsof(F32_result_basictypes.posinfinity) with (FP_result_ops == OP_REM);
             // ignore_bins neginf_rem    = binsof(F32_result_basictypes.neginfinity) with (FP_result_ops == OP_REM);
         }
@@ -311,7 +311,7 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_F64_2_operands: cross FP_src2_ops,   F64_src1_basictypes, F64_src2_basictypes,                      F64_src_fmt;
         B1_F64_3_operands: cross FP_src3_ops,   F64_src1_basictypes, F64_src2_basictypes, F64_src3_basictypes, F64_src_fmt;
         B1_F64_result:     cross FP_result_ops, F64_result_basictypes,                                         F64_result_fmt {
-            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (F64_result_basictypes[63] == 1'b1);    
+            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (F64_result_basictypes[63] == 1'b1);
             // ignore_bins posinf_rem    = binsof(F64_result_basictypes.posinfinity) with (FP_result_ops == OP_REM);
             // ignore_bins neginf_rem    = binsof(F64_result_basictypes.neginfinity) with (FP_result_ops == OP_REM);
         }
@@ -325,7 +325,7 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_F16_2_operands: cross FP_src2_ops,   F16_src1_basictypes, F16_src2_basictypes,                      F16_src_fmt;
         B1_F16_3_operands: cross FP_src3_ops,   F16_src1_basictypes, F16_src2_basictypes, F16_src3_basictypes, F16_src_fmt;
         B1_F16_result:     cross FP_result_ops, F16_result_basictypes,                                         F16_result_fmt {
-            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (F16_result_basictypes[15] == 1'b1);    
+            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (F16_result_basictypes[15] == 1'b1);
             // ignore_bins posinf_rem    = binsof(F16_result_basictypes.posinfinity) with (FP_result_ops == OP_REM);
             // ignore_bins neginf_rem    = binsof(F16_result_basictypes.neginfinity) with (FP_result_ops == OP_REM);
         }
@@ -339,7 +339,7 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_BF16_2_operands: cross FP_src2_ops,   BF16_src1_basictypes, BF16_src2_basictypes,                       BF16_src_fmt;
         B1_BF16_3_operands: cross FP_src3_ops,   BF16_src1_basictypes, BF16_src2_basictypes, BF16_src3_basictypes, BF16_src_fmt;
         B1_BF16_result:     cross FP_result_ops, BF16_result_basictypes,                                           BF16_result_fmt {
-            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (BF16_result_basictypes[15] == 1'b1);    
+            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (BF16_result_basictypes[15] == 1'b1);
             // ignore_bins posinf_rem    = binsof(BF16_result_basictypes.posinfinity) with (FP_result_ops == OP_REM);
             // ignore_bins neginf_rem    = binsof(BF16_result_basictypes.neginfinity) with (FP_result_ops == OP_REM);
         }
@@ -348,13 +348,13 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         }
     `endif // COVER_BF16
 
-    
+
     `ifdef COVER_F128
         B1_F128_1_operands: cross FP_src1_ops,   F128_src1_basictypes,                                             F128_src_fmt;
         B1_F128_2_operands: cross FP_src2_ops,   F128_src1_basictypes, F128_src2_basictypes,                       F128_src_fmt;
         B1_F128_3_operands: cross FP_src3_ops,   F128_src1_basictypes, F128_src2_basictypes, F128_src3_basictypes, F128_src_fmt;
         B1_F128_result:     cross FP_result_ops, F128_result_basictypes,                                           F128_result_fmt {
-            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (F128_result_basictypes[127] == 1'b1);    
+            ignore_bins negative_sqrt = binsof(FP_result_ops.op_sqrt) with (F128_result_basictypes[127] == 1'b1);
             // ignore_bins posinf_rem    = binsof(F128_result_basictypes.posinfinity) with (FP_result_ops == OP_REM);
             // ignore_bins neginf_rem    = binsof(F128_result_basictypes.neginfinity) with (FP_result_ops == OP_REM);
         }

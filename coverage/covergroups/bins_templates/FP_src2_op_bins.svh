@@ -17,4 +17,3 @@
         bins op_fsgnj  = {OP_FSGNJ};
         bins op_fsgnjn = {OP_FSGNJN};
         bins op_fsgnjx = {OP_FSGNJX};
-        

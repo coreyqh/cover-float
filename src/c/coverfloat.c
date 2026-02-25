@@ -876,7 +876,7 @@ int reference_model(
                 break;
             }
             case FMT_LONG: {
-                uint64_t serialized_input = (uint64_t) a->lower;
+                uint64_t serialized_input = (uint64_t)a->lower;
                 int64_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int64_t is UB
@@ -890,7 +890,7 @@ int reference_model(
                 break;
             }
             case FMT_ULONG: {
-                uint64_t input = (uint64_t) a->lower;
+                uint64_t input = (uint64_t)a->lower;
 
                 softFloat_setRoundingMode(softfloat_round_odd);
                 float64_t out_64 = ui64_to_f64(input);
@@ -1847,20 +1847,22 @@ int reference_model(
 
         if (shift_dist < 64) {
             // Everything has a short shift here, most complex case, but look at reference from softfloat
-            intermResult->sigExtra = (intermResult->sigExtra >> shift_dist)
-                    | (intermResult->sig0 << (64 - shift_dist)) 
-                    | ((intermResult->sigExtra << (64 - shift_dist)) != 0); // This is the jam
+            intermResult->sigExtra = (intermResult->sigExtra >> shift_dist) |
+                                     (intermResult->sig0 << (64 - shift_dist)) |
+                                     ((intermResult->sigExtra << (64 - shift_dist)) != 0); // This is the jam
             intermResult->sig0 = (intermResult->sig0 >> shift_dist) | (intermResult->sig64 << (64 - shift_dist));
             intermResult->sig64 = intermResult->sig64 >> shift_dist;
         } else if (shift_dist < 128) {
             // These two cases are the same as above but simpler
-            intermResult->sigExtra = (intermResult->sig0 >> (shift_dist - 64)) 
-                    | (((intermResult->sig0 << (128 - shift_dist)) | intermResult->sigExtra) != 0); // This is the jam
+            intermResult->sigExtra =
+                (intermResult->sig0 >> (shift_dist - 64)) |
+                (((intermResult->sig0 << (128 - shift_dist)) | intermResult->sigExtra) != 0); // This is the jam
             intermResult->sig0 = intermResult->sig64 >> (shift_dist - 64);
             intermResult->sig64 = 0;
         } else if (shift_dist < 192) {
-            intermResult->sigExtra = (intermResult->sig64 >> (shift_dist - 128)) 
-                    | (((intermResult->sig64 << (192 - shift_dist)) | intermResult->sigExtra | intermResult->sig0) != 0); // This is the jam
+            intermResult->sigExtra = (intermResult->sig64 >> (shift_dist - 128)) |
+                                     (((intermResult->sig64 << (192 - shift_dist)) | intermResult->sigExtra |
+                                       intermResult->sig0) != 0); // This is the jam
             intermResult->sig0 = 0;
             intermResult->sig64 = 0;
         } else {

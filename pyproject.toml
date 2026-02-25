@@ -27,3 +27,38 @@ cache-keys = [{ file = "pyproject.toml" }, { file = "src/**/*.{h,c,hpp,cpp}" }, 
 [build-system]
 requires = ["scikit-build-core>=0.10", "pybind11"]
 build-backend = "scikit_build_core.build"
+
+[dependency-groups]
+dev = [
+    "pre-commit==4.3.0",
+    "pyright==1.1.408",
+    "ruff==0.15.2",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+extend-select = [
+  "F",   # various basic rules (pyflakes)
+  "E",   # errors (pycodestyle)
+  "W",   # warnings (pycodestyle)
+  "I",   # Import related rules (isort)
+  "UP",  # Upgraded version available in newer Python
+  "B",   # bugbear rules
+  "A",   # shadow builtins
+  "EXE", # Executable file shebangs
+  "ANN", # type annotation rules
+  "RUF", # Ruff specific rules
+  "PTH", # Pathlib usage
+  "SIM", # Simplifications
+]
+
+##### PYRIGHT CONFIG #####
+[tool.pyright]
+exclude = [
+  "**/__pycache__",
+  "**/.*",
+  ".venv",
+]
+typeCheckingMode = "strict"

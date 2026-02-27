@@ -280,8 +280,7 @@ def write_fma_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
                 if rounding in to_cover:
                     to_cover.remove(rounding)
-                    print(result[: common.TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS], file=test_f)
-                    print(result, file=cover_f)
+                    store_cover_vector(result, test_f, cover_f)
 
                     # This means we're done
                     if len(to_cover) == 0:
@@ -615,6 +614,9 @@ def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
         for target_fmt in cvt_ops_targets[common.OP_CFI]:
             goals = targets[:]
 
+            if not common.INT_SIGNED[target_fmt]:
+                goals = [goal for goal in goals if not goal["Sign"]]
+
             for _ in range(10000):
                 sig_override = 0
                 if random.random() < 0.5:
@@ -674,7 +676,6 @@ def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                         f"CFI Generation Unexpected Value, fmt={fmt}, target={target_fmt}, mode={mode},"
                         "cvt_from={cvt_from:x}"
                     )
-                    breakpoint()
                 elif info in goals:
                     goals.remove(info)
                     store_cover_vector(results, test_f, cover_f)
@@ -683,7 +684,6 @@ def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                         break
             else:
                 print(f"CFI Generation Failed: fmt={fmt}, target={target_fmt}, mode={mode}, remaining_goals={goals}")
-                breakpoint()
 
     # CFF Test Gen: We choose fmt to be the target
     for mode in common.ROUNDING_MODES:
@@ -715,6 +715,7 @@ def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
                 if info in goals:
                     goals.remove(info)
+                    store_cover_vector(results, test_f, cover_f)
 
                     if len(goals) == 0:
                         break
@@ -756,6 +757,7 @@ def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
                 if info in goals:
                     goals.remove(info)
+                    store_cover_vector(results, test_f, cover_f)
 
                     if len(goals) == 0:
                         break
@@ -764,6 +766,8 @@ def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
 
 def main() -> None:
+    random.seed(hash("B3"))
+
     print("Running B3 :)")
 
     with (
@@ -789,12 +793,6 @@ def main() -> None:
             for x in range(8, 16)
         ]
 
-        targets = [x for x in targets if x["Sign"] == 0]
-
-        misses = 0
-        emmitted = 0
-        total = 0
-
         for op in [*SRC1_OPS, *SRC2_OPS, *SRC3_OPS]:
             for fmt in common.FLOAT_FMTS:
                 for mode in common.ROUNDING_MODES:
@@ -816,16 +814,12 @@ def main() -> None:
 
                         if rounding_results in cover_goals:
                             cover_goals.remove(rounding_results)
-                            print(cv[: common.TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS], file=test_f)
-                            print(cv, file=cover_f)
-                            emmitted += 1
+                            store_cover_vector(cv, test_f, cover_f)
 
                         if len(cover_goals) == 0:
                             break
                     else:
                         print("Miss: ", op, fmt, len(cover_goals), cover_goals)
-                        misses += len(cover_goals)
-                    total += len(targets)
 
         print("B3 Tests Generated!")
 

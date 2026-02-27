@@ -87,65 +87,75 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     }
 
     // cases iii & iv
-    F32_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F32_M_BITS) -: 3] iff (CFI.intermX == 0) {
-        type_option.weight = 0;
+    F32_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F32_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: F32_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
-    F64_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F64_M_BITS) -: 3] iff (CFI.intermX == 0) {
-        type_option.weight = 0;
+    F64_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F64_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: F64_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
-    F128_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F128_M_BITS) -: 3] iff (CFI.intermX == 0) {
-        type_option.weight = 0;
+    F128_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F128_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: F128_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
-    F16_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F16_M_BITS) -: 3] iff (CFI.intermX == 0) {
-        type_option.weight = 0;
+    F16_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F16_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: F16_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
-    BF16_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - BF16_M_BITS) -: 3] iff (CFI.intermX == 0) {
-        type_option.weight = 0;
+    BF16_minSubnorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - BF16_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: BF16_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minSubNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
     // cases v & vi
-    F32_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F32_M_BITS) -: 3] iff (CFI.intermX != 0) {
-        type_option.weight = 0;
+    F32_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F32_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: F32_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
-    F64_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F64_M_BITS) -: 3] iff (CFI.intermX != 0) {
-        type_option.weight = 0;
+    F64_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F64_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: F64_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
-    F128_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F128_M_BITS) -: 3] iff (CFI.intermX != 0) {
-        type_option.weight = 0;
+    F128_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F128_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: F128_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
-    F16_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F16_M_BITS) -: 3] iff (CFI.intermX != 0) {
-        type_option.weight = 0;
+    F16_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - F16_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: F16_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
-    BF16_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - BF16_M_BITS) -: 3] iff (CFI.intermX != 0) {
-        type_option.weight = 0;
+    BF16_minNorm_pm_3ulp: coverpoint CFI.intermM[(INTERM_M_BITS - BF16_M_BITS) -: 3]
+        iff (CFI.intermX == 0 && CFI.intermM[(INTERM_M_BITS - 1) -: BF16_M_BITS - 1] == 0) {
+            type_option.weight = 0;
 
-        bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
+            bins minNorm_pm_3ulp[] = {[3'b001 : 3'b111]};
     }
 
     // cases vii & viii
@@ -153,35 +163,35 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
         type_option.weight = 0;
 
         // shift 1 into the ULP position, subtract one to be in the exclusive range (0 , minSubNorm)
-        bins btw_minSubnorm_zero = {[1 : (('b1 << (INTERM_M_BITS - F32_M_BITS)) - 1)]};
+        bins btw_minSubnorm_zero = {[1 : ((INTERM_M_BITS'(1) << (INTERM_M_BITS - F32_M_BITS)) - 1)]};
     }
 
     F64_btw_minSubnorm_zero: coverpoint CFI.intermM iff (CFI.intermX == 0) {
         type_option.weight = 0;
 
         // shift 1 into the ULP position, subtract one to be in the exclusive range (0 , minSubNorm)
-        bins btw_minSubnorm_zero = {[1 : (('b1 << (INTERM_M_BITS - F64_M_BITS)) - 1)]};
+        bins btw_minSubnorm_zero = {[1 : ((INTERM_M_BITS'(1) << (INTERM_M_BITS - F64_M_BITS)) - 1)]};
     }
 
     F128_btw_minSubnorm_zero: coverpoint CFI.intermM iff (CFI.intermX == 0) {
         type_option.weight = 0;
 
         // shift 1 into the ULP position, subtract one to be in the exclusive range (0 , minSubNorm)
-        bins btw_minSubnorm_zero = {[1 : (('b1 << (INTERM_M_BITS - F128_M_BITS)) - 1)]};
+        bins btw_minSubnorm_zero = {[1 : ((INTERM_M_BITS'(1) << (INTERM_M_BITS - F128_M_BITS)) - 1)]};
     }
 
     F16_btw_minSubnorm_zero: coverpoint CFI.intermM iff (CFI.intermX == 0) {
         type_option.weight = 0;
 
         // shift 1 into the ULP position, subtract one to be in the exclusive range (0 , minSubNorm)
-        bins btw_minSubnorm_zero = {[1 : (('b1 << (INTERM_M_BITS - F16_M_BITS)) - 1)]};
+        bins btw_minSubnorm_zero = {[1 : ((INTERM_M_BITS'(1) << (INTERM_M_BITS - F16_M_BITS)) - 1)]};
     }
 
     BF16_btw_minSubnorm_zero: coverpoint CFI.intermM iff (CFI.intermX == 0) {
         type_option.weight = 0;
 
         // shift 1 into the ULP position, subtract one to be in the exclusive range (0 , minSubNorm)
-        bins btw_minSubnorm_zero = {[1 : (('b1 << (INTERM_M_BITS - BF16_M_BITS)) - 1)]};
+        bins btw_minSubnorm_zero = {[1 : ((INTERM_M_BITS'(1) << (INTERM_M_BITS - BF16_M_BITS)) - 1)]};
     }
 
     // case ix

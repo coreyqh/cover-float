@@ -7,9 +7,8 @@ from typing import TextIO
 from random import seed
 
 from cover_float.common.constants import EXPONENT_BITS, FLOAT_FMTS, MANTISSA_BITS, OP_DIV, OP_MUL, OP_SQRT
-from cover_float.common.util import generate_test_vector
+from cover_float.common.util import generate_test_vector, reproducible_hash
 from cover_float.reference import run_and_store_test_vector
-from cover_float.common.util import reproducible_hash
 
 """
 From Ahronhi et al 2008:

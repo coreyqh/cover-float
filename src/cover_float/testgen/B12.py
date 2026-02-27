@@ -196,10 +196,10 @@ def CancellationTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     p = MANTISSA_BITS[fmt] + 1
 
     for d in range(-p, 2):  # [-p, +1]
-        hashval = reproducible_hash(OP_ADD+fmt+"b12")
+        hashval = reproducible_hash(OP_ADD + fmt + "b12")
         seed(hashval)
         makeTestVectors(fmt, d, "add", test_f, cover_f)
-        hashval = reproducible_hash(OP_SUB+fmt+"b12")
+        hashval = reproducible_hash(OP_SUB + fmt + "b12")
         seed(hashval)
         makeTestVectors(fmt, d, "sub", test_f, cover_f)
 

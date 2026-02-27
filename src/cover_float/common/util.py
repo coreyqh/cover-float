@@ -13,8 +13,3 @@ def reproducible_hash(s: str) -> int:
     for c in s:
         h = (h * 31 + ord(c)) & 0xFFFFFFFF
     return h
-
-
-
-
-

@@ -34,7 +34,7 @@ def innerTest(test_f: TextIO, cover_f: TextIO, op: str) -> None:
         min_exp = BIASED_EXP[fmt][0]
         max_exp = BIASED_EXP[fmt][1]
 
-        hashval = reproducible_hash(op+fmt+"b10") 
+        hashval = reproducible_hash(op + fmt + "b10") 
         seed(hashval)
         # Incrementing b_exp
 
@@ -77,7 +77,7 @@ def outerTest(isTestOne: bool, test_f: TextIO, cover_f: TextIO, op: str) -> None
         max_exp = BIASED_EXP[fmt][1]
         max_a_exp = max_exp - (p + 5)
 
-        hashval = reproducible_hash(op+fmt+"b10") 
+        hashval = reproducible_hash(op + fmt + "b10") 
         seed(hashval)
 
         a_exp = random.randint(min_exp, max_a_exp)

@@ -2,7 +2,7 @@
 
 RM_CMD ?= rm -rf
 
-.PHONY: build clean sim all B1 B10
+.PHONY: build clean sim all B1 B3 B9 B10 B12
 
 # Notice that we pass --managed-python, we do this so that uv (scikit-build-core)
 # will have a python enviornment with Python.h to build with.
@@ -19,6 +19,9 @@ sim:
 
 B1:
 	uv run --managed-python cover-float-testgen --model B1
+
+B3:
+	uv run --managed-python cover-float-testgen --model B3
 
 B9:
 	uv run --managed-python cover-float-testgen --model B9

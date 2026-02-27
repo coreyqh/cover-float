@@ -1,0 +1,104 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+== B3: Rounding - sign, LSB, guard bit, sticky bit
+
+Aharoni et al.
+
+=== Description
+
+Test all combinations of the sign, the significand's Least Significant Bit (LSB), guard-bit, and sticky-bit of the intermediate result.
+
+*Number of tests:* 6E3
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`, `INT32`, `UINT32`, `INT64`, `UINT64`
+
+*Operations Supported*: `ADD`, `SUB`, `MUL`, `DIV`, `SQRT`, `FMA` (all flavors), `CFI`, `CIF`, `CFF`
+
+*Unsupported Operations*: `REM`
+
+*Rounding Mode*: Round Nearest to Even, Round Min Magnitude, Round Min, Round Max, Round Near to Max Magnitude
+
+== Implementation
+
+=== Definitions
+
+`Intermediate Result`:: The result of the given operation evaluated to full (theoretically infinite) precision before it is rounded
+`LSB`:: Least significant bit of the intermediate result according to the mantissa length
+`Guard Bit`:: The first bit after lsb in an intermediate result
+`Sticky Bit`:: Bitwise or of the remaining bit after the guard bit
+
+== Background
+
+Floating point values are rounded after an operation according to a combination of the LSB, Guard, and Sticky Bits. Each of the IEEE754 rounding modes has a different behavior depending on the combination of these bits that results.
+
+To verify that all rounding modes are implemented correctly, we must check all combinations of these rounding bits for all operations as rounding hardware may differ on a by-operation basis.
+
+== Test Procedure
+
+=== Arithmetic Operations for Sticky = 1
+
+Sticky = 1 is the most likely case for a random floating point operation to evaluate to. In fact, this is nearly guaranteed for random values. If we assume that the probility of each bit being 0 or 1 after a random operation with random operands is uniform, then due to the large number of bits contributing to the sticky bit, we get that it is most likely that the sticky bit is 1. We also get that there are 50/50 chances that each of the guard bit and lsb are zero respectively. This means that random generation of inputs works for all operations to cover all cases when sticky = 1.
+
+=== Add/Sub for Sticky = 0
+
+In order for an addition or subtraction to have sticky = 0, the sticky bit calculation must be trivial. This is because for addition to even happen in that bit range, there must be a shift due to misaligned exponents into that range. So, we generate a random exponent for the first input and subtract 2 from the random exponent for the second one. For a given case, we then know what to input in the last two bits so that sticky = 0 and guard is the desired value. There should not be any carries into the lsb position, so we just need to randomly generate a significand for the first input, then calculate the correct value so that the lsb is the desired value.
+
+=== Mul for Sticky = 0
+
+A multiplication takes a two significands of the fixed point form `1.Nf` and spits out a fixed point number with form `2.2Nf`. In this output, we want a large number of trailing zeros. For simplicity, we can just treat the fixed point number as a giant integer. Then, significand multiplication is just integer multiplication. The only way to get trailing zeros in binary is to have a large number of 2s in the prime factorization, which mean that initially there were trailing zeros in each of our significands. The desired length of zeros is `Nf` or the mantissa length, so we randomly generate the number of zeros in each significand so that they sum to `Nf`, then randomly generate the rest of the significand. Running this process enough times will give answers suitably quickly.
+
+=== FMA for Sticky = 0
+
+The basic idea here is to use the addition to zero out the sticky bits. As above, the multiplication results in a sticky with `Nf` bits. This is exactly the size of the mantissa that we get to add in the addition step of the FMA. So, we randomly generate multiplication inputs, and calculate an addend that zeros out the sticky bit.
+
+=== Div for Sticky = 0
+
+This is an interesting case. For non-trivial results, it is impossible for normalized numbers. When sticky = 0, we have an exact result. This means that the given quotient has a terminating binary expansion. This happens if the given denominator only has a factor of two when it is in lowest terms. Let S1 be the first significand, S2 be the second significand, p1 and p2 be the powers of their respective floats, and m be the number of mantissa bits. Then our quotient is
+
+[stem]
+++++
+\frac{S_1\cdot2^{p1+m}}{S_2\cdot2^{p2+m}} = \frac{S_1}{S_2}2^{p1-p2}
+++++
+
+If we have an exact answer, then the simplified denominator can only have factors of two, so
+
+[stem]
+++++
+\frac{S_1}{S_2} = \frac{K}{2^p},
+++++
+
+where K is any odd prime factors not canceled out and p is an integer. We canceled factors so K < S1. Thus, the binary representation of K must have as many or fewer digits than S1. The meaning of this is that guard = 1 is impossible for a normalized generated significand. Thus, guard = 1, sticky = 0 can only be accomplished with a subnorm result. Similarly, K and S1 are only the same length when S1 = K (as we can only cancel factors of two or greater), so for lsb = 1 cases, either we need to use trivial significands or also use subnorms.
+
+To generate random inputs, we can work backwards from a random K that we want to target, by simply setting the lower two bits to some target, then randomizeing the remaining bits (up to half of the mantissa). Some number of odd factors can part of S1 and S2, as long as they are the same, so those are also randomly generated.
+
+=== Sqrt for Sticky = 0
+
+Unlike Div, most sticky = 0 cases are impossible. A square root with an exact answer has half the precision that it started with, so if sticky = 0, then the guard and lsb must also be 0. It is still worth it to check rounding for an exact answer (to ensure that exact answers are handled right). So, we just randomly generate a float with half the precision that is available, then square it. Sqrt returns the closest thing to a square root, so under these circumstances (exact multiplication), there is an exact answer.
+
+=== Convert Operations
+
+There is only rounding in a narrowing conversion.
+
+For CFI (float to int), we generate something with a high enough (but still non trivial) exponent so that with a random significand we still have rounding, i.e. the final few (4-6) bits are fractional. Sticky = 1 is much easier. We just use a random significand and exponent, with the significands chosen so that operations short circuiting to infinity is not a concern.
+
+For CFF (float to float), we use a random float for sticky = 1, and for sticky = 0, we choose something where we fill zeros for the entire sticky part, then randomly choose a significand. For all of these, the exponent is kept between -10 and 10 as we do not want cases where there is overflow or underflow due to the exponent.
+
+For CIF (int to float), we use random ints for sticky = 1, and for sticky = 0, the ints are chosen so that a leading one is set in the msb, then there are enough trailing zeros so that sticky = 1. Int signs are also randomized when applicable.
+
+== Test Count Breakdown
+
+For each non-sqrt arithmetic operation, there are 16 relevant cases (all combinations of sign, lsb, guard, and sticky) across 5 rounding modes and 5 precisions. With 8 operations (add, sub, mul, div, all 4 fmas), this totals 3200 cases.
+
+For sqrt there are 5 relevant cases across 5 rounding modes and 5 precisions. This totals 125 cases.
+
+For CFI, there are 5 floating point formats and 4 integer formats across 5 rounding modes with 8 relevant cases for unsigned integers and 16 relevant cases for signed integers. This totals 1200 cases.
+
+For CFF, there are 10 narrowing conversions across 5 rounding modes with 16 relevant cases. This totals 800 cases.
+
+For CIF, there are 3 narrowing conversions for ```INT``` and ```UINT```, and 4 narrowing conversions for ```LONG``` and ```ULONG```. For the signed ints, there are 16 relevant cases and for the unsigned ints there are 8 relevant cases. Across 5 rounding modes, this totals 840 cases.
+
+In total, we generate 6165 test cases.

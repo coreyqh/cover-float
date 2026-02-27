@@ -20,8 +20,6 @@ from cover_float.reference import run_and_store_test_vector
 from cover_float.common.util import reproducible_hash
 
 def decimalComponentsToHex(fmt: str, biased_exp: int) -> str:
-    hashval = reproducible_hash(fmt + "b10")
-    seed(hashval) 
     b_sign = f"{random.randint(0, 1)}"
     b_exponent = f"{biased_exp:0{EXPONENT_BITS[fmt]}b}"
     b_mantissa = f"{random.getrandbits(MANTISSA_BITS[fmt]):0{MANTISSA_BITS[fmt]}b}"

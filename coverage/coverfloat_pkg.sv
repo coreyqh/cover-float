@@ -71,6 +71,8 @@ package coverfloat_pkg;
 
     // TODO: expand with other relvelant parameters
 
+    parameter int INTERM_M_BITS = 192;
+
     parameter int F16_E_BITS = 5;
     parameter int BF16_E_BITS = 8;
     parameter int F32_E_BITS = 8;

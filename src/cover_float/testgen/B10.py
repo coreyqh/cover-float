@@ -4,8 +4,8 @@
 
 import random
 from pathlib import Path
+from random import seed
 from typing import TextIO
-from random import seed 
 
 from cover_float.common.constants import (
     BIASED_EXP,
@@ -16,8 +16,9 @@ from cover_float.common.constants import (
     OP_SUB,
     ROUND_NEAR_EVEN,
 )
-from cover_float.reference import run_and_store_test_vector
 from cover_float.common.util import reproducible_hash
+from cover_float.reference import run_and_store_test_vector
+
 
 def decimalComponentsToHex(fmt: str, biased_exp: int) -> str:
     b_sign = f"{random.randint(0, 1)}"
@@ -34,7 +35,7 @@ def innerTest(test_f: TextIO, cover_f: TextIO, op: str) -> None:
         min_exp = BIASED_EXP[fmt][0]
         max_exp = BIASED_EXP[fmt][1]
 
-        hashval = reproducible_hash(op + fmt + "b10") 
+        hashval = reproducible_hash(op + fmt + "b10")
         seed(hashval)
         # Incrementing b_exp
 
@@ -77,7 +78,7 @@ def outerTest(isTestOne: bool, test_f: TextIO, cover_f: TextIO, op: str) -> None
         max_exp = BIASED_EXP[fmt][1]
         max_a_exp = max_exp - (p + 5)
 
-        hashval = reproducible_hash(op + fmt + "b10") 
+        hashval = reproducible_hash(op + fmt + "b10")
         seed(hashval)
 
         a_exp = random.randint(min_exp, max_a_exp)

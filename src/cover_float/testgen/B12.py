@@ -22,8 +22,8 @@ Total test vectors generated: 438
 # TODO: For future: implement logic to get different a and b exponents in regular cases
 
 import random
-from random import seed
 from pathlib import Path
+from random import seed
 from typing import TextIO
 
 from cover_float.common.constants import (
@@ -35,8 +35,8 @@ from cover_float.common.constants import (
     OP_SUB,
     ROUND_NEAR_EVEN,
 )
-from cover_float.reference import run_and_store_test_vector
 from cover_float.common.util import reproducible_hash
+from cover_float.reference import run_and_store_test_vector
 
 vector_count = 0
 

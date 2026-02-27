@@ -13,13 +13,13 @@
 
 
 import random
-from random import seed
 from pathlib import Path
+from random import seed
 from typing import TextIO
 
 import cover_float.common.constants as const
-from cover_float.reference import run_and_store_test_vector
 from cover_float.common.util import reproducible_hash
+from cover_float.reference import run_and_store_test_vector
 
 OPS = [const.OP_FMADD, const.OP_FMSUB, const.OP_FNMADD, const.OP_FNMSUB]
 

@@ -3,8 +3,8 @@
 import random
 from collections.abc import Generator
 from pathlib import Path
-from typing import TextIO
 from random import seed
+from typing import TextIO
 
 from cover_float.common.constants import EXPONENT_BITS, FLOAT_FMTS, MANTISSA_BITS, OP_DIV, OP_MUL, OP_SQRT
 from cover_float.common.util import generate_test_vector, reproducible_hash

@@ -22,68 +22,44 @@ Total test vectors generated: 438
 # TODO: For future: implement logic to get different a and b exponents in regular cases
 
 import random
+from pathlib import Path
+from typing import TextIO
 
+from cover_float.common.constants import (
+    BIASED_EXP,
+    EXPONENT_BITS,
+    FLOAT_FMTS,
+    MANTISSA_BITS,
+    OP_ADD,
+    OP_SUB,
+    ROUND_NEAR_EVEN,
+)
 from cover_float.reference import run_and_store_test_vector
-from cover_float.common.constants import *
 
 vector_count = 0
 
-TEST_VECTOR_WIDTH_HEX = 144
 
-OP_ADD = "00000010"
-OP_SUB = "00000020"
-
-ROUND_NEAR_EVEN = "00"
-
-FMT_HALF   = "00"
-FMT_SINGLE = "01"
-FMT_DOUBLE = "02"
-FMT_QUAD   = "03"
-FMT_BF16   = "04"
-
-FMTS = [FMT_SINGLE, FMT_DOUBLE, FMT_QUAD, FMT_HALF, FMT_BF16]
-
-MANTISSA_BITS = {
-    FMT_HALF: 10,
-    FMT_SINGLE: 23,
-    FMT_DOUBLE: 52,
-    FMT_QUAD: 112,
-    FMT_BF16: 7
-}
-
-EXPONENT_BITS = {
-    FMT_HALF: 5,
-    FMT_SINGLE: 8,
-    FMT_DOUBLE: 11,
-    FMT_QUAD: 15,
-    FMT_BF16: 8
-}
-
-BIASED_EXP = {
-    FMT_HALF:   [1, 30],
-    FMT_SINGLE: [1, 254],
-    FMT_DOUBLE: [1, 2046],
-    FMT_QUAD:   [1, 32766],
-    FMT_BF16:   [1, 254]
-}
-
-def decimalComponentsToHex(fmt, sign, biased_exp, mantissa):
+def decimalComponentsToHex(fmt: str, sign: int, biased_exp: int, mantissa: int) -> str:
     b_sign = f"{sign:01b}"
     b_exp = f"{biased_exp:0{EXPONENT_BITS[fmt]}b}"
     b_man = f"{mantissa:0{MANTISSA_BITS[fmt]}b}"
     bits = b_sign + b_exp + b_man
     return f"{int(bits, 2):032X}"
 
-    
-def write_add(fmt, a_hex, b_hex, test_f, cover_f):
-    run_and_store_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{a_hex}_{b_hex}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n", test_f, cover_f)
+
+def write_add(fmt: str, a_hex: str, b_hex: str, test_f: TextIO, cover_f: TextIO) -> None:
+    run_and_store_test_vector(
+        f"{OP_ADD}_{ROUND_NEAR_EVEN}_{a_hex}_{b_hex}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00\n", test_f, cover_f
+    )
 
 
-def write_sub(fmt, a_hex, b_hex, test_f, cover_f):
-    run_and_store_test_vector(f"{OP_SUB}_{ROUND_NEAR_EVEN}_{a_hex}_{b_hex}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n", test_f, cover_f)
+def write_sub(fmt: str, a_hex: str, b_hex: str, test_f: TextIO, cover_f: TextIO) -> None:
+    run_and_store_test_vector(
+        f"{OP_SUB}_{ROUND_NEAR_EVEN}_{a_hex}_{b_hex}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00\n", test_f, cover_f
+    )
 
 
-def makeCancellationMantissas(fmt, d):
+def makeCancellationMantissas(fmt: str, d: int) -> tuple[int, int]:
     """
     Generate identical -d bits for both operands such that exactly -d bits cancel.
     """
@@ -98,19 +74,19 @@ def makeCancellationMantissas(fmt, d):
 
     # prefix for a and b
     if d == 0:
-        tail = random.getrandbits(m-2)
-        a_m = 1 << (m-1) | 1 << (m-2) | tail
-        b_m = 0 << (m-1) | 0 << (m-2) | tail
+        tail = random.getrandbits(m - 2)
+        a_m = 1 << (m - 1) | 1 << (m - 2) | tail
+        b_m = 0 << (m - 1) | 0 << (m - 2) | tail
         return a_m, b_m
     else:
-        a_prefix = 1 << (m-1) | random.getrandbits(k-1) << (m - k)
+        a_prefix = 1 << (m - 1) | random.getrandbits(k - 1) << (m - k)
         b_prefix = a_prefix
 
     # differing bit
     diff_bit = 1 << (m - k - 1)
 
     # tails
-    if k < (m-1):
+    if k < (m - 1):
         a_tail = 1 << (m - k - 2) | random.getrandbits(m - k - 2)
         b_tail = random.getrandbits(m - k - 2)
     else:
@@ -123,10 +99,10 @@ def makeCancellationMantissas(fmt, d):
     return a_m, b_m
 
 
-def makeExactCancelMantissas(fmt):
-    '''
+def makeExactCancelMantissas(fmt: str) -> tuple[int, int]:
+    """
     Generate mantissas so that exactly m bits cancel.
-    '''
+    """
 
     # a = 11011011011110111111001 0     0 + 21 random bits (identical) + ends in 1
     # b = 101101101111011111100 01      same 21 bits (identical) + ends in 01
@@ -134,49 +110,49 @@ def makeExactCancelMantissas(fmt):
 
     m = MANTISSA_BITS[fmt]
 
-    identical = random.getrandbits(m-2)
-    a_m = 1 << (m-1) | identical << 1 | 1
+    identical = random.getrandbits(m - 2)
+    a_m = 1 << (m - 1) | identical << 1 | 1
     b_m = identical | 0 << 1 | 1
 
     return a_m, b_m
 
 
-def makeCarryMantissas(fmt):
+def makeCarryMantissas(fmt: str) -> tuple[int, int]:
     """
     Force carry for d = +1
     """
 
     m = MANTISSA_BITS[fmt]
 
-    a_m = (1 << m) - 1          # 1.111...111
-    b_m = 1 << (m - 1) | 1      # 1.000...001 (LSB set)
+    a_m = (1 << m) - 1  # 1.111...111
+    b_m = 1 << (m - 1) | 1  # 1.000...001 (LSB set)
 
     return a_m, b_m
 
 
-def makeNegPMantissas(fmt):
+def makeNegPMantissas(fmt: str) -> tuple[int, int]:
     """
     Shifts b exp down 1 to create cancellation of p bits.
     """
     m = MANTISSA_BITS[fmt]
-    
-    a_m = 0                 # A = 1.00...0 (Mantissa 0)
-    b_m = (1 << m) - 1      # B = 1.11...1 (Mantissa all 1s), b_exp = a_exp - 1
-    
+
+    a_m = 0  # A = 1.00...0 (Mantissa 0)
+    b_m = (1 << m) - 1  # B = 1.11...1 (Mantissa all 1s), b_exp = a_exp - 1
+
     return a_m, b_m
 
 
-def makeTestVectors(fmt, d, operation, test_f, cover_f):
+def makeTestVectors(fmt: str, d: int, operation: str, test_f: TextIO, cover_f: TextIO) -> None:
     m = MANTISSA_BITS[fmt]
     p = m + 1
     min_exp, max_exp = BIASED_EXP[fmt]
 
     is_carry = False
-    is_add = (operation == "add")
+    is_add = operation == "add"
     write_fn = write_add if is_add else write_sub
 
     # Exponents
-    a_exp = random.randint(min_exp-d, max_exp)
+    a_exp = random.randint(min_exp - d, max_exp)
     b_exp = a_exp
 
     # Mantissas
@@ -212,9 +188,9 @@ def makeTestVectors(fmt, d, operation, test_f, cover_f):
     b_hex = decimalComponentsToHex(fmt, b_sign, b_exp, b_m)
 
     write_fn(fmt, a_hex, b_hex, test_f, cover_f)
-    
 
-def CancellationTests(test_f, cover_f, fmt):
+
+def CancellationTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     p = MANTISSA_BITS[fmt] + 1
 
     for d in range(-p, 2):  # [-p, +1]
@@ -222,12 +198,15 @@ def CancellationTests(test_f, cover_f, fmt):
         makeTestVectors(fmt, d, "sub", test_f, cover_f)
 
 
-def main():
-    with open("./tests/testvectors/B12_tv.txt", "w") as test_f, open("./tests/covervectors/B12_cv.txt", "w") as cover_f:
+def main() -> None:
+    with (
+        Path("./tests/testvectors/B12_tv.txt").open("w") as test_f,
+        Path("./tests/covervectors/B12_cv.txt").open("w") as cover_f,
+    ):
         test_f.write("// Cancellation tests\n")
         test_f.write("// Operations: ADD, SUB\n")
 
-        for fmt in FMTS:
+        for fmt in FLOAT_FMTS:
             CancellationTests(test_f, cover_f, fmt)
 
 

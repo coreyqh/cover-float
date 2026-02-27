@@ -56,7 +56,7 @@ package coverfloat_pkg;
 
     // format encodings
     //  {(int = 1, float = 0), (unsigned int), others => format encoding}
-    const logic [7:0] FMT_INVAL  = 8'b 1_1_111111; // source unused / invalid 
+    const logic [7:0] FMT_INVAL  = 8'b 1_1_111111; // source unused / invalid
     const logic [7:0] FMT_HALF   = 8'b 0_0_000000;
     const logic [7:0] FMT_SINGLE = 8'b 0_0_000001;
     const logic [7:0] FMT_DOUBLE = 8'b 0_0_000010;
@@ -68,7 +68,7 @@ package coverfloat_pkg;
     const logic [7:0] FMT_LONG   = 8'b 1_0_000010;
     const logic [7:0] FMT_ULONG  = 8'b 1_1_000010;
 
-    
+
     // TODO: expand with other relvelant parameters
 
     parameter int INTERM_M_BITS = 192;

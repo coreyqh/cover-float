@@ -22,6 +22,7 @@ Total test vectors generated: 438
 # TODO: For future: implement logic to get different a and b exponents in regular cases
 
 import random
+from random import seed
 from pathlib import Path
 from typing import TextIO
 
@@ -35,6 +36,7 @@ from cover_float.common.constants import (
     ROUND_NEAR_EVEN,
 )
 from cover_float.reference import run_and_store_test_vector
+from cover_float.common.util import reproducible_hash
 
 vector_count = 0
 
@@ -194,7 +196,11 @@ def CancellationTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     p = MANTISSA_BITS[fmt] + 1
 
     for d in range(-p, 2):  # [-p, +1]
+        hashval = reproducible_hash(OP_ADD+fmt+"b12")
+        seed(hashval)
         makeTestVectors(fmt, d, "add", test_f, cover_f)
+        hashval = reproducible_hash(OP_SUB+fmt+"b12")
+        seed(hashval)
         makeTestVectors(fmt, d, "sub", test_f, cover_f)
 
 

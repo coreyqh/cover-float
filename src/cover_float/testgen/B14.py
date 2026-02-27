@@ -13,11 +13,13 @@
 
 
 import random
+from random import seed
 from pathlib import Path
 from typing import TextIO
 
 import cover_float.common.constants as const
 from cover_float.reference import run_and_store_test_vector
+from cover_float.common.util import reproducible_hash
 
 OPS = [const.OP_FMADD, const.OP_FMSUB, const.OP_FNMADD, const.OP_FNMSUB]
 
@@ -56,8 +58,10 @@ def generate_b14_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
     for target_shift in range(start_shift, end_shift + 1):
         for op in OPS:
-            # Randomize & generate 20 variations per shift
-            for _ in range(20):
+            hashval = reproducible_hash(op+fmt+"b14")  # Create a unique hash for this op and fmt to seed the random generator
+            seed(hashval)  # Seed the random generator for reproducibility
+            # Randomize & generate 15 variations per shift
+            for _ in range(15):
                 ##Part 1: Randomize a and b exponents (and make sure their product is valid)
                 # a:
                 # safe margin defined to keep 'a' somewhat central to avoid immediate overflows

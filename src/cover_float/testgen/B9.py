@@ -4,10 +4,12 @@ import random
 from collections.abc import Generator
 from pathlib import Path
 from typing import TextIO
+from random import seed
 
 from cover_float.common.constants import EXPONENT_BITS, FLOAT_FMTS, MANTISSA_BITS, OP_DIV, OP_MUL, OP_SQRT
 from cover_float.common.util import generate_test_vector
 from cover_float.reference import run_and_store_test_vector
+from cover_float.common.util import reproducible_hash
 
 """
 From Ahronhi et al 2008:
@@ -166,6 +168,8 @@ def main() -> None:
         Path("tests/covervectors/B9_cv.txt").open("w") as cover_f,
     ):
         for fmt in FLOAT_FMTS:
+            hashval = reproducible_hash(fmt + "b9")
+            seed(hashval)
             special_significands = generate_special_significands(fmt)
 
             generated = generate_test_vectors(special_significands, fmt, test_f, cover_f)

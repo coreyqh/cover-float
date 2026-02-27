@@ -58,7 +58,7 @@ def generate_b14_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
     for target_shift in range(start_shift, end_shift + 1):
         for op in OPS:
-            hashval = reproducible_hash(op+fmt+"b14")  # Create a unique hash for this op and fmt to seed the random generator
+            hashval = reproducible_hash(op + fmt + "b14")  # Unique hash for (op, fmt) seed
             seed(hashval)  # Seed the random generator for reproducibility
             # Randomize & generate 15 variations per shift
             for _ in range(15):

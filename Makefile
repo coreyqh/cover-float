@@ -2,7 +2,7 @@
 
 RM_CMD ?= rm -rf
 
-.PHONY: build clean sim all B1 B10
+.PHONY: build clean sim all B1 B9 B10 B12
 
 # Notice that we pass --managed-python, we do this so that uv (scikit-build-core)
 # will have a python enviornment with Python.h to build with.
@@ -14,7 +14,7 @@ build:
 	@echo "Building python module"
 	uv build --managed-python
 
-sim: 
+sim:
 	cd sim && vsim -c -do "do run.do"
 
 B1:
@@ -32,6 +32,7 @@ B10:
 B12:
 	uv run --managed-python cover-float-testgen --model B12
 
+
 B14:
 	uv run --managed-python cover-float-testgen --model B14
 
@@ -39,7 +40,7 @@ B14:
 clean:
 	@echo "Cleaning build directory..."
 	$(RM_CMD) build/
-	$(RM_CMD) dist/ 
+	$(RM_CMD) dist/
 	$(RM_CMD) src/cover_float/__pycache__/
 	$(RM_CMD) src/cover_float/testgen/__pycache__/
 	$(RM_CMD) sim/coverfloat_worklib/

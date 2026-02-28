@@ -136,7 +136,7 @@ covergroup B9_cg (virtual coverfloat_interface CFI);
         type_option.weight = 0;
         bins checker_len[] = {[0 : F16_M_BITS]};
     }
-    
+
 
     BF16_sig_a_leading_zeros:   coverpoint count_leading_zeros(CFI.a[BF16_M_UPPER:0], BF16_M_BITS) {
         type_option.weight = 0;
@@ -440,15 +440,15 @@ covergroup B9_cg (virtual coverfloat_interface CFI);
         type_option.weight = 0;
         bins checker_len[] = {[0 : F128_M_BITS]};
     }
-    
-    
-    
+
+
+
     /************************************************************************
      *
      * Main crosses (precision-sorted)
      *
      ************************************************************************/
-   
+
        `ifdef COVER_F16
         B9_F16__leading_zeros__X__leading_zeros:          cross FP_B9_ops,  F16_sig_a_leading_zeros,   F16_sig_b_leading_zeros,   F16_src_fmt;
         B9_F16_sqrt__leading_zeros__X__leading_zeros:     cross FP_sqrt_op, F16_sig_a_leading_zeros,                              F16_src_fmt;
@@ -1274,5 +1274,5 @@ covergroup B9_cg (virtual coverfloat_interface CFI);
         B9_F128_sqrt__long_zeros_seq__X__long_zeros_seq:   cross FP_sqrt_op, F128_sig_a_long_zeros_seq,                              F128_src_fmt;
     `endif // COVER_F128
 
-     
+
 endgroup

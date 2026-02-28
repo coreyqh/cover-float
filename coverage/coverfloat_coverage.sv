@@ -13,9 +13,9 @@ class coverfloat_coverage;
 
     endfunction
 
-    
+
     function void sample();
-        
+
         // Call sample functions
         `SAMPLE_CGS
 

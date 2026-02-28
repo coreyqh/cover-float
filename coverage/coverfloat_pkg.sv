@@ -71,6 +71,8 @@ package coverfloat_pkg;
 
     // TODO: expand with other relvelant parameters
 
+    parameter int INTERM_M_BITS = 192;
+
     parameter int F16_E_BITS = 5;
     parameter int BF16_E_BITS = 8;
     parameter int F32_E_BITS = 8;
@@ -106,6 +108,12 @@ package coverfloat_pkg;
     parameter int F32_M_UPPER  = F32_M_BITS - 1;
     parameter int F64_M_UPPER  = F64_M_BITS - 1;
     parameter int F128_M_UPPER = F128_M_BITS - 1;
+
+    parameter int F16_MAXNORM_EXP  = (1 << F16_E_BITS)  - 2;
+    parameter int BF16_MAXNORM_EXP = (1 << BF16_E_BITS) - 2;
+    parameter int F32_MAXNORM_EXP  = (1 << F32_E_BITS)  - 2;
+    parameter int F64_MAXNORM_EXP  = (1 << F64_E_BITS)  - 2;
+    parameter int F128_MAXNORM_EXP = (1 << F128_E_BITS) - 2;
 
     // IEEE-754 floating-point format–derived exponent constants
     // Definitions are derived from IEEE 754-2019, §3.4 (Formats) and §3.5 (Subnormal numbers)

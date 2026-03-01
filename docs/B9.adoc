@@ -1,0 +1,108 @@
+// Ryan Wolk (rwolk@g.hmc.edu)
+
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+== B9 Special Significands on Inputs
+
+Aharoni et al.
+
+=== Description
+
+This model tests special patterns in the significands of the input operands. Each of the input operands should contain one of the following patterns (each sequence can be of length 0 up to the number of bits in the significand - the more interesting cases will be chosen).
+
+1. A sequence of leading zeroes
+2. A sequence of leading ones
+3. A sequence of trailing zeroes
+4. A sequence of trailing ones
+5. A small number of 1s as compared to 0s
+6. A small number of 0s as compared to 1s
+7. A "checkerboard" pattern (for example 00110011… or 011011011…)
+8. Long sequences of 1s
+9. Long sequences of 0s
+
+*Operations Supported*: Divide, Square-root, Multiply
+
+*Precisions Supported*: BF_16, F16, F32, F64, F128
+
+== Implementation
+
+=== Some Notes on the Number of Special Significands and Coverpoints
+
+This is an incredibly vague coverpoint. Reasonably, you could ask that we cover up to stem:[10^{10}] coverpoints (as Aharoni gives as an upper bound in the paper). Practically, the upper limit of what we can fit into a floating point test is something on the order of 10000 cases per precision and operation. So, we must make sacrifices to get significands in this ballpark. The coverpoint asks for special patterns in each significands, meaning we only have about 100 special significands that we can generate for our cross.
+
+=== What Are We Actually Covering?
+
+These are fairly generic tough cases for most of the complicated or hot circuits in an FPU. For the most part, these are going to generate edge cases, and some relevant rationales for each is listed below.
+
+Leading and trailing ones and zeros can give the LZA complicated cases and create difficult rounding cases. We are going to need cases that line up nicely when we add too, so having significands with small numbers of leading zeros and ones alongside a large number of trailing ones or zeros is of interest. Along with long runs, these can also ensure that long carry chains are tested.
+
+Checkerboards will stress the fsqrtdiv algorithm's quotient selection block as it can generate difficult inputs close to the edge cases of fsqrtdiv. The frequent changes of bit values in these patterns can create oscillating partial remainders and generally cause shifts in the msb of the partial remainder that the division algorithm looks at. For the other operations, it impacts carry logic by forcing it to be alternately active.
+
+Sparse inputs will create cases where shifts are especially stressed. Sticky calculation must be correct because one bit is responsible for it, and any signals that involve ORs or ANDs across a large number of bits are going to be tested for correctness. In cases with 2 bits, we can create multiple independent carry chains (in conjunction with other significands). And there are many other small goals that these inputs can be seen as achieving.
+
+=== Generating Special Significands
+
+Not all cases have the same amount of importance in our testing. In the modern world, the significance of testing checkerboard significands is not great. Goals 5 and 6 should be covered by other test cases as a large sequence of trailing zeros creates the necessary imbalance. 5 and 6 take away structure, so they are valuable to include, just at a lower precedence than the other tests. The most important things to get seem to be goals 1-4, then focusing on a few checkerboards, a few more long sequences, and a few more random imbalanced significands. 100 is a much smaller number than it sounds, so we will be judicious in how we allocate our tests.
+
+Significand generation is controlled by 3 parameters.
+
+1. The number of significands to generate
+2. The frequencies we want each of the 9 goals to be at
+3. The format of the float we want
+
+=== Generating Coverage
+
+The significands we want to generate are modular, so unfortunately, we need to generate the bins with code. In other modules we use ``bins_template/*.svh`` as a reusable template for bins, and I think that generating a similar file in code would work well, with the rest of the covergroup being written by hand.
+
+=== Test Plan
+
+// Leading ones and zeros will create cases where the LZA is stressed in cases where it exists (this is for the ADD, SUB, and FMA). Trailing ones and zeros can also cause problems in effective subtraction cases as long borrow chains can have propagation bugs. So, test cases 1-4 have this specific impact. Long sequences of ones also create cases where carries have to ripple across a large number of bits, justifying cases 8 and 9.
+
+
+// Large numbers of leading ones and zeros tend to generate cases that will stress systems like the LZA, with cases where it has to account for massive cancellation.
+
+
+// For add-type instructions, the structure of significand matters most in what happens during ripple carries and cancellation cases. Long sequences of one can stress the ripple carry as they force a one to propagate all the way down a chain, and leading and trailing zeros and ones tend to complicate the logic in LZA circuits.
+
+// For div and sqrt, the algorithms are driven by circuits basically functioning as a lookup-table. The famous Intel Pentium fdiv error was in the lookup table in its division algorithm. Generally, checkerboard patterns and sparse patterns tend to stress out this logic.
+
+Our test plan is going to be the following (any bits not explicitly set should be be randomized):
+
+Leading and Trailing Ones/Zeros:
+
+* Sequences with k leading/trailing ones/zeros where k is in ``{ Nf - 1, Nf - 2, Nf - 3, 3*Nf/4, Nf/2, Nf/2 - 1, Nf/4, 3, 2, 1 }``
+* Sequences with all ones or zeros
+* Allows us to get high, middling, and low numbers of leading and trailing zeros and ones in our sequences
+* This totals to 42 total tests
+
+Sparse Ones/Zeros:
+
+* Sequences with 1 one or zero in position k where k
+** Is on the edge of the significand (0 or Nf - 1)
+** Is in the middle of the significand (Nf/2, Nf/2 - 1)
+** Is a power of 2
+** Is a random number that hasn't been chosen yet
+* We will generate 10 cases for ones and 10 for zeros
+* Sequences with 2 distant ones/zeros in positions k1 and k2 where stem:[|k_1 - k_2| > \frac{Nf}{2}]
+** 3 randomly chosen under these constraints
+* 26 total cases
+
+Checkerboards:
+
+* Sequences with alternating zeros and ones, with subsequence lengths from 1 to 2 at each phase
+* These cases can stress fdivsqrt with uncommon cases
+* Will force carries to propagate for many short periods
+* This totals to 6 total cases
+
+Long Runs of Zeros and Ones:
+
+* Runs of 3Nf/4, starting at 6 different evenly distributed positions
+* Runs of Nf/2, starting at 7 different evenly distributed positions
+* If there are not 10 possible positions, we will just use all of the available positions
+* This totals up to 26 cases
+
+Total: Up to 100 Significands

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TextIO
 
 import cover_float.common.constants as constants
-from cover_float.common.util import generate_test_vector
+from cover_float.common.util import generate_float, generate_test_vector
 from cover_float.reference import run_and_store_test_vector
 
 B9_1SRC = [constants.OP_SQRT]
@@ -154,15 +154,6 @@ class B9SignificandGenerator:
         ]
 
 
-def generate_float(sign: int, exponent: int, mantissa: int, fmt: str) -> int:
-    exponent += constants.EXPONENT_BIASES[fmt]
-    return (
-        (sign << (constants.MANTISSA_BITS[fmt] + constants.EXPONENT_BITS[fmt]))
-        | (exponent << constants.MANTISSA_BITS[fmt])
-        | mantissa
-    )
-
-
 def B9_generator(sigs: list[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
     exp_max = 2 ** (constants.EXPONENT_BITS[fmt] - 2)
     exp_min = -(2 ** (constants.EXPONENT_BITS[fmt] - 2))
@@ -170,6 +161,7 @@ def B9_generator(sigs: list[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> 
     for op in [*B9_1SRC, *B9_2SRC]:
         for sig1 in sigs:
             for sig2 in sigs:
+                # TODO: Be more careful here so as to not accidentally create subnorms/underflows/overflows
                 exp1 = random.randint(exp_min, exp_max)
                 sign1 = random.randint(0, 1)
                 exp2 = random.randint(exp_min, exp_max)

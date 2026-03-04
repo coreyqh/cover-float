@@ -2,54 +2,85 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
 
     option.per_instance = 0;
 
-    // TODO: would be nicer as parameters such as
-    //       [INTERM_M_BITS - F32_M_BITS : 0]
-    f16_LSB:  coverpoint CFI.intermM[182] {
+
+    F32_sign: coverpoint CFI.result[31] {
+        type_option.weight = 0;
+        bins pos = {0};
+        bins neg = {1};
+    }
+
+    F64_sign: coverpoint CFI.result[63] {
+        type_option.weight = 0;
+        bins pos = {0};
+        bins neg = {1};
+    }
+
+    F128_sign: coverpoint CFI.result[127] {
+        type_option.weight = 0;
+        bins pos = {0};
+        bins neg = {1};
+    }
+
+    F16_sign: coverpoint CFI.result[15] {
+        type_option.weight = 0;
+        bins pos = {0};
+        bins neg = {1};
+    }
+
+    BF16_sign: coverpoint CFI.result[15] {
+        type_option.weight = 0;
+        bins pos = {0};
+        bins neg = {1};
+    }
+
+
+    F16_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - F16_M_BITS] {
         type_option.weight = 0;
     }
-    f32_LSB:  coverpoint CFI.intermM[169] {
+    F32_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - F32_M_BITS] {
         type_option.weight = 0;
     }
-    f64_LSB:  coverpoint CFI.intermM[140] {
+    F64_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - F64_M_BITS] {
         type_option.weight = 0;
     }
-    f128_LSB: coverpoint CFI.intermM[80]  {
+    F128_LSB: coverpoint CFI.intermM[INTERM_M_BITS - F128_M_BITS] {
         type_option.weight = 0;
     }
-    bf16_LSB: coverpoint CFI.intermM[182] {
+    BF16_LSB: coverpoint CFI.intermM[INTERM_M_BITS - BF16_M_BITS] {
         type_option.weight = 0;
     }
 
-    f16_guard:  coverpoint CFI.intermM[183] {
-        type_option.weight = 0;
-    }
-    f32_guard:  coverpoint CFI.intermM[170] {
-        type_option.weight = 0;
-    }
-    f64_guard:  coverpoint CFI.intermM[141] {
-        type_option.weight = 0;
-    }
-    f128_guard: coverpoint CFI.intermM[81]  {
-        type_option.weight = 0;
-    }
-    bf16_guard: coverpoint CFI.intermM[183] {
-        type_option.weight = 0;
 
+    F16_guard:  coverpoint CFI.intermM[INTERM_M_BITS - F16_M_BITS - 1] {
+        type_option.weight = 0;
+    }
+    F32_guard:  coverpoint CFI.intermM[INTERM_M_BITS - F32_M_BITS - 1] {
+        type_option.weight = 0;
+    }
+    F64_guard:  coverpoint CFI.intermM[INTERM_M_BITS - F64_M_BITS - 1] {
+        type_option.weight = 0;
+    }
+    F128_guard: coverpoint CFI.intermM[INTERM_M_BITS - F128_M_BITS - 1] {
+        type_option.weight = 0;
+    }
+    BF16_guard: coverpoint CFI.intermM[INTERM_M_BITS - BF16_M_BITS - 1] {
+        type_option.weight = 0;
     }
 
-    f16_sticky:  coverpoint |CFI.intermM[184:0] {
+
+    F16_sticky:  coverpoint |CFI.intermM[INTERM_M_BITS - F16_M_BITS - 2 : 0] {
         type_option.weight = 0;
     }
-    f32_sticky:  coverpoint |CFI.intermM[171:0] {
+    F32_sticky:  coverpoint |CFI.intermM[INTERM_M_BITS - F32_M_BITS - 2 : 0] {
         type_option.weight = 0;
     }
-    f64_sticky:  coverpoint |CFI.intermM[142:0] {
+    F64_sticky:  coverpoint |CFI.intermM[INTERM_M_BITS - F64_M_BITS - 2 : 0] {
         type_option.weight = 0;
     }
-    f128_sticky: coverpoint |CFI.intermM[82:0]  {
+    F128_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - F128_M_BITS - 2 : 0] {
         type_option.weight = 0;
     }
-    bf16_sticky: coverpoint |CFI.intermM[184:0] {
+    BF16_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - BF16_M_BITS - 2 : 0] {
         type_option.weight = 0;
     }
 
@@ -100,23 +131,23 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
 
     // main coverpoints
     `ifdef COVER_F32
-        B3_f32:  cross F32_result_fmt, op_arith_conv, rounding_mode_all, f16_LSB,  f16_guard,  f16_sticky;
+        B3_F32:  cross op_arith_conv, rounding_mode_all, F32_sign, F32_LSB,  F32_guard,  F32_sticky, F32_result_fmt;
     `endif // COVER_F32
 
     `ifdef COVER_F64
-        B3_f64:  cross F64_result_fmt, op_arith_conv, rounding_mode_all, f32_LSB,  f32_guard,  f32_sticky;
+        B3_F64:  cross op_arith_conv, rounding_mode_all, F64_sign, F64_LSB,  F64_guard,  F64_sticky, F64_result_fmt;
     `endif // COVER_F64
 
     `ifdef COVER_F16
-        B3_f16:  cross F16_result_fmt, op_arith_conv, rounding_mode_all, f64_LSB,  f64_guard,  f64_sticky;
+        B3_F16:  cross op_arith_conv, rounding_mode_all, F16_sign, F16_LSB,  F16_guard,  F16_sticky, F16_result_fmt;
     `endif // COVER_F16
 
     `ifdef COVER_BF16
-        B3_bf16: cross BF16_result_fmt, op_arith_conv, rounding_mode_all, f128_LSB, f128_guard, f128_sticky;
+        B3_BF16: cross op_arith_conv, rounding_mode_all, BF16_sign, BF16_LSB, BF16_guard, BF16_sticky, BF16_result_fmt;
     `endif // COVER_BF16
 
     `ifdef COVER_F128
-        B3_f128: cross F128_result_fmt, op_arith_conv, rounding_mode_all, bf16_LSB, bf16_guard, bf16_sticky;
+        B3_F128: cross op_arith_conv, rounding_mode_all, F128_sign, F128_LSB, F128_guard, F128_sticky, F128_result_fmt;
     `endif // COVER_F128
 
 

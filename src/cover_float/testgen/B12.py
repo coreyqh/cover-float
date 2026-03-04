@@ -92,7 +92,7 @@ def makeCarryMantissas(fmt: str) -> tuple[int, int]:
     m = MANTISSA_BITS[fmt]
 
     a_m = (1 << m) - 1  # 1.111...111
-    b_m = 1  # 1.000...001 (LSB set)
+    b_m = a_m  # 1.000...001 (LSB set)
 
     return a_m, b_m
 
@@ -102,24 +102,6 @@ def makeNoCancelMantissas(fmt: str) -> tuple[int, int]:
 
     a_m = (1 << m) - 1
     b_m = ((1 << (m - 1)) - 1) << 1
-
-    return a_m, b_m
-
-
-def makeExactCancelMantissas(fmt: str) -> tuple[int, int]:
-    """
-    Generate mantissas so that exactly m bits cancel.
-    """
-
-    # a = 1.11011011011110111111011 0     1 + 21 random bits (identical) + ends in 1
-    # b = 1.10110110111101111110110       same 21 bits (identical) + ends in 01
-    # b = 0.11011011011110111111010 1     after b shifts right, it is in alignment to cancel m bits
-
-    m = MANTISSA_BITS[fmt]
-
-    identical = random.getrandbits(m - 1)
-    a_m = identical << 1 | 1
-    b_m = identical << 1 | 0
 
     return a_m, b_m
 
@@ -146,7 +128,7 @@ def makeTestVectors(fmt: str, d: int, operation: str, test_f: TextIO, cover_f: T
     write_fn = writeAdd if is_add else writeSub
 
     # Exponents
-    a_exp = random.randint(min_exp - d, max_exp)
+    a_exp = random.randint(min_exp - d + 1, max_exp)
     b_exp = a_exp
 
     # Mantissas
@@ -159,8 +141,6 @@ def makeTestVectors(fmt: str, d: int, operation: str, test_f: TextIO, cover_f: T
     elif d == -p:
         a_m, b_m = makeNegPMantissas(fmt)
         b_exp -= 1
-    elif d == -m:
-        a_m, b_m = makeExactCancelMantissas(fmt)
     else:
         a_m, b_m = makeCancellationMantissas(fmt, d)
 

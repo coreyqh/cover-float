@@ -9,9 +9,7 @@ Aharoni et al.
 
 === Description
 
-This model tests every possible value for cancellation. For the difference between the exponent of the intermediate result and the maximum between the exponent of the intermediate result and the maximum between the exponents of the inputs, test all values in the range:
-
-[-p, +1]
+This model tests every possible value for cancellation. For the difference between the exponent of the intermediate result and the maximum between the exponent of the intermediate result and the maximum between the exponents of the inputs, test all values in the range: [-p, +1].
 
 That is, for two operands `a` and `b` with exponents `a_exp` and `b_exp` and a intermediate result exponent `exp`, we test all cases where `exp` - max(`a_exp`, `b_exp`) takes each value in [-p, +1].
 
@@ -49,8 +47,8 @@ All explanation in this document will be done with one instead of both operation
 
 === Design Choices
 
-1) Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
-2) Some mantissas are not randomly generated but are selected based on obvious cases that produce a specific `d`. Again, since we're only interested in the exponents, the randomness of mantissas should not be of main concern.
+. Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
+. Some mantissas are not randomly generated but are selected based on obvious cases that produce a specific `d`. Again, since we're only interested in the exponents, the randomness of mantissas should not be of main concern.
 
 === General Test Plan
 
@@ -71,10 +69,10 @@ We chose to make the differing bits two bits to avoid borrowing canceling the di
 However, since this approach requires at least one differing bit to ensure we're canceling exactly k bits, we need a new method for `d = -p` as the entire mantissa will be canceled. Since this approach cancels bits, `d = 0, 1` will also need something different.
 
 Thus, we split the tests into four cases:
-1) `d = -p`
-2) `d` = all other `d`'s
-3) `d = 0`
-4) `d = 1`
+. `d = -p`
+. `d` = all other `d`'s
+. `d = 0`
+. `d = 1`
 
 Only cases 1 and 3 will involve `b_exp` being different from `a_exp` (by 1, specifically). Only case 4 will have different sign assignments for `a` and `b` for addition and subtraction.
 

@@ -3,6 +3,7 @@
 
 
 import random
+from typing import TextIO
 
 from cover_float.common.constants import (
     EXPONENT_BIAS,
@@ -22,7 +23,13 @@ from cover_float.reference import run_and_store_test_vector
 B5_FMTS = [FMT_QUAD, FMT_DOUBLE, FMT_SINGLE, FMT_BF16, FMT_HALF]
 
 
-def generate_FP(input_e_bitwidth, input_sign, input_exponent, input_mantissa, input_bias):
+def generate_FP(
+    input_e_bitwidth: int,
+    input_sign: str,
+    input_exponent: int,
+    input_mantissa: str,
+    input_bias: int
+    ) -> str:
     exponent = f"{input_exponent + input_bias:0{input_e_bitwidth}b}"
     complete = input_sign + exponent + input_mantissa
     fp_complete = format(int(complete, 2), "X")
@@ -30,7 +37,13 @@ def generate_FP(input_e_bitwidth, input_sign, input_exponent, input_mantissa, in
     return fp_complete
 
 
-def tests_conversion_1_2(lp, hp, rounding_mode, test_f, cover_f):
+def tests_conversion_1_2(
+    lp: str,
+    hp: str,
+    rounding_mode: str,
+    test_f: TextIO,
+    cover_f: TextIO
+    ) -> None:
     hp_m_bits = MANTISSA_BITS[hp]
     hp_e_bits = EXPONENT_BITS[hp]
     hp_e_bias = EXPONENT_BIAS[hp]
@@ -63,9 +76,18 @@ def tests_conversion_1_2(lp, hp, rounding_mode, test_f, cover_f):
     )  # Test 2
 
 
-def genTestVectors3_4(
-    lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f
-):
+def genPNTestVectors(
+    lp: str,
+    hp: str,
+    rounding_mode: str,
+    hp_e_bits: int,
+    hp_exp: int,
+    complete_binary_1: str,
+    complete_binary_2: str,
+    hp_e_bias: int,
+    test_f: str,
+    cover_f: str
+) -> None:
     input_value_1 = generate_FP(hp_e_bits, "0", hp_exp, complete_binary_1, hp_e_bias)
     input_value_2 = generate_FP(hp_e_bits, "1", hp_exp, complete_binary_2, hp_e_bias)
 
@@ -77,7 +99,13 @@ def genTestVectors3_4(
     )  # Test 2
 
 
-def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
+def tests_conversion_3_4(
+    lp: str,
+    hp: str,
+    rounding_mode: str,
+    test_f: str,
+    cover_f: str
+    ) -> None:
     hp_m_bits = MANTISSA_BITS[hp]
     hp_e_bits = EXPONENT_BITS[hp]
     hp_e_bias = EXPONENT_BIAS[hp]
@@ -104,7 +132,7 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
             remaining_rand_bits_2 = f"{random.randint(0, max_remaining_rand):0{remaining_rand_len}b}"
             full_mantissa_2 = bits + remaining_rand_bits_2
 
-            genTestVectors3_4(
+            genPNTestVectors(
                 lp,
                 hp,
                 rounding_mode,
@@ -130,7 +158,7 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
             complete_binary_1 = rs + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
             complete_binary_2 = rs + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
 
-            genTestVectors3_4(
+            genPNTestVectors(
                 lp,
                 hp,
                 rounding_mode,
@@ -151,11 +179,10 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
 
             max_mantissa = int("1" * remaining_mantissa_bits, 2)
 
-            complete_binary_1 = (
-                s + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
-            )  # randomize the rest of the number            complete_binary_2 = s + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
+            complete_binary_1 = (s + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}")
+            complete_binary_2 = s + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
 
-            genTestVectors3_4(
+            genPNTestVectors(
                 lp,
                 hp,
                 rounding_mode,
@@ -173,17 +200,21 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
         remaining_mantissa_bits = hp_m_bits
         max_mantissa = int("1" * hp_m_bits, 2)
 
-        complete_binary_1 = (
-            f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"  # randomize the rest of the number
-        )
+        complete_binary_1 = f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
         complete_binary_2 = f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
 
-        genTestVectors3_4(
+        genPNTestVectors(
             lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f
         )
 
 
-def tests_conversion_5_6(lp, hp, rounding_mode, test_f, cover_f):
+def tests_conversion_5_6(
+    lp: str,
+    hp: str,
+    rounding_mode: str,
+    test_f: str,
+    cover_f: str
+    ) -> None:
     hp_m_bits = MANTISSA_BITS[hp]
     hp_e_bits = EXPONENT_BITS[hp]
     hp_e_bias = EXPONENT_BIAS[hp]
@@ -203,40 +234,46 @@ def tests_conversion_5_6(lp, hp, rounding_mode, test_f, cover_f):
         hp_m_2 = "1" * (lp_m_bits - 1) + "1" + "1" + f"{random.randint(1, max_rem):0{rem_bits}b}"
         hp_exp = lp_sn_exp
 
-        genTestVectors3_4(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m_1, hp_m_2, hp_e_bias, test_f, cover_f)
+        genPNTestVectors(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m_1, hp_m_2, hp_e_bias, test_f, cover_f)
 
         # MinNorm - 2 i_ulp:
         hp_m = "1" * (lp_m_bits - 1) + "1" + "1" + "0" * rem_bits
         hp_exp = lp_sn_exp
 
-        genTestVectors3_4(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
+        genPNTestVectors(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
 
         # MinNorm - 3 i_ulp:
         hp_m = "1" * (lp_m_bits - 1) + "1" + "0" + f"{random.randint(1, max_rem):0{rem_bits}b}"
         hp_exp = lp_sn_exp
 
-        genTestVectors3_4(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
+        genPNTestVectors(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
 
         # MinNorm + 1 i_ulp:
         hp_m = "0" * (lp_m_bits - 1) + "0" + "0" + f"{random.randint(1, max_rem):0{rem_bits}b}"
         hp_exp = lp_n_exp
 
-        genTestVectors3_4(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
+        genPNTestVectors(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
 
         # MinNorm + 2 i_ulp:
         hp_m = "0" * (lp_m_bits - 1) + "0" + "1" + "0" * rem_bits
         hp_exp = lp_n_exp
 
-        genTestVectors3_4(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
+        genPNTestVectors(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
 
         # MinNorm + 3 i_ulp:
         hp_m = "0" * (lp_m_bits - 1) + "0" + "1" + f"{random.randint(1, max_rem):0{rem_bits}b}"
         hp_exp = lp_n_exp
 
-        genTestVectors3_4(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
+        genPNTestVectors(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m, hp_m, hp_e_bias, test_f, cover_f)
 
 
-def tests_conversion_7_8(lp, hp, rounding_mode, test_f, cover_f):
+def tests_conversion_7_8(
+    lp: str,
+    hp: str,
+    rounding_mode: str,
+    test_f: str,
+    cover_f: TextIO
+    ) -> None:
     hp_m_bits = MANTISSA_BITS[hp]
     hp_e_bits = EXPONENT_BITS[hp]
     hp_e_bias = EXPONENT_BIAS[hp]
@@ -258,7 +295,7 @@ def tests_conversion_7_8(lp, hp, rounding_mode, test_f, cover_f):
         complete_binary_1 = leading_zeros + remaining_binary_1
         complete_binary_2 = leading_zeros + remaining_binary_2
 
-        genTestVectors3_4(
+        genPNTestVectors(
             lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f
         )
     else:
@@ -270,7 +307,7 @@ def tests_conversion_7_8(lp, hp, rounding_mode, test_f, cover_f):
 
         complete_binary = f"{random.randint(0, max_remaining_mantissa):0{hp_m_bits}b}"
 
-        genTestVectors3_4(
+        genPNTestVectors(
             lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary, complete_binary, hp_e_bias, test_f, cover_f
         )
 

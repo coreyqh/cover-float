@@ -167,7 +167,7 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
                 test_f,
                 cover_f,
             )
-            
+
         # #MinSN - 3 ulp
         hp_exp = hp_sn_lp_exp - 2
         remaining_mantissa_bits = hp_m_bits
@@ -181,6 +181,8 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
         genTestVectors3_4(
             lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f
         )
+
+
 def tests_conversion_5_6(lp, hp, rounding_mode, test_f, cover_f):
     hp_m_bits = MANTISSA_BITS[hp]
     hp_e_bits = EXPONENT_BITS[hp]
@@ -188,7 +190,7 @@ def tests_conversion_5_6(lp, hp, rounding_mode, test_f, cover_f):
     lp_n_exp = UNBIASED_EXP[lp][0]
     lp_sn_exp = UNBIASED_EXP[lp][0] - 1  # Account for subnorms
     lp_m_bits = MANTISSA_BITS[lp]
-    
+
     if (
         hp != FMT_BF16 and lp != FMT_SINGLE
     ):  # The mantissa bits for bf_16 are smaller than that for single, so you can't do these operations
@@ -200,7 +202,7 @@ def tests_conversion_5_6(lp, hp, rounding_mode, test_f, cover_f):
         hp_m_1 = "1" * (lp_m_bits - 1) + "1" + "1" + f"{random.randint(1, max_rem):0{rem_bits}b}"
         hp_m_2 = "1" * (lp_m_bits - 1) + "1" + "1" + f"{random.randint(1, max_rem):0{rem_bits}b}"
         hp_exp = lp_sn_exp
-            
+
         genTestVectors3_4(lp, hp, rounding_mode, hp_e_bits, hp_exp, hp_m_1, hp_m_2, hp_e_bias, test_f, cover_f)
 
         # MinNorm - 2 i_ulp:

@@ -103,7 +103,7 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
 
             remaining_rand_bits_2 = f"{random.randint(0, max_remaining_rand):0{remaining_rand_len}b}"
             full_mantissa_2 = bits + remaining_rand_bits_2
-            
+
             genTestVectors3_4(
                 lp,
                 hp,
@@ -148,7 +148,7 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
             hp_exp = hp_sn_lp_exp - 1
             s = f"{i:01b}"  # sticky bit
             remaining_mantissa_bits = hp_m_bits - 1
-            
+
             max_mantissa = int("1" * remaining_mantissa_bits, 2)
 
             complete_binary_1 = (

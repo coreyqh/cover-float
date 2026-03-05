@@ -57,7 +57,9 @@ def tests_conversion_1_2(lp, hp, rounding_mode, test_f, cover_f):
     run_and_store_test_vector(f"{OP_CFF}_{rounding_mode}_{input_value_1}_{32*'0'}_{32*'0'}_{hp}_{32*'0'}_{lp}_00", test_f, cover_f) #Test 1
     run_and_store_test_vector(f"{OP_CFF}_{rounding_mode}_{input_value_2}_{32*'0'}_{32*'0'}_{hp}_{32*'0'}_{lp}_00", test_f, cover_f) #Test 2
    
-def genTestVectors3_4(lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f):
+def genTestVectors3_4(
+    lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f
+):
     input_value_1 = generate_FP(hp_e_bits, "0", hp_exp, complete_binary_1, hp_e_bias)
     input_value_2 = generate_FP(hp_e_bits, "1", hp_exp, complete_binary_2, hp_e_bias)
     
@@ -138,8 +140,9 @@ def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
             
             max_mantissa = int("1" * remaining_mantissa_bits, 2)
 
-            complete_binary_1 = s + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"#randomize the rest of the number
-            complete_binary_2 = s + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
+            complete_binary_1 = (
+                s + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
+            )  # randomize the rest of the number            complete_binary_2 = s + f"{random.randint(0, max_mantissa):0{remaining_mantissa_bits}b}"
 
             genTestVectors3_4(
                 lp,
@@ -182,7 +185,7 @@ def tests_conversion_5_6(lp, hp, rounding_mode, test_f, cover_f):
 
         max_rem = int("1" * rem_bits, 2)
 
-        #MinNorm - 1 i_ulp:
+        # MinNorm - 1 i_ulp:
         hp_m_1 = "1" * (lp_m_bits - 1) + "1" + "1" + f"{random.randint(1, max_rem):0{rem_bits}b}"
         hp_m_2 = "1" * (lp_m_bits - 1) + "1" + "1" + f"{random.randint(1, max_rem):0{rem_bits}b}"
         hp_exp = lp_sn_exp
@@ -245,7 +248,7 @@ def tests_conversion_7_8(lp, hp, rounding_mode, test_f, cover_f):
         complete_binary_2 = leading_zeros + remaining_binary_2
         
         genTestVectors3_4(
-           lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f
+            lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f
         )
     else:
         hp_max_exp = lp_sn_exp - lp_m_bits - 1  # put the hidden 1 of the hp in the rounding bit of the lp

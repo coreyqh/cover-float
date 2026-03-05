@@ -59,11 +59,11 @@ ROUND_ODD = "05"
 # Defining floating point format constants
 
 UNBIASED_EXP = {
-    FMT_HALF : [-14, 15],
-    FMT_SINGLE : [-126, 127],
-    FMT_DOUBLE : [-1022, 1023],
-    FMT_QUAD : [-16382, 16383],
-    FMT_BF16 : [-126, 127],
+    FMT_HALF: [-14, 15],
+    FMT_SINGLE: [-126, 127],
+    FMT_DOUBLE: [-1022, 1023],
+    FMT_QUAD: [-16382, 16383],
+    FMT_BF16: [-126, 127],
 }
 
 EXPONENT_BIAS = {FMT_HALF: 15, FMT_SINGLE: 127, FMT_DOUBLE: 1023, FMT_QUAD: 16383, FMT_BF16: 127}

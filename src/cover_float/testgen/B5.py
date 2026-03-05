@@ -54,8 +54,12 @@ def tests_conversion_1_2(lp, hp, rounding_mode, test_f, cover_f):
     input_value_1 = generate_FP(hp_e_bits, "0", input_1_exponent, input_1_mantissa, hp_e_bias)
     input_value_2 = generate_FP(hp_e_bits, "1", input_2_exponent, input_2_mantissa, hp_e_bias)
    
-    run_and_store_test_vector(f"{OP_CFF}_{rounding_mode}_{input_value_1}_{32*'0'}_{32*'0'}_{hp}_{32*'0'}_{lp}_00", test_f, cover_f) #Test 1
-    run_and_store_test_vector(f"{OP_CFF}_{rounding_mode}_{input_value_2}_{32*'0'}_{32*'0'}_{hp}_{32*'0'}_{lp}_00", test_f, cover_f) #Test 2
+    run_and_store_test_vector(
+        f"{OP_CFF}_{rounding_mode}_{input_value_1}_{32 * '0'}_{32 * '0'}_{hp}_{32 * '0'}_{lp}_00", test_f, cover_f
+    )  # Test 1
+    run_and_store_test_vector(
+        f"{OP_CFF}_{rounding_mode}_{input_value_2}_{32 * '0'}_{32 * '0'}_{hp}_{32 * '0'}_{lp}_00", test_f, cover_f
+    )  # Test 2
    
 def genTestVectors3_4(
     lp, hp, rounding_mode, hp_e_bits, hp_exp, complete_binary_1, complete_binary_2, hp_e_bias, test_f, cover_f
@@ -63,8 +67,12 @@ def genTestVectors3_4(
     input_value_1 = generate_FP(hp_e_bits, "0", hp_exp, complete_binary_1, hp_e_bias)
     input_value_2 = generate_FP(hp_e_bits, "1", hp_exp, complete_binary_2, hp_e_bias)
     
-    run_and_store_test_vector(f"{OP_CFF}_{rounding_mode}_{input_value_1}_{32*'0'}_{32*'0'}_{hp}_{32*'0'}_{lp}_00", test_f, cover_f) #Test 1
-    run_and_store_test_vector(f"{OP_CFF}_{rounding_mode}_{input_value_2}_{32*'0'}_{32*'0'}_{hp}_{32*'0'}_{lp}_00", test_f, cover_f) #Test 2
+    run_and_store_test_vector(
+        f"{OP_CFF}_{rounding_mode}_{input_value_1}_{32 * '0'}_{32 * '0'}_{hp}_{32 * '0'}_{lp}_00", test_f, cover_f
+    )  # Test 1
+    run_and_store_test_vector(
+        f"{OP_CFF}_{rounding_mode}_{input_value_2}_{32 * '0'}_{32 * '0'}_{hp}_{32 * '0'}_{lp}_00", test_f, cover_f
+    )  # Test 2
     
 def tests_conversion_3_4(lp, hp, rounding_mode, test_f, cover_f):
     hp_m_bits = MANTISSA_BITS[hp]
@@ -272,7 +280,7 @@ def tests_conversion_9(lp, hp, rounding_mode, test_f, cover_f):
     
     hp_exp = lp_sn_exp
     
-    for i in range(0, 6):      
+    for i in range(0, 6):
         complete_binary = f"{random.randint(0, max_m_value):0{hp_m_bits}b}"
 
         input_value_1 = generate_FP(hp_e_bits, f"{random.randint(0, 1)}", hp_exp, complete_binary, hp_e_bias)

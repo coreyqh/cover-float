@@ -57,8 +57,9 @@ def testgen() -> None:
 
     if args.models is None:
         tg.B1.main()
-        tg.B5.main()
         auto_parse("B1", args.output_dir)
+        tg.B5.main()
+        auto_parse("B5", args.output_dir)
         tg.B9.main()
         auto_parse("B9", args.output_dir)
         tg.B10.main()

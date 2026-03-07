@@ -1,0 +1,73 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+
+== B2
+
+Aharoni et al.
+
+=== Description
+
+=== Design choices
+1. By significant, we took it as mantissa
+2.
+
+We have to separate different parts of the desired result because
+1. We need to toggle every bit of the mantissa only
+2. we need to iterate through positive and negative desired values
+
+
+Bases is a dictionary with {
+    Zero: base_m, desired_exp
+}
+
+desiredResultGenerator(desired_result_sign, desired_result_m, desired_result_exp) -> returns desired result
+    returns desired_result_sign + desired_result_m + desired_result_exp
+
+addTest(fmt, desired_result) -> writes the test vector into the testvector file.
+    randomly generate a_sign
+    randomly generate a_m
+    randomly generate a_exp
+    a_hex = binary to hex(a)
+    subtract a by desired_result and get b directly as a hex starting from the 6th '_' in the result to the 7th
+    writes testvector
+subTest(fmt, sign, desired_result) -> writes the test vector into the testvector.
+    randomly generate a_sign
+    randomly generate a_m
+    randomly generate a_exp
+    a_hex = binary to hex(a)
+    add a and desired_result and get b directly as a hex starting from the 6th '_' in the result to the 7th
+    writes testvector
+mulTest(fmt, desired_result_exp, desired_result) -> writes the test vector into the testvector.
+    randomly generate a_sign
+    randomly generate a_m
+    if desired_result_exp == bias:
+        randomly generate a_exp between 0 and bias
+    elif desired_result_exp == -limit of exponent:
+        randomly generate a_exp bewteen negative exponent limit and 0
+    else
+        randomly generate a_exp
+    a_hex = binary to hex(a)
+    divide desired_result by a to get b
+    if (a*b equal to desired result)
+        writes testvector
+    elif (a*b less than desired result)
+        b adds one ulp
+    elif (a*b more than desired result)
+        b subtract one ulp
+divTest(fmt, desired_result) -> writes the test vector into the testvector.
+sqrtTest
+fmaddTest
+fmsubTest
+fnmaddTest
+fnmsubTest
+
+main
+for fmt in FORMATS
+    for base_m, desired_exp all bases:
+        for i in # of bits in fmt:
+            desired_m = base_m with bit i toggled
+                for sign in [0, 1]:
+                    desired_result = desiredResultGenerator(sign, desired_m, desired_exp,)
+                    addTest(fmt, desired_result)

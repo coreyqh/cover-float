@@ -19,6 +19,7 @@ sim:
 
 B1:
 	uv run --managed-python cover-float-testgen --model B1
+
 B2:
 	uv run --managed-python cover-float-testgen --model B2
 

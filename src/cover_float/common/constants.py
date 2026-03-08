@@ -56,6 +56,8 @@ ROUND_MAX = "03"
 ROUND_NEAR_MAXMAG = "04"
 ROUND_ODD = "05"
 
+ROUNDING_MODES = [ROUND_NEAR_EVEN, ROUND_MINMAG, ROUND_MIN, ROUND_MAX, ROUND_NEAR_MAXMAG]
+
 # Defining floating point format constants
 
 MANTISSA_BITS = {FMT_HALF: 10, FMT_SINGLE: 23, FMT_DOUBLE: 52, FMT_QUAD: 112, FMT_BF16: 7}
@@ -70,6 +72,14 @@ BIASED_EXP = {  # Range of biased exponents based on precision
     FMT_DOUBLE: [1, 2046],
     FMT_QUAD: [1, 32766],
     FMT_BF16: [1, 254],
+}
+
+EXPONENT_BIASES = {
+    FMT_HALF: 15,
+    FMT_SINGLE: 127,
+    FMT_DOUBLE: 1023,
+    FMT_QUAD: 16383,
+    FMT_BF16: 127,
 }
 
 # Test vector widths

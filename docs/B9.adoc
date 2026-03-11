@@ -135,6 +135,7 @@ Total: Up to 100 Significands
 | 26
 | 100
 | 10000
+|===
 
 === Overall Test Count
 
@@ -155,3 +156,4 @@ Total: Up to 100 Significands
 
 | Total Tests
 | 128788
+|===

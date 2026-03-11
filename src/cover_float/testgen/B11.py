@@ -34,6 +34,7 @@ def interesting_shift_ranges(low_shifts: int, shifts_from_edge: int, fmt: str) -
 def interesting_tests(
     sigs: list[int], interesting_shifts: list[int], fmt: str, test_f: TextIO, cover_f: TextIO
 ) -> None:
+    random.seed(reproducible_hash("b11 interesting " + fmt))
     exp_min, exp_max = constants.BIASED_EXP[fmt]
     exp_min -= constants.EXPONENT_BIASES[fmt]
     exp_max -= constants.EXPONENT_BIASES[fmt]
@@ -44,11 +45,11 @@ def interesting_tests(
                 # Randomized Exponents so that we get the desired shift
                 exp1 = random.randint(max(exp_min, exp_min + shift), min(exp_max, exp_max + shift))
                 exp2 = exp1 - shift
-                sign1 = random.randint(0, 1)
-                sign2 = random.randint(0, 1)
+                sign = random.randint(0, 1)
 
-                float1 = generate_float(sign1, exp1, sig1, fmt)
-                float2 = generate_float(sign2, exp2, sig2, fmt)
+                # If we keep the sign the same, we get the same number of effective addition and subtraction cases
+                float1 = generate_float(sign, exp1, sig1, fmt)
+                float2 = generate_float(sign, exp2, sig2, fmt)
 
                 tv = generate_test_vector(op, float1, float2, 0, fmt, fmt, random.choice(constants.ROUNDING_MODES))
                 run_and_store_test_vector(tv, test_f, cover_f)
@@ -57,6 +58,8 @@ def interesting_tests(
 def uninteresting_tests(
     sigs: list[int], interesting_shifts: list[int], fmt: str, test_f: TextIO, cover_f: TextIO
 ) -> None:
+    random.seed(reproducible_hash("b11 uninteresting " + fmt))
+
     nf = constants.MANTISSA_BITS[fmt]
     possible_shifts = [shift for shift in range(-nf - 5, nf + 4 + 1) if shift not in interesting_shifts]
     shift_generator = itertools.cycle(possible_shifts)
@@ -80,11 +83,11 @@ def uninteresting_tests(
             # Randomized Exponents so that we get the desired shift
             exp1 = random.randint(max(exp_min, exp_min + shift), min(exp_max, exp_max + shift))
             exp2 = exp1 - shift
-            sign1 = random.randint(0, 1)
-            sign2 = random.randint(0, 1)
+            sign = random.randint(0, 1)
 
-            float1 = generate_float(sign1, exp1, sig1, fmt)
-            float2 = generate_float(sign2, exp2, sig2, fmt)
+            # If we keep the sign the same, we get the same number of effective addition and subtraction cases
+            float1 = generate_float(sign, exp1, sig1, fmt)
+            float2 = generate_float(sign, exp2, sig2, fmt)
 
             tv = generate_test_vector(op, float1, float2, 0, fmt, fmt, random.choice(constants.ROUNDING_MODES))
             run_and_store_test_vector(tv, test_f, cover_f)
@@ -100,7 +103,7 @@ def main() -> None:
             random.seed(seed)
 
             print(f"Generating {fmt} Sigs & Shifts")
-            sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt])
+            sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], "b11" + fmt)
             sigs = [int(sig, 2) for sig in sig_gen.generate()]
             interesting_shifts = interesting_shift_ranges(2, 2, fmt)
 

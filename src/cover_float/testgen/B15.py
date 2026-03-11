@@ -33,12 +33,13 @@ class B15Significand:
 
 
 class B15SignificandGenerator:
-    def __init__(self, nf: int) -> None:
+    def __init__(self, nf: int, seed: str) -> None:
         self.sigs: list[B15Significand] = []
         self.nf = nf
+        self.seed = seed
 
     def checkerboards(self, patterns: Optional[list[tuple[int, int]]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Checkers {self.nf}"))
+        random.seed(reproducible_hash(self.seed + " Checkers"))
 
         if patterns is None:
             patterns = [(1, 0), (2, 0)]
@@ -56,7 +57,7 @@ class B15SignificandGenerator:
             self.sigs.append(B15Significand(sig1[1:], sig2[1:], res))
 
     def trailing_zeros(self, counts: Optional[list[int]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Trailing Zeros {self.nf}"))
+        random.seed(reproducible_hash(self.seed + " Trailing Zeros"))
 
         if counts is None:
             counts = [2 * self.nf - 1, 2 * self.nf - 2, 2 * self.nf - 3, self.nf, 3, 2, 1]
@@ -103,7 +104,7 @@ class B15SignificandGenerator:
         return (res, target // res)
 
     def leading_zeros(self, counts: Optional[list[int]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Leading Zeros {self.nf}"))
+        random.seed(reproducible_hash(self.seed + " Leading Zeros"))
 
         if counts is None:
             counts = [2 * self.nf - 1, 2 * self.nf - 2, 2 * self.nf - 3, self.nf, 3, 2, 1]
@@ -289,7 +290,7 @@ class B15SignificandGenerator:
         return 0, 0
 
     def trailing_ones(self, counts: Optional[list[int]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Trailing Ones {self.nf}"))
+        random.seed(reproducible_hash(self.seed + " Trailing Ones"))
 
         if counts is None:
             counts = [
@@ -328,7 +329,7 @@ class B15SignificandGenerator:
             self.sigs.append(B15Significand(sig1, sig2, res))
 
     def leading_ones(self, counts: Optional[list[int]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Leading Ones {self.nf}"))
+        random.seed(reproducible_hash(self.seed + "Leading Ones"))
 
         if counts is None:
             counts = [
@@ -377,7 +378,7 @@ class B15SignificandGenerator:
                 self.sigs.append(B15Significand(sig1, sig2, res))
 
     def sparse_ones(self, positions: Optional[list[int]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Sparse Ones {self.nf}"))
+        random.seed(reproducible_hash(self.seed + "Sparse Ones"))
 
         if positions is None:
             # Specific Values Known to work well, and are close to the ideal
@@ -459,7 +460,7 @@ class B15SignificandGenerator:
         return answer
 
     def long_run_ones(self, run_lengths_and_offsets: Optional[list[tuple[int, int]]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Long Run Ones {self.nf}"))
+        random.seed(reproducible_hash(self.seed + "Long Run Ones"))
 
         # Right now, what we are going to cover is runs in the middle of nf
         if run_lengths_and_offsets is None:
@@ -510,7 +511,7 @@ class B15SignificandGenerator:
             self.sigs.append(B15Significand(bin(sig1)[3:], bin(sig2)[3:], res))
 
     def long_run_zeros(self, run_lengths_and_offsets: Optional[list[tuple[int, int]]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Long Run Zeros {self.nf}"))
+        random.seed(reproducible_hash(self.seed + "Long Run Zeros"))
 
         if run_lengths_and_offsets is None:
             run_lengths_and_offsets = []
@@ -637,6 +638,8 @@ def interesting_tests(
     test_f: TextIO,
     cover_f: TextIO,
 ) -> None:
+    random.seed(reproducible_hash(f"b15 {fmt} interesting"))
+
     exp_min, exp_max = constants.BIASED_EXP[fmt]
     exp_min -= constants.EXPONENT_BIASES[fmt]
     exp_max -= constants.EXPONENT_BIASES[fmt]
@@ -655,13 +658,19 @@ def interesting_tests(
                 mul_exp1 = random.randint(max(exp_min, prod_exp - exp_max), min(exp_max, prod_exp - exp_min))
                 mul_exp2 = prod_exp - mul_exp1
 
-                sign1 = random.randint(0, 1)
-                sign2 = random.randint(0, 1)
-                sign3 = random.randint(0, 1)
+                # Order doesn't matter so randomly swap them
+                if random.random() < 0.5:
+                    mul_exp1, mul_exp2 = mul_exp2, mul_exp1
 
-                mul_float1 = generate_float(sign1, mul_exp1, mul_sigs[0], fmt)
+                # Keep All Signs The Same To Facilitate All effective Operations
+                sign = random.randint(0, 1)
+
+                # This ensures that we get two signs that match in the output
+                sign2 = 0
+
+                mul_float1 = generate_float(sign, mul_exp1, mul_sigs[0], fmt)
                 mul_float2 = generate_float(sign2, mul_exp2, mul_sigs[1], fmt)
-                add_float = generate_float(sign3, add_exp, add_sig, fmt)
+                add_float = generate_float(sign, add_exp, add_sig, fmt)
 
                 tv = generate_test_vector(
                     op, mul_float1, mul_float2, add_float, fmt, fmt, random.choice(constants.ROUNDING_MODES)
@@ -677,6 +686,8 @@ def uninteresting_tests(
     test_f: TextIO,
     cover_f: TextIO,
 ) -> None:
+    random.seed(reproducible_hash(f"b15 {fmt} uninteresting"))
+
     nf = constants.MANTISSA_BITS[fmt]
     possible_shifts = [shift for shift in range(-2 * nf - 3, nf + 2 + 1) if shift not in interesting_shifts]
     shift_generator = itertools.cycle(possible_shifts)
@@ -708,13 +719,19 @@ def uninteresting_tests(
             mul_exp1 = random.randint(max(exp_min, prod_exp - exp_max), min(exp_max, prod_exp - exp_min))
             mul_exp2 = prod_exp - mul_exp1
 
-            sign1 = random.randint(0, 1)
-            sign2 = random.randint(0, 1)
-            sign3 = random.randint(0, 1)
+            # Order doesn't matter so randomly swap them
+            if random.random() < 0.5:
+                mul_exp1, mul_exp2 = mul_exp2, mul_exp1
 
-            mul_float1 = generate_float(sign1, mul_exp1, mul_sigs[0], fmt)
+            # Keep All Signs The Same To Facilitate All effective Operations
+            sign = random.randint(0, 1)
+
+            # This ensures that we get two signs that match in the output
+            sign2 = 0
+
+            mul_float1 = generate_float(sign, mul_exp1, mul_sigs[0], fmt)
             mul_float2 = generate_float(sign2, mul_exp2, mul_sigs[1], fmt)
-            add_float = generate_float(sign3, add_exp, add_sig, fmt)
+            add_float = generate_float(sign, add_exp, add_sig, fmt)
 
             tv = generate_test_vector(
                 op, mul_float1, mul_float2, add_float, fmt, fmt, random.choice(constants.ROUNDING_MODES)
@@ -741,11 +758,12 @@ def main() -> None:
         for fmt in constants.FLOAT_FMTS:
             hashval = reproducible_hash(fmt + "b15")
             random.seed(hashval)
+
             print(f"Generating {fmt} Sigs & Shifts")
-            b9_sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt])
+            b9_sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
             b9_sigs = [int(sig, 2) for sig in b9_sig_gen.generate()]
 
-            b15_sig_gen = B15SignificandGenerator(constants.MANTISSA_BITS[fmt])
+            b15_sig_gen = B15SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
             b15_sigs = [(int(sig1, 2), int(sig2, 2)) for sig1, sig2 in b15_sig_gen.generate()]
 
             interesting_shifts = interesting_shift_ranges(2, 2, fmt)

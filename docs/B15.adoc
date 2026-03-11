@@ -1,0 +1,170 @@
+// Ryan Wolk (rwolk@g.hmc.edu)
+
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+== B15 Multiply-Add: Shift Combined with Special Significands
+
+In this model we test the combination of different shift values between the addends, with special patterns in the significands of the addends.
+
+For the significand of the addend and for the multiplication result we take the cases defined in model (B9) "Special Significands on Inputs"
+
+For the shift we take the cases defined in model (B14) "Shift - multiply-add".
+
+*Operations Supported*: FMA (all flavors)
+
+*Precisions Supported*: BF_16, F16, F32, F64, F128
+
+== Implementation
+
+This model is fairly similar to B11 and B9 with one major caveat: we are asked to place a special significand in both addends. This means that one of the special significand patterns must be generated as a multiplication result. For the most part, Aharoni asks for very specific patterns in these significands, and to get coverage up to quads, sacrifices have to be made. It is computationally feasible to factor a number into the multiplication of two double precision significands. It is NOT feasible to factor a number into the multiplication of two quad significands (most of the time). Sometimes, we are given enough algebraic structure (i.e. a number with a sparse amount of ones is a mersenne number * some factor of two), and this is enough structure to get answers even at the quad precision scale. But, this is not something that can be relied on, so the coverage of quad related things is notably worse than what we are able to extract out of every other precision.
+
+== B15 Significand Generation
+
+=== Trailing Zeros
+
+Trailing zeros have a very easy analytic solution because the number of trailing zeros in a multiplication result is the sum of the number of zeros in the two multiplicands
+
+=== Leading Zeros and Ones
+
+The below description is for leading ones, but the logic holds with zeros instead of ones after the leading one.
+
+The following technique is reasonably effective to get a large number of leading ones up until the high amounts of leading ones in doubles.
+
+If we have a target number that we wish to get, i.e. 0b1111...11100, then we pick random numbers and take the floor of their division, based on chance we can get a reasonably good number of leading ones. With a large number of attempts, we can find something reasonably close (or with the desired number of leading ones) for cases in single precision and below.
+
+For the doubles, we can get ~75 leading ones in a run of this naïve method. This gives a good number of leading ones for a 0.75nf-type stab at this problem, and is probably the limit for what this kind of method can achieve. The other approach that is reasonably effective for doubles is that with a small search space, factoring numbers is not too inefficient. Running one or two hundred factorizations is not that important of a slow-down for test generation, at least on the machines that we have access to, so if we look at a large number of leading ones and constrict the space of possible choices we are able to find what arrangements are possible (or computationally feasible to find at least). This is infeasible for quads, but the first method works reasonably well and generates good enough tests (which is the standard for quad precision as of now).
+
+=== Trailing Ones
+
+We first use a number theoretic approach that is listed below. If we consider the numbers mod stem:[2^k], a product stem:[ab] with stem:[k] trailing zeros satisfies
+[stem]
+++++
+ab \equiv -1 \pmod{2^k}
+++++
+To get multiplicative inverses mod stem:[2^k], we just need a number relatively prime to stem:[2^k], that is we just need to pick odd stem:[a] and solve for stem:[a^{-1}]. Finding inverses can be done in logarithmic time using a whole host of algorithms, we use the Euclidean algorithm for gcds to find coefficients to Bezout's identity which give an inverse.
+
+Then, we have a simple rearrangement that yields
+[stem]
+++++
+b \equiv -a^{-1} \pmod{2^k}
+++++
+
+This approach can work, but for numbers stem:[k] significantly larger than stem:[n_f] (again roughly around the double case, and very high numbers of ones for the single case), we are trying to find elements stem:[a] and stem:[b] in a set of cardinality stem:[2^k] each with stem:[n_f] bits. This is a needle in a haystack type search, and has no guarantee of termination. For these cases, we turn to generating a target, factoring it, and seeing if any solution exists. This is effective when we have a small search space and we are not searching for quad significands, so up until quads this method works. Again, with quads, we do not have a good method, so we have to settle for good enough again.
+
+=== Checkerboards
+
+These cases are meant to stress the carry chain, so not much effort needs to be put into generating them. Certain checkerboards can be found with a ``sympy.factorint`` call, but generally a multiplication of ``1.00000...1`` by ``1.010101...10`` (specifically ending in a zero) results in a reasonably good checkerboard. It is important to recall that the point of these cases is not so much the pattern as it is how a floating point implementation interacts with alternating or nearly alternating patterns, so this good enough approach is certainly good enough.
+
+=== Sparse Ones
+
+There are so few of these cases possible to generate, that we can literally call ``factorint`` and take our pick of which we want to generate. The high amount of structure in these numbers means that factor numbers, including quad precision, relatively quickly. We have run every possible choice with a timeout of 10 seconds to find relevant factors, and hand picked locations for the ones that seem reasonable. We must do this because even if a number is factorable, that does not guarantee that it has factors of the exact bit length that we require.
+
+=== Sparse Zeros
+
+These are incredibly rare to find in a multiplication result. So much so that we need multiple zeros (up to 8 for doubles) in a significand in order to have any luck for finding one. The current approach is to generate numbers with a pre-determined amount of zeros in random places, then attempt to factor it. This works fine until doubles, but for quads we have no such luck. Currently, we have no algorithm for generating these in the quad cases. We generate 10 of these random significands for everything but doubles and none for quads. Logically, some of the other cases will give many ones in the significand, so it is not too worrying that quads do not get this case. In addition, this case also appears in the addends from B9.
+
+=== Long Runs of Ones
+
+This case has a nice approach. A number of the form 10101111110101 fits with itself when multiplied by the right significand, as seen below
+
+[source, python]
+----
+>>> sig1 = int('101011111111111111110101', 2)
+>>> sig2 = (1 << 23) | (1 << 3)
+>>> bin(sig1 * sig2)
+'0b10101111111111111111111111111111111111110101000'
+----
+
+With this technique, we can generate run_lengths of `3nf/2` and `nf` where `nf` is the number of mantissa bits for the format, at offsets that can reach up to `(2nf + 2 - run_length)/3`. The idea is simply that we have an 1 that is forced because its the leading one, and a one that we can place strategically so that the two parts intertwine. This approach does not involve factoring so it works the same for all precisions.
+
+=== Long Runs of Zeros
+
+Unlike long runs of ones, there is not a great way to generate this. It requires long carry chains if a one is to be found anywhere in either significant, and there are just not many good ways to guarantee a long run of zeros. So, we rely on two tried and true methods. The first is to attempt to get close to a target number with a long run of zeros in it using division and the second is to leverage the small search spaces that this pattern can afford us and try to factor the numbers. This gives reasonable coverage for quads and the desired coverage from all other numbers.
+
+== Test Plan
+
+Like B11, we split it into interesting and uninteresting cases, and the signs are balanced so the effective operations are equalized. The split of interesting cases is slightly different with the range being [-2, 2], [nf - 2, nf], [-2 * nf -1, -2 * nf + 1]. These are similarly on the edge and middle of the cases Aharoni gives in the paper.
+
+== Test Count Breakdown
+|===
+| Precision | Leading Zeros | Leading Ones | Trailing Ones | Trailing Zeros | Sparse Ones | Sparse Zeros | Checkerboards | Long Runs of Ones | Long Runs of Zeros | Total Significands | B9 crossed with B15
+
+| BF16
+| 2
+| 7
+| 9
+| 6
+| 7
+| 8
+| 10
+| 7
+| 9
+| 65
+| 4940
+
+| F16
+| 2
+| 7
+| 8
+| 6
+| 7
+| 6
+| 10
+| 7
+| 10
+| 63
+| 5418
+
+| F32
+| 2
+| 7
+| 9
+| 6
+| 8
+| 8
+| 10
+| 9
+| 10
+| 69
+| 6762
+
+| F64
+| 2
+| 7
+| 9
+| 6
+| 8
+| 10
+| 10
+| 10
+| 10
+| 72
+| 7200
+
+| F128
+| 2
+| 7
+| 7
+| 4
+| 6
+| 11
+| 0
+| 10
+| 1
+| 48
+| 4800
+|===
+
+=== Overall Test count
+
+|===
+| Description | Value
+
+| Total Tests Per Operation | 349440
+
+| Total Tests | 1397760
+|===

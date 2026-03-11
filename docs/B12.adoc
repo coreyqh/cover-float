@@ -1,0 +1,257 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+
+== B12 Add: Cancellation
+
+Aharoni et al.
+
+=== Description
+
+This model tests every possible value for cancellation. For the difference between the exponent of the intermediate result and the maximum between the exponent of the intermediate result and the maximum between the exponents of the inputs, test all values in the range: [-p, +1].
+
+That is, for two operands `a` and `b` with exponents `a_exp` and `b_exp` and a intermediate result exponent `exp`, we test all cases where `exp` - max(`a_exp`, `b_exp`) takes each value in [-p, +1].
+
+*Number of tests generated:* 438 (4E2)
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
+
+*Operations Supported:* Add, Subtract
+
+== Definitions
+
+`a`:: Operand 1
+`b`:: Operand 2
+`m`:: Mantissa. Number of bits in mantissa, excluding the hidden 1
+`p`:: Precision. Number of significant bits, including the hidden 1. p = m + 1
+`d`:: The difference between max(a_exp, b_exp) and exponent of the intermediate result. This is the interest of this model, where we test all d's in [-p, +1]
+`k`:: Magnitude of d. Defined as -d in the code since we deal with d = 1 separately
+`a_m`:: Mantissa of `a`
+`b_m`:: Mantissa of `b`
+`a_exp`:: Exponent of operand `a`, generally in `[min_exp, max_exp]`
+`b_exp`:: Exponent of operand `b`, generally in `[min_exp, max_exp]`
+`exp`:: Exponent of the result, generally in `[min_exp, max_exp]`
+`max_exp`:: Maximum exponent value based on precision
+`min_exp`:: Minimum exponent value based on precision
+
+== Background
+
+Cancellation occurs when the most significant digits of two operands subtract to zero, triggering a massive normalization effort as the hardware shifts out the many leading zeros. In high-performing floating point processors, a Leading Zero Anticipator (LZA) is used to predict the location of the most significant bit of the result to perform normalization. Generating operands that force specific cancellation depths thus tests the accuracy of the LZA, especially for the most difficult edge cases where the depth of cancellation is close to the precision.
+
+=== Design Choices
+
+. Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
+. Mantissas for `d = -p, 0, 1` are not randomly generated but are selected based on obvious cases that produce that specific `d`. Again, since we're only interested in the exponents, we should not be concerned with generating all mantissas randomly.
+
+=== Notes
+
+All explanation in this document will be done with one instead of both operations because the only difference will be sign assignments. All exponents used in the examples are unbiased exponents.
+
+== General Procedure
+
+General idea:
+
+[source]
+----
+1.sssss11xxx
+1.sssss00xxx
+
+(s = same, x = don't care)
+----
+
+When `a_m` and `b_m` have a leading `k-1` number of bits in common, subtracting them would cancel the `k - 1` leading bits and the implicit 1. After normalizing, `exp` will be exactly `k` less than `a_exp` (or `b_exp`). In this way, we can control `d` and loop through `d = [-p, +1]` inside a loop of all formats. Since subtraction makes cancellation, we will have a positive `a` and negative `b` for addition and a positive `a` and positive `b` for subtraction for most cases.
+
+We chose to make the differing bits two bits to avoid borrowing canceling the differing bit.
+
+However, since this approach requires at least one differing bit to ensure we're canceling exactly k bits, we need a new method for `d = -p` as the entire mantissa will be canceled. Since this approach cancels bits, `d = 0, 1` will also need something different.
+
+Thus, we split the tests into four cases:
+. d = -p
+. d = all other d's
+. d = 0
+. d = 1
+
+Only cases 1 and 3 will involve `b_exp` being different from `a_exp` (by 1, specifically). Only case 4 will have different sign assignments for `a` and `b` for addition and subtraction.
+
+== Specific Test Procedure
+
+=== Case 1
+*Case:* `d = -p` +
+*Relevant Functions:* makeNegPMantissas, makeTestVectors
+
+To cancel exactly p bits when we only have `m` bits in the mantissa, we will take advantage of the shifting that happens when `a_exp` and `b_exp` don't match. What this means is that we will set `b_exp` to be 1 less than `a_exp`, so when the hardware aligns `a` and `b` for addition/subtraction, `b` would be shifted right with its leading 1 becoming the `p` -th bit we cancel. Since all bits after the mantissa will default to 0, the LSB of `b` will be subtracted from 0. To make this meaningful, the LSB of `b` will be 1. Moreover, we need to construct `a_m` and `b_m` so that the borrowing will cascade from the LSB of `b` until canceling the leading 1 of `a` since the leading 1 of `b` is shifted right to cancel the MSB of `a_m`. Therefore, we set `a_m` to be 0, and `b_m` to be all 1's.
+
+Example: +
+We have two operands in `FP_16`, each with a 10-bit mantissa. We're aiming to cancel 11 bits.
+[source]
+----
+a = 1.0000_0000_00 (a_exp = 10)
+b = 1.1111_1111_11 (b_exp = 9)
+----
+
+The FPU aligns the operands for subtraction:
+[source]
+----
+a = 1.0000_0000_00   (a_exp = 10)
+b = 0.1111_1111_11 1 (b_exp = 10)
+----
+
+The subtraction results in the intermediate result:
+[source]
+----
+r = 0.0000_0000_00 1 (exp = 10)
+----
+
+Which then gets normalized to:
+[source]
+----
+r = 1.0000_0000_00   (exp = -1)
+----
+Giving us our desired exponent difference of `max(a_exp, b_exp) - exp = 10 - (-1) = 11`.
+
+=== Case 2
+*Case:* `d` = all other `d` 's +
+*Relevant Functions:* makeCancellationMantissas, makeTestVectors
+
+This case best reflects the general idea. Since we want to cancel `k - 1` bits in the mantissa (recall that the implicit 1 is also canceled), we will generate `k - 1` random bits as the prefix for both `a_m` and `b_m`. In `a_m`, this prefix will be followed by `11`, and `00` in `b_m`. The rest of `a_m` and `b_m` will be randomly generated. The detailed arithmetics in the code involves edge cases such as `k = 1, (m-1), m` that are handled by if statements.
+
+Example: +
+We have two operands in `FP_32`, each with a 23-bit mantissa. We're aiming to cancel 9 bits.
+[source]
+----
+m = 23
+d = -9
+k = 9
+a = 1.0101_1011_1111_1011_1111_001 (a_exp = 20)
+b = 1.0101_1011_0001_0111_1001_100 (b_exp = 20)
+----
+
+The subtraction results in the intermediate result:
+[source]
+----
+r = 0.0000_0000_1110_0100_0101_101 (exp = 20)
+----
+
+Which then gets normalized to:
+[source]
+----
+r = 1.1100_1000_1011_0100_0000_000   (exp = 11)
+----
+Giving us our desired exponent difference of `max(a_exp, b_exp) - exp = 20 - 11 = 9`.
+
+=== Case 3
+*Case:* `d = 0` +
+*Relevant Functions:* makeNoCancelMantissas, makeTestVectors
+
+In this case, we don't want anything to cancel. This is difficult because the implicit 1 will cancel regardless of our mantissa, triggering a normalization. However, we can keep the implicit 1 of `a` by shifting the implicit 1 of `b` to the right. Just like case 1, this would involve setting `b_exp` to be 1 less than `a_exp`. For simplicity, we defined `a_m` to be all 1's, and `b_m` to be all 1's except the LSB, so that when the LSB shifts right and gets subtracted, it does not create the borrow propagation as in case 1.
+
+Example: +
+We have two operands in `FP_16`, each with a 10-bit mantissa. We're aiming to cancel 0 bits.
+[source]
+----
+a = 1.1111_1111_11 (a_exp = 10)
+b = 1.1111_1111_10 (b_exp = 9)
+----
+
+The FPU aligns the operands for subtraction:
+[source]
+----
+a = 1.1111_1111_11   (a_exp = 10)
+b = 0.1111_1111_11 0 (b_exp = 10)
+----
+
+The subtraction results in the intermediate result:
+[source]
+----
+r = 1.0000_0000_00 (exp = 10)
+----
+
+Which will be the final result since there is no normalization required, giving us our desired exponent difference of `max(a_exp, b_exp) - exp = 10 - 10 = 0`.
+
+=== Case 4
+*Case:* `d = 1` +
+*Relevant Functions:* makeCarryMantissas, makeTestVectors
+
+This case requires a carry, which is only achievable through adding positive numbers or subtracting a negative number. This means that the sign assignments must now be positive `a` and positive `b` for addition, and positive `a` and negative `b` for subtraction. Moreover, `a_m` and `b_m` must be able to create a carry when added together. For simplicity, we decided to set both `a_m` and `b_m` to the largest number (all 1's) to guarantee a carry.
+
+Example: +
+We have two operands in `FP_16`, each with a 10-bit mantissa. We're aiming to cancel -1 bits.
+[source]
+----
+a = 1.1111_1111_11 (a_exp = 10)
+b = 1.1111_1111_11 (b_exp = 10)
+----
+
+The addition results in the intermediate result:
+[source]
+----
+r = 11.1111_1111_10 (exp = 10)
+----
+
+Which then gets normalized to:
+[source]
+----
+r = 1.1111_1111_11   (exp = 11)
+----
+Giving us our desired exponent difference of `max(a_exp, b_exp) - exp = 10 - 11 = -1`.
+
+== Test Count Breakdown
+
+[cols="1,1,1,1,1,1,1",options="header"]
+|===
+| Precision | p | Case 1 (`d = -p`) | Case 2 (all other `d`'s) | Case 3 (`d = 0`) | Case 4 (`d = 1`) | Total
+
+| BF_16
+| 8
+| 1
+| 7
+| 1
+| 1
+| 10
+
+| FP_16
+| 11
+| 1
+| 10
+| 1
+| 1
+| 13
+
+| FP_32
+| 24
+| 1
+| 23
+| 1
+| 1
+| 26
+
+| FP_64
+| 53
+| 1
+| 52
+| 1
+| 1
+| 55
+
+| FP_128
+| 113
+| 1
+| 112
+| 1
+| 1
+| 115
+|===
+
+=== Overall Test Count
+
+[cols="1,1",options="header"]
+|===
+| Description | Value
+
+| Total cancellation tests
+| 219
+
+| Accounting for Add and Subtract (×2)
+| 438
+|===

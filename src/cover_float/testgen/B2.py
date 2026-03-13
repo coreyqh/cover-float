@@ -112,9 +112,20 @@ def test_sub(fmt: str, desired_result: str, base_e: int, test_f: TextIO, cover_f
     )
 
 
-def test_mul(fmt: str, desired_result: str, test_f: TextIO, cover_f: TextIO) -> None:
+def test_mul(fmt: str, desired_result: str, base_e: int, test_f: TextIO, cover_f: TextIO) -> None:
+    # Also has to restrain exponent so b doesn't underflow. Ex. we want exp -126, if a_exp is 32, we need b_exp -158
+    # which clips to -126.
     max_exp = (1 << EXPONENT_BITS[fmt]) - 2
-    a_exp = random.randint(0, max_exp)
+    maxnorm_exp = (1 << EXPONENT_BITS[fmt]) - 2
+    bias = 2 ** (EXPONENT_BITS[fmt] - 1) - 1
+    if base_e != maxnorm_exp:
+        min_safe_exp = 0
+        max_safe_exp = bias
+    else:
+        min_safe_exp = bias
+        max_safe_exp = max_exp
+
+    a_exp = random.randint(min_safe_exp, max_safe_exp)
     a = decimalComponentsToHex(fmt, random.randint(0, 1), a_exp, random.getrandbits(MANTISSA_BITS[fmt]))
 
     b = get_result_from_ref(OP_DIV, desired_result, a, "0" * 32, fmt)
@@ -266,8 +277,8 @@ def main() -> None:
                         desired_result = decimalComponentsToHex(fmt, sign, base_e, desired_m)
 
                         # test_add(fmt, desired_result, base_e, test_f, cover_f)
-                        test_sub(fmt, desired_result, base_e, test_f, cover_f)
-                        # test_mul(fmt, desired_result, test_f, cover_f)
+                        # test_sub(fmt, desired_result, base_e, test_f, cover_f)
+                        test_mul(fmt, desired_result, base_e, test_f, cover_f)
                         # test_div(fmt, desired_result, test_f, cover_f)
 
                         # if sign == 0:

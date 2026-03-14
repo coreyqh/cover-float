@@ -23,7 +23,8 @@ void softfloat_getIntermResults(intermResult_t *result) {
     result->exp = softfloat_intermediateResult.exp;
     result->sig64 = softfloat_intermediateResult.sig64;
     result->sig0 = softfloat_intermediateResult.sig0;
-    result->sigExtra = softfloat_intermediateResult.sigExtra;
+    result->sigExtra64 = softfloat_intermediateResult.sigExtra64;
+    result->sigExtra0 = softfloat_intermediateResult.sigExtra0;
 }
 
 void softfloat_clearIntermResults() {
@@ -32,7 +33,8 @@ void softfloat_clearIntermResults() {
     softfloat_intermediateResult.exp = 0;
     softfloat_intermediateResult.sig64 = 0;
     softfloat_intermediateResult.sig0 = 0;
-    softfloat_intermediateResult.sigExtra = 0;
+    softfloat_intermediateResult.sigExtra64 = 0;
+    softfloat_intermediateResult.sigExtra0 = 0;
 }
 
 /*
@@ -1837,6 +1839,25 @@ int reference_model(
         // Unfortunately, softfloat doesn't give us a 192-bit right shift jam
         // but look at softfloat_shiftRightJam128() for reference
 
+        uint64_t intermediate_sig[4] = {
+            intermResult->sigExtra0,
+            intermResult->sigExtra64,
+            intermResult->sig0,
+            intermResult->sig64
+        };
+        intermediate_sig[indexWord(4, 0)] = intermResult->sigExtra0;
+        intermediate_sig[indexWord(4, 1)] = intermResult->sigExtra64;
+        intermediate_sig[indexWord(4, 2)] = intermResult->sig0;
+        intermediate_sig[indexWord(4, 3)] = intermResult->sig64;
+        uint64_t output_sig[4];
+        softfloat_shiftRightJam256M(intermediate_sig, shift_dist, output_sig);
+
+        intermResult->sigExtra0 = output_sig[indexWord(4, 0)];
+        intermResult->sigExtra64 = output_sig[indexWord(4, 1)];
+        intermResult->sig0 = output_sig[indexWord(4, 2)];
+        intermResult->sig64 = output_sig[indexWord(4, 3)];
+
+        #if 0
         if (shift_dist < 64) {
             // Everything has a short shift here, most complex case, but look at reference from softfloat
             intermResult->sigExtra = (intermResult->sigExtra >> shift_dist)
@@ -1862,6 +1883,8 @@ int reference_model(
             intermResult->sig64 = 0;
         }
 
+        #endif
+
         intermResult->exp = 0;
     }
 
@@ -1871,8 +1894,9 @@ int reference_model(
 
     intermResult->sig64 = shifted_sig.v64;
     intermResult->sig0 =
-        shifted_sig.v0 | (intermResult->sigExtra >> (-shift_amount & 63)); // Look at shortShiftLeft source
-    intermResult->sigExtra = intermResult->sigExtra << shift_amount;
+        shifted_sig.v0 | (intermResult->sigExtra64 >> (-shift_amount & 63)); // Look at shortShiftLeft source
+    intermResult->sigExtra64 = intermResult->sigExtra64 << shift_amount | (intermResult->sigExtra0 >> (-shift_amount & 63));
+    intermResult->sigExtra0 = intermResult->sigExtra0 << shift_amount;
 
     return EXIT_SUCCESS;
 }
@@ -1980,8 +2004,8 @@ int coverfloat_runtestvector(
     snprintf(
         output,
         output_size,
-        "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx%"
-        "016llx%016llx\n",
+        "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx"
+        "%016llx%016llx%016llx\n",
         op,
         rm,
         a.upper,
@@ -1999,7 +2023,8 @@ int coverfloat_runtestvector(
         intermRes.exp,
         intermRes.sig64,
         intermRes.sig0,
-        intermRes.sigExtra
+        intermRes.sigExtra64,
+        intermRes.sigExtra0
     );
 
     if (!suppress_error_check) {

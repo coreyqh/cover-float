@@ -8,13 +8,20 @@
 # Operations: FMA, ADD, SUB, MUL
 #   This excludes DIV and SQRT as targeting specific sticky values is impossible
 
+import functools
 import random
 from pathlib import Path
-from typing import TextIO
+from typing import TYPE_CHECKING, Optional, TextIO
 
 import cover_float.common.constants as constants
 from cover_float.common.util import generate_float, generate_test_vector, reproducible_hash
 from cover_float.reference import run_test_vector, store_cover_vector
+
+if TYPE_CHECKING:
+    # This block is seen by Pyright but ignored at runtime
+    def factorint(n: int) -> dict[int, int]: ...
+else:
+    from sympy import factorint
 
 
 def bezout_inverse(x: int, base: int) -> int:
@@ -169,27 +176,137 @@ def mul_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             )
 
 
-def two_ones_multiplicands(fmt: str) -> list[int]:
-    # I'm not doing all this work every time, trust that it is the best. Work is taken from
-    # B15 sparse ones
-    if fmt == constants.FMT_QUAD:
-        return [
-            0b10000010111011001011000100011001000100100111101111101001100110011000011110000010000100000001111010101111010101001,
-            0b11111010010010000001000010010110011001000000000000000000000000000000000000011111010010010000001000010010110011001,
-        ]
-    elif fmt == constants.FMT_DOUBLE:
-        return [
-            0b111001100100111001100000000000000000110011001001110011,
-            0b10100000001001011001001011010000101011100001010111011,
-        ]
-    elif fmt == constants.FMT_SINGLE:
-        return [0b111111111110000000000010, 0b100000000001000000000001]
-    elif fmt == constants.FMT_HALF:
-        return [0b10110001001, 0b10111001000]
-    elif fmt == constants.FMT_BF16:
-        return [0b11100010, 0b10010001]
-    else:
-        raise ValueError("Invalid Format")
+def factors_to_bit_width(factors: dict[int, int], target: int, bit_width: int) -> tuple[int, int]:
+    usable_factors = [factor for factor, count in factors.items() for _ in range(count)]
+    usable_factors.sort(key=lambda x: -x)  # Sort Descending
+
+    def recurse(running_count: int, i: int) -> int:
+        last_factor = 0
+        for idx, factor in enumerate(usable_factors[i:], i):
+            if last_factor == factor:
+                continue
+            last_factor = factor
+
+            guess = running_count * factor
+            if guess.bit_length() == bit_width and (target // guess).bit_length() == bit_width:
+                return running_count * factor
+            elif guess.bit_length() < bit_width:
+                attempt = recurse(guess, idx + 1)
+                if attempt != 0:
+                    return attempt
+
+        return 0
+
+    res = recurse(1, 0)
+    if res == 0:
+        return (0, 0)
+
+    return (res, target // res)
+
+
+def two_ones_multiplicands(fmt: str) -> dict[int, tuple[int, int]]:
+    answer: dict[int, tuple[int, int]] = {}
+    nf = constants.MANTISSA_BITS[fmt]
+    low_one = 0
+
+    while low_one <= nf:
+        # B15-like logic
+        target = 1 << (2 * nf + 1)
+        target |= 1 << low_one
+
+        factors = factorint(target)
+        f1, f2 = factors_to_bit_width(factors, target, nf + 1)
+
+        if f1 * f2 == target:
+            one_location = bin(f1 * f2)[3:].rfind("1")
+            answer[one_location] = (f1, f2)
+            break
+
+        low_one += 1
+
+    mid_one = nf
+    while mid_one >= 0:
+        # B15-like logic
+        target = 1 << (2 * nf + 1)
+        target |= 1 << mid_one
+
+        factors = factorint(target)
+        f1, f2 = factors_to_bit_width(factors, target, nf + 1)
+
+        if f1 * f2 == target:
+            one_location = bin(f1 * f2)[3:].rfind("1")
+            answer[one_location] = (f1, f2)
+            break
+
+        mid_one -= 1
+
+    return answer
+
+
+STICKY_LIMITS = {
+    constants.FMT_SINGLE: 37,
+    constants.FMT_DOUBLE: 72,
+    constants.FMT_QUAD: 127,
+}
+
+
+@functools.cache
+def multiplicand_generator(
+    target_location: int, shift_amount: int, effective_subtraction: bool, nf: int
+) -> Optional[tuple[int, int]]:
+    total_multiplicand_rounding_bits = nf + shift_amount + 2
+    target = 1 << (nf - target_location - 1)
+    if effective_subtraction:
+        # We want 1s until the target location, then zeros
+        # target = 1 << (nf - target_location)
+        # target = (~target & ((1 << total_multiplicand_rounding_bits) - 1)) + 1
+        target = (1 << total_multiplicand_rounding_bits) - target
+
+    iterations = 10000
+    if effective_subtraction:
+        iterations *= 100
+
+    for _ in range(iterations):
+        # Bezout's identity does not quite hold here, as we have trailing zeros, by construction we
+        # have (nf - target_location) extraneous zeros
+
+        # extraneous_zeros = nf - target_location - 1 if not effective_subtraction else 0
+        extraneous_zeros = len(bin(target)) - len(bin(target).rstrip("0"))
+        bezout_base = total_multiplicand_rounding_bits - extraneous_zeros
+        bezout_target = target >> extraneous_zeros
+
+        # a_zeros = random.randint(max(0, extraneous_zeros - nf), min(nf, extraneous_zeros))
+        b_zeros = max(0, extraneous_zeros - nf)
+        a_zeros = extraneous_zeros - b_zeros
+
+        a_guess = random.getrandbits(nf - a_zeros) | (1 << (nf - a_zeros)) | 1
+        a_guess_inv = bezout_inverse(a_guess, 2**bezout_base)
+        b = (a_guess_inv * bezout_target) % (2**bezout_base)
+
+        if bezout_base <= nf - b_zeros:
+            b += ((1 << nf - b_zeros) // (2**bezout_base)) * (2**bezout_base)
+
+        a_guess <<= a_zeros
+        b <<= b_zeros
+
+        if b.bit_length() == nf + 1:
+            return a_guess, b
+
+    if (nf <= 52 and effective_subtraction) or (not effective_subtraction and nf < 23):
+        for _ in range(100):
+            if 2 * nf + 1 <= total_multiplicand_rounding_bits:
+                leading_bits = 0
+            else:
+                leading_bits = random.getrandbits(2 * nf + 1 - total_multiplicand_rounding_bits)
+
+            factor_target = target | (leading_bits << total_multiplicand_rounding_bits) | (1 << 2 * nf + 1)
+            factors = factorint(factor_target)
+            f1, f2 = factors_to_bit_width(factors, factor_target, nf + 1)
+
+            if f1 * f2 == factor_target:
+                return (f1, f2)
+
+    return None
 
 
 def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -320,17 +437,57 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                     print("Failure in FMA Test Generation, failed to create the expected bits")
             else:
                 print("Failure to generate a Guard=0 Case in FMA Testgen")
-                breakpoint()
 
         # Now consider the cases where the multiplicand is responsible for sticky bit generation,
         # That is, cases where the addend has an exponent that does not let it cancel the remaining
         # Sticky Bits.
-        sigA, sigB = two_ones_multiplicands(fmt)
-        last_one = bin(sigA * sigB)[2:].rfind("1")
+        one_placements = two_ones_multiplicands(fmt)
+
+        lowest_one = max(one_placements.keys())
+        middle_one = min(one_placements.keys())
 
         # Idea is that the last one starts just barely hanging off of the addend, and then we go until
         # the leading one from the multiplication mantissa is in the lsb
-        for exp_diff in range(-last_one + constants.MANTISSA_BITS[fmt] + 1, constants.MANTISSA_BITS[fmt]):
+        placements: list[int] = []
+
+        for target_placement in range(1, 2 * constants.MANTISSA_BITS[fmt]):
+            if target_placement > STICKY_LIMITS.get(fmt, 1000):
+                # The things that are possible within what softfloat gives us
+                break
+
+            print(
+                f"{fmt} target_placement: {target_placement}/"
+                f"{STICKY_LIMITS.get(fmt, 2 * constants.MANTISSA_BITS[fmt])}",
+                end="\r",
+            )
+
+            # We want the lowest possible exponent difference
+            shift_amount = max(3, target_placement - constants.MANTISSA_BITS[fmt] + 1)
+            target_location = target_placement - shift_amount
+
+            effective_subtraction = op == constants.OP_FMSUB or op == constants.OP_FNMADD
+
+            attempted_sigs = multiplicand_generator(
+                target_location, shift_amount, effective_subtraction, constants.MANTISSA_BITS[fmt]
+            )
+
+            if attempted_sigs is None:
+                if not effective_subtraction:
+                    sigA, sigB = one_placements[middle_one]
+                    exp_diff = target_placement - middle_one + constants.MANTISSA_BITS[fmt] + 1
+                    if exp_diff > constants.MANTISSA_BITS[fmt]:
+                        sigA, sigB = one_placements[lowest_one]
+                        exp_diff = target_placement - lowest_one + constants.MANTISSA_BITS[fmt] + 1
+
+                        if exp_diff > constants.MANTISSA_BITS[fmt]:
+                            continue
+                else:
+                    # print(f"\x1b[2K\rFailure {target_placement}")
+                    continue
+            else:
+                sigA, sigB = attempted_sigs
+                exp_diff = shift_amount
+
             # Randomized Exponents so that we get the desired exponent difference
             prod_exp = random.randint(max(min_exp, min_exp - exp_diff), min(max_exp, max_exp - exp_diff))
             add_exp = prod_exp + exp_diff
@@ -346,11 +503,16 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             if random.random() < 0.5:
                 sigA, sigB = sigB, sigA
 
-            sigC = random.getrandbits(constants.MANTISSA_BITS[fmt])
-            if exp_diff < 0:
-                # Then we have overlap
-                mask = (1 << -exp_diff) - 1
-                sigC &= ~mask
+            sigC = random.getrandbits(constants.MANTISSA_BITS[fmt] - 1)  # -1 to stop all carry chains
+            if effective_subtraction:
+                sigC |= 1 << (constants.MANTISSA_BITS[fmt] - 1)
+                sigC |= 1 << (constants.MANTISSA_BITS[fmt] - 2)  # Stop all borrow chains
+
+            if exp_diff == 0:
+                add_exp -= 2
+                sigC &= ~0b11
+            elif (sigA * sigB).bit_length() == (2 * constants.MANTISSA_BITS[fmt] + 2):
+                pass
 
             signA = random.randint(0, 1)
             signB = signA
@@ -358,11 +520,6 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                 signB ^= 1
 
             signC = 0
-            if op == constants.OP_FMSUB or op == constants.OP_FNMADD:
-                if exp_diff >= 0:
-                    continue  # TODO: Support Effective Subtraction in these cases
-                else:
-                    pass
 
             floatA = generate_float(signA, mul_exp1, sigA ^ (1 << constants.MANTISSA_BITS[fmt]), fmt)
             floatB = generate_float(signB, mul_exp2, sigB ^ (1 << constants.MANTISSA_BITS[fmt]), fmt)
@@ -373,13 +530,24 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
 
             interm_mantissa = bin(int("1" + result.split("_")[-1], 16))[3:]
             actual_extra_bits = interm_mantissa[constants.MANTISSA_BITS[fmt] :]
+            placement = actual_extra_bits.rfind("1")
+            # target_placement =  + exp_diff - constants.MANTISSA_BITS[fmt]  # -1 because sigA * sigB uses all of U2.2nf
 
-            if fmt == "04":
-                print(actual_extra_bits)
+            if (
+                placement != target_placement and target_placement <= STICKY_LIMITS.get(fmt, 1000)
+            ) or actual_extra_bits.count("1") != 1:
                 breakpoint()
+            elif placement not in placements:
+                placements.append(placement)
+                store_cover_vector(result, test_f, cover_f)
+
+        print("\x1b[2K", end="\r")
+        # print(sorted(placements), fmt)
 
 
 def main() -> None:
+    print("Running B7")
+
     with (
         Path("tests/testvectors/B7_tv.txt").open("w") as test_f,
         Path("tests/covervectors/B7_cv.txt").open("w") as cover_f,

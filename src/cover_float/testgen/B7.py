@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Optional, TextIO
 
 import cover_float.common.constants as constants
 from cover_float.common.util import generate_float, generate_test_vector, reproducible_hash
-from cover_float.reference import run_test_vector, store_cover_vector
+from cover_float.reference import run_and_store_test_vector, run_test_vector, store_cover_vector
 
 if TYPE_CHECKING:
     # This block is seen by Pyright but ignored at runtime
@@ -81,7 +81,7 @@ def add_sub_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             if op == constants.OP_ADD:
                 sigB |= 1 << (shift_amount - extra_bit - 1)
             else:
-                # We want to do something less trivial than invoking effective addition in both
+                # We want the operation to be effective subtraction in the subtraction cases
                 subtraction_target = rounding_bits_mask ^ ((1 << (shift_amount - extra_bit - 1)) - 1)
                 sigB |= subtraction_target
 
@@ -263,8 +263,8 @@ def multiplicand_generator(
         target = (1 << total_multiplicand_rounding_bits) - target
 
     iterations = 10000
-    if effective_subtraction:
-        iterations *= 100
+    if effective_subtraction and nf >= 52:
+        iterations *= 10
 
     for _ in range(iterations):
         # Bezout's identity does not quite hold here, as we have trailing zeros, by construction we
@@ -293,11 +293,21 @@ def multiplicand_generator(
             return a_guess, b
 
     if (nf <= 52 and effective_subtraction) or (not effective_subtraction and nf < 23):
-        for _ in range(100):
-            if 2 * nf + 1 <= total_multiplicand_rounding_bits:
-                leading_bits = 0
-            else:
-                leading_bits = random.getrandbits(2 * nf + 1 - total_multiplicand_rounding_bits)
+        leading_bit_count = 2 * nf + 1 - total_multiplicand_rounding_bits
+
+        # This ensures that we check every possible case at the lower precisions
+        if leading_bit_count == -1:
+            leaders = [0]
+        elif 2**leading_bit_count < 100:
+            leaders = list(range(2**leading_bit_count))
+        else:
+            leaders = [random.getrandbits(leading_bit_count) for _ in range(100)]
+
+        for leading_bits in leaders:
+            # if 2 * nf + 1 <= total_multiplicand_rounding_bits:
+            #     leading_bits = 0
+            # else:
+            #     leading_bits = random.getrandbits(2 * nf + 1 - total_multiplicand_rounding_bits)
 
             factor_target = target | (leading_bits << total_multiplicand_rounding_bits) | (1 << 2 * nf + 1)
             factors = factorint(factor_target)
@@ -545,6 +555,78 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
         # print(sorted(placements), fmt)
 
 
+INT_MAX_EXPS = {
+    constants.FMT_INT: 31,
+    constants.FMT_UINT: 32,
+    constants.FMT_LONG: 63,
+    constants.FMT_ULONG: 64,
+}
+
+
+def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
+    # CFF
+    nf = constants.MANTISSA_BITS[fmt]
+    for from_fmt in constants.FLOAT_FMTS:
+        hashval = reproducible_hash(f"B7 {from_fmt} convert to {fmt}")
+        random.seed(hashval)
+
+        from_nf = constants.MANTISSA_BITS[from_fmt]
+
+        if from_nf <= nf:
+            # We only want narrowing conversions
+            continue
+
+        for extra_bit in range(1, from_nf - nf):
+            upper_bits = random.getrandbits(nf)
+            extra_bits = 1 << ((from_nf - nf) - extra_bit)
+
+            sig = (upper_bits << (from_nf - nf)) | extra_bits
+
+            tv = generate_test_vector(constants.OP_CFF, sig, 0, 0, from_fmt, fmt, constants.ROUND_MAX)
+            run_and_store_test_vector(tv, test_f, cover_f)
+
+    # CFI
+    for to_fmt in constants.INT_FMTS:
+        # to_bits = INT_MAX_EXPS[to_fmt]
+
+        for extra_bit in range(1, nf):
+            # Min_int_bits is 0 as we can do 1.frac with the leading one
+            min_int_bits = 0
+            # Max_int_bits places the target extra_bit last
+            max_int_bits = nf - extra_bit
+
+            int_bits = random.randint(min_int_bits, max_int_bits)
+            frac_bits = nf - int_bits
+
+            int_part = random.getrandbits(int_bits)
+            frac_part = 1 << (frac_bits - extra_bit)
+
+            sig = int_part << frac_bits | frac_part
+            tv = generate_test_vector(constants.OP_CFI, sig, 0, 0, fmt, to_fmt, constants.ROUND_MAX)
+            run_and_store_test_vector(tv, test_f, cover_f)
+
+    # CIF
+    for from_fmt in constants.INT_FMTS:
+        from_bits = INT_MAX_EXPS[from_fmt]
+
+        if from_bits <= nf:
+            # Not a narrowing conversion
+            continue
+
+        for extra_bit in range(1, from_bits - nf):
+            upper_bits = random.getrandbits(nf)
+
+            sig = upper_bits << (extra_bit + 1)
+            sig |= 1  # Places the extra bit in the right place
+
+            remaining_shift_dist = from_bits - sig.bit_length()
+            additional_zeros = random.randint(0, remaining_shift_dist)
+            sig <<= additional_zeros
+
+            tv = generate_test_vector(constants.OP_CIF, sig, 0, 0, from_fmt, fmt, constants.ROUND_MAX)
+            run_and_store_test_vector(tv, test_f, cover_f)
+
+
 def main() -> None:
     print("Running B7")
 
@@ -556,6 +638,7 @@ def main() -> None:
             add_sub_tests(fmt, test_f, cover_f)
             mul_tests(fmt, test_f, cover_f)
             fma_tests(fmt, test_f, cover_f)
+            convert_tests(fmt, test_f, cover_f)
 
 
 if __name__ == "__main__":

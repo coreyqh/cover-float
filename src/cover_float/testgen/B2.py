@@ -106,22 +106,28 @@ def test_add(fmt: str, desired_result: str, base_e: int, sign: int, test_f: Text
     )
 
 
+# TODO: looks like a few minnorm results are a bit problematic.
 def test_sub(fmt: str, desired_result: str, base_e: int, sign: int, test_f: TextIO, cover_f: TextIO) -> None:
     m_bits = MANTISSA_BITS[fmt]
-    max_exp = (1 << EXPONENT_BITS[fmt]) - 2
-    min_safe_exp = max(0, base_e - m_bits)
-    max_safe_exp = min(max_exp, base_e + m_bits)
 
-    a_exp = random.randint(min_safe_exp, max_safe_exp)
+    a_exp = base_e
+    if base_e == ((1 << EXPONENT_BITS[fmt]) - 2):
+        if sign == 0:
+            a = decimalComponentsToHex(fmt, 0, a_exp, random.getrandbits(m_bits))
+            b = get_result_from_ref(OP_SUB, a, desired_result, "0" * 32, fmt)
+            run_and_store_test_vector(
+                f"{OP_SUB}_{ROUND_NEAR_EVEN}_{a}_{b}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
+            )
+        else:
+            a = decimalComponentsToHex(fmt, 1, a_exp, random.getrandbits(m_bits))
+            b = get_result_from_ref(OP_SUB, a, desired_result, "0" * 32, fmt)
+            run_and_store_test_vector(
+                f"{OP_SUB}_{ROUND_NEAR_EVEN}_{a}_{b}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
+            )
+        return
     a = decimalComponentsToHex(fmt, random.randint(0, 1), a_exp, random.getrandbits(MANTISSA_BITS[fmt]))
-
-    # a - b = d  ->  b = a - d
     b = get_result_from_ref(OP_SUB, a, desired_result, "0" * 32, fmt)
-    ans = get_result_from_ref(OP_SUB, a, b, "0" * 32, fmt)
-    if ans < desired_result:
-        b = calibrate(b, -1)
-    elif ans > desired_result:
-        b = calibrate(b, 1)
+
     run_and_store_test_vector(
         f"{OP_SUB}_{ROUND_NEAR_EVEN}_{a}_{b}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
     )
@@ -291,8 +297,8 @@ def main() -> None:
                     for sign in [0, 1]:
                         desired_result = decimalComponentsToHex(fmt, sign, base_e, desired_m)
 
-                        test_add(fmt, desired_result, base_e, sign, test_f, cover_f)
-                        # test_sub(fmt, desired_result, base_e, sign, test_f, cover_f)
+                        # test_add(fmt, desired_result, base_e, sign, test_f, cover_f)
+                        test_sub(fmt, desired_result, base_e, sign, test_f, cover_f)
                         # test_mul(fmt, desired_result, base_e, test_f, cover_f)
                         # test_div(fmt, desired_result, base_e, test_f, cover_f)
 

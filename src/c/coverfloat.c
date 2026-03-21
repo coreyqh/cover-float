@@ -877,22 +877,30 @@ int reference_model(
                 out = ui32_to_bf16(input);
                 break;
             }
-            // These conversions do not exist
+            case FMT_LONG: {
+                uint64_t serialized_input = (uint64_t)a->lower;
+                int64_t input;
+                // We need to be careful not to throw out the signed part of it
+                // a direct conversion to int64_t is UB
+                memcpy(&input, &serialized_input, sizeof(input));
 
-            // case FMT_LONG: {
-            //     uint64_t serialized_input = (uint64_t) a->lower;
-            //     int64_t input;
-            //     // We need to be careful not to throw out the signed part of it
-            //     // a direct conversion to int32_t is UB
-            //     memcpy(&input, &serialized_input, sizeof(input));
-            //     out = i64_to_bf16(input);
-            //     break;
-            // }
-            // case FMT_ULONG: {
-            //     uint64_t input = (uint64_t) a->lower;
-            //     out = ui64_to_bf16(input);
-            //     break;
-            // }
+                softFloat_setRoundingMode(softfloat_round_odd);
+                float64_t out_64 = i64_to_f64(input);
+                softFloat_setRoundingMode(*rm);
+                out = f64_to_bf16(out_64);
+
+                break;
+            }
+            case FMT_ULONG: {
+                uint64_t input = (uint64_t)a->lower;
+
+                softFloat_setRoundingMode(softfloat_round_odd);
+                float64_t out_64 = ui64_to_f64(input);
+                softFloat_setRoundingMode(*rm);
+                out = f64_to_bf16(out_64);
+
+                break;
+            }
             default: {
                 fprintf(stderr, "ERROR: int to float conversion with unsupported operand format: %x\n", *operandFmt);
                 return EXIT_FAILURE;
@@ -1740,6 +1748,12 @@ int reference_model(
     *flags = softFloat_getFlags();
     softfloat_getIntermResults(intermResult);
 
+    if (*op == OP_CFI && *operandFmt == FMT_HALF && (*resultFmt == FMT_LONG || *resultFmt == FMT_ULONG)) {
+        struct uint128 res = softfloat_shiftRightJam128(intermResult->sig64, intermResult->sig0, 32);
+        intermResult->sig64 = res.v64;
+        intermResult->sig0 = res.v0;
+    }
+
     if (intermResult->exp == 0 && intermResult->sig64 == 0) {
         // Then we need to extract an intermediate result from the result
         switch (*resultFmt) {
@@ -1839,12 +1853,8 @@ int reference_model(
         // Unfortunately, softfloat doesn't give us a 192-bit right shift jam
         // but look at softfloat_shiftRightJam128() for reference
 
-        uint64_t intermediate_sig[4] = {
-            intermResult->sigExtra0,
-            intermResult->sigExtra64,
-            intermResult->sig0,
-            intermResult->sig64
-        };
+        uint64_t intermediate_sig[4] =
+            {intermResult->sigExtra0, intermResult->sigExtra64, intermResult->sig0, intermResult->sig64};
         intermediate_sig[indexWord(4, 0)] = intermResult->sigExtra0;
         intermediate_sig[indexWord(4, 1)] = intermResult->sigExtra64;
         intermediate_sig[indexWord(4, 2)] = intermResult->sig0;
@@ -1857,22 +1867,22 @@ int reference_model(
         intermResult->sig0 = output_sig[indexWord(4, 2)];
         intermResult->sig64 = output_sig[indexWord(4, 3)];
 
-        #if 0
+#if 0
         if (shift_dist < 64) {
             // Everything has a short shift here, most complex case, but look at reference from softfloat
             intermResult->sigExtra = (intermResult->sigExtra >> shift_dist)
-                    | (intermResult->sig0 << (64 - shift_dist)) 
+                    | (intermResult->sig0 << (64 - shift_dist))
                     | ((intermResult->sigExtra << (64 - shift_dist)) != 0); // This is the jam
             intermResult->sig0 = (intermResult->sig0 >> shift_dist) | (intermResult->sig64 << (64 - shift_dist));
             intermResult->sig64 = intermResult->sig64 >> shift_dist;
         } else if (shift_dist < 128) {
             // These two cases are the same as above but simpler
-            intermResult->sigExtra = (intermResult->sig0 >> (shift_dist - 64)) 
+            intermResult->sigExtra = (intermResult->sig0 >> (shift_dist - 64))
                     | (((intermResult->sig0 << (128 - shift_dist)) | intermResult->sigExtra) != 0); // This is the jam
             intermResult->sig0 = intermResult->sig64 >> (shift_dist - 64);
             intermResult->sig64 = 0;
         } else if (shift_dist < 192) {
-            intermResult->sigExtra = (intermResult->sig64 >> (shift_dist - 128)) 
+            intermResult->sigExtra = (intermResult->sig64 >> (shift_dist - 128))
                     | (((intermResult->sig64 << (192 - shift_dist)) | intermResult->sigExtra | intermResult->sig0) != 0); // This is the jam
             intermResult->sig0 = 0;
             intermResult->sig64 = 0;
@@ -1883,7 +1893,7 @@ int reference_model(
             intermResult->sig64 = 0;
         }
 
-        #endif
+#endif
 
         intermResult->exp = 0;
     }
@@ -1895,7 +1905,8 @@ int reference_model(
     intermResult->sig64 = shifted_sig.v64;
     intermResult->sig0 =
         shifted_sig.v0 | (intermResult->sigExtra64 >> (-shift_amount & 63)); // Look at shortShiftLeft source
-    intermResult->sigExtra64 = intermResult->sigExtra64 << shift_amount | (intermResult->sigExtra0 >> (-shift_amount & 63));
+    intermResult->sigExtra64 =
+        intermResult->sigExtra64 << shift_amount | (intermResult->sigExtra0 >> (-shift_amount & 63));
     intermResult->sigExtra0 = intermResult->sigExtra0 << shift_amount;
 
     return EXIT_SUCCESS;

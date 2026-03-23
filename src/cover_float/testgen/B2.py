@@ -140,9 +140,7 @@ def test_sub(
 
 
 # TODO: Few cases in minnorm and maxnorm has inaccuracies
-def test_mul(
-    fmt: str, desired_result: str, base_e: int, maxnorm: bool, sign: int, test_f: TextIO, cover_f: TextIO
-) -> None:
+def test_mul(fmt: str, desired_result: str, maxnorm: bool, test_f: TextIO, cover_f: TextIO) -> None:
     # Also has to restrain exponent so b doesn't underflow. Ex. we want exp -126, if a_exp is 32, we need b_exp -158
     # which clips to -126.
 
@@ -181,18 +179,33 @@ def test_mul(
     )
 
 
-def test_div(fmt: str, desired_result: str, base_e: int, test_f: TextIO, cover_f: TextIO) -> None:
-    max_exp = (1 << EXPONENT_BITS[fmt]) - 2
-    b_exp = random.randint(0, max_exp)
-    b = decimalComponentsToHex(fmt, random.randint(0, 1), b_exp, random.getrandbits(MANTISSA_BITS[fmt]))
+def test_div(fmt: str, desired_result: str, maxnorm: bool, test_f: TextIO, cover_f: TextIO) -> None:
+    # Also has to restrain exponent so b doesn't overflow. Ex. we want exp -126, if a_exp is 32, we need b_exp 158
+    # which clips to 127. Ex. f32/ =0 -1.7631FFP-81 +1.7631FFP66 -> -0.000004P-126 (f32), the exponent difference is 147
+    # bc on top of 126 we want to reach we also need to shift the 1 to the right by 5*4+1 = 21. So max shift is when we
+    # shift m_bits where we want an exp difference of 149, so we want a_exp + 149 less than 127. This means that a_exp
+    # needs to range from -126 to -m_bits.
+    max_exp = BIASED_EXP[fmt][1]  # 254
+    bias = BIAS[fmt]  # 127
+    m_bits = MANTISSA_BITS[fmt]
 
-    a = get_result_from_ref(OP_MUL, desired_result, b, "0" * 32, fmt)
+    # we still check for maxnorm, but sign doesn't matter because we can just make the other operand negative
+    if maxnorm:
+        min_safe_exp = bias
+        max_safe_exp = max_exp
+    else:
+        min_safe_exp = 1
+        max_safe_exp = bias - m_bits  # For the reason above ^
 
-    ans = get_result_from_ref(OP_DIV, a, b, "0" * 32, fmt)
-    if ans < desired_result:
-        a = calibrate(a, 1)
-    elif ans > desired_result:
-        a = calibrate(a, -1)
+    a_exp = random.randint(min_safe_exp, max_safe_exp)
+    a = decimalComponentsToHex(fmt, random.randint(0, 1), a_exp, random.getrandbits(MANTISSA_BITS[fmt]))
+    b = get_result_from_ref(OP_DIV, a, desired_result, "0" * 32, fmt)
+
+    # ans = get_result_from_ref(OP_DIV, a, b, "0" * 32, fmt)
+    # if ans < desired_result:
+    #     a = calibrate(a, 1)
+    # elif ans > desired_result:
+    #     a = calibrate(a, -1)
 
     run_and_store_test_vector(
         f"{OP_DIV}_{ROUND_NEAR_EVEN}_{a}_{b}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
@@ -315,14 +328,14 @@ def main() -> None:
                     desired_m = base_m ^ (1 << i)
                     for sign in [0, 1]:
                         desired_result = decimalComponentsToHex(fmt, sign, base_e, desired_m)
-                        if fmt == "01" and base_e == (1 << (EXPONENT_BITS[fmt] - 1)) - 1:
-                            print(desired_result)
+                        # if fmt == "01" and base_e == (1 << (EXPONENT_BITS[fmt] - 1)) - 1:
+                        #     print(desired_result)
                         maxnorm_exp = (1 << EXPONENT_BITS[fmt]) - 2
                         maxnorm = base_e == maxnorm_exp
                         # test_add(fmt, desired_result, base_e, maxnorm, sign, test_f, cover_f)
                         # test_sub(fmt, desired_result, base_e, maxnorm, sign, test_f, cover_f)
-                        test_mul(fmt, desired_result, base_e, maxnorm, sign, test_f, cover_f)
-                        # test_div(fmt, desired_result, base_e, test_f, cover_f)
+                        # test_mul(fmt, desired_result, maxnorm, test_f, cover_f)
+                        test_div(fmt, desired_result, maxnorm, test_f, cover_f)
 
                         # if sign == 0:
                         #     test_sqrt(fmt, desired_result, test_f, cover_f)

@@ -7,6 +7,8 @@
 #include <cstring>
 #include <sstream>
 
+namespace mp = boost::multiprecision;
+
 void softFloat_clearFlags(uint_fast8_t clearMask) {
     softfloat_exceptionFlags &= ~clearMask;
 }
@@ -101,13 +103,13 @@ uint128_t parse_hex_128(const char *hex) {
 int reference_model(
     const uint32_t *op,
     const uint8_t *rm,
-    const uint128_t *a,
-    const uint128_t *b,
-    const uint128_t *c,
+    const mp::uint128_t &a,
+    const mp::uint128_t &b,
+    const mp::uint128_t &c,
     const uint8_t *operandFmt,
     const uint8_t *resultFmt,
 
-    uint128_t *result,
+    mp::uint128_t &result,
     uint8_t *flags,
     intermResult_t *intermResult
 ) {
@@ -129,46 +131,46 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf = f32_add(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf = f64_add(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf = f128_add(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = f16_add(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = bf16_add(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -180,46 +182,46 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf = f32_sub(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf = f64_sub(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf = f128_sub(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = f16_sub(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = bf16_sub(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -232,10 +234,10 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf = f32_mul(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
 
             // printf("performing single precision mul!!\n");
             // printf("int operands are: %x and %x\n", *a, *b);
@@ -247,37 +249,37 @@ int reference_model(
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf = f64_mul(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf = f128_mul(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = f16_mul(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = bf16_mul(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -290,46 +292,46 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf = f32_div(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf = f64_div(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf = f128_div(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = f16_div(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = bf16_div(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -342,51 +344,51 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf = f32_rem(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf = f64_rem(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf = f128_rem(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = f16_rem(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         // TODO: not currently implemented as a function through softfloat
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             // resultf = bf16_rem(af, bf);
             float32_t f32A = {(uint32_t)af.v << 16};
             float32_t f32B = {(uint32_t)bf.v << 16};
             resultf = f32_to_bf16(f32_div(f32A, f32B));
 
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -399,47 +401,47 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf.v = f32_eq(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf.v = f64_eq(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf.v[1] = 0;
             resultf.v[0] = f128_eq(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = f16_eq(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = bf16_eq(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -452,47 +454,47 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf.v = f32_lt(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf.v = f64_lt(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf.v[1] = 0;
             resultf.v[0] = f128_lt(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = f16_lt(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = bf16_lt(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -505,47 +507,47 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf.v = f32_le(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf.v = f64_le(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf.v[1] = 0;
             resultf.v[0] = f128_le(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = f16_le(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = bf16_le(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -558,47 +560,47 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf = f32_min(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf = f64_min(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         // TODO: Missing softfloat function
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf = f128_min(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = f16_min(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = bf16_min(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -611,47 +613,47 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf = f32_max(af, bf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf = f64_max(af, bf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         // NOTE: Missing softfloat function, added custom
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf = f128_max(af, bf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = f16_max(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf = bf16_max(af, bf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -664,47 +666,47 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf.v = (af.v & 0x7FFFFFFF) | (bf.v & 0x80000000);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf.v = (af.v & 0x7FFFFFFFFFFFFFFF) | (bf.v & 0x8000000000000000);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | (bf.v[1] & 0x8000000000000000);
             resultf.v[0] = af.v[0];
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = (af.v & 0x7FFF) | (bf.v & 0x8000);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = (af.v & 0x7FFF) | (bf.v & 0x8000);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -717,47 +719,47 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf.v = (af.v & 0x7FFFFFFF) | (~(bf.v) & 0x80000000);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf.v = (af.v & 0x7FFFFFFFFFFFFFFF) | (~(bf.v) & 0x8000000000000000);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | (~(bf.v[1]) & 0x8000000000000000);
             resultf.v[0] = af.v[0];
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = (af.v & 0x7FFF) | (~(bf.v) & 0x8000);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = (af.v & 0x7FFF) | (~(bf.v) & 0x8000);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -770,47 +772,47 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
             resultf.v = (af.v & 0x7FFFFFFF) | ((af.v ^ bf.v) & 0x80000000);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
             resultf.v = (af.v & 0x7FFFFFFFFFFFFFFF) | ((af.v ^ bf.v) & 0x8000000000000000);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
             resultf.v[1] = (af.v[1] & 0x7FFFFFFFFFFFFFFF) | ((af.v[1] ^ bf.v[1]) & 0x8000000000000000);
             resultf.v[0] = af.v[0];
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = (af.v & 0x7FFF) | ((af.v ^ bf.v) & 0x8000);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
             resultf.v = (af.v & 0x7FFF) | ((af.v ^ bf.v) & 0x8000);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -824,7 +826,7 @@ int reference_model(
             float16_t out;
             switch (*operandFmt) {
             case FMT_INT: {
-                uint32_t serialized_input = (uint32_t)a->lower;
+                uint32_t serialized_input = static_cast<uint32_t>(a);
                 int32_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -833,12 +835,12 @@ int reference_model(
                 break;
             }
             case FMT_UINT: {
-                uint32_t input = (uint32_t)a->lower;
+                uint32_t input = static_cast<uint32_t>(a);
                 out = ui32_to_f16(input);
                 break;
             }
             case FMT_LONG: {
-                uint64_t serialized_input = (uint64_t)a->lower;
+                uint64_t serialized_input = static_cast<uint64_t>(a);
                 int64_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -847,7 +849,7 @@ int reference_model(
                 break;
             }
             case FMT_ULONG: {
-                uint64_t input = (uint64_t)a->lower;
+                uint64_t input = static_cast<uint64_t>(a);
                 out = ui64_to_f16(input);
                 break;
             }
@@ -857,14 +859,14 @@ int reference_model(
             }
             }
 
-            FLOAT16_TO_UINT128(result, out);
+            FLOAT16_TO_MP(result, out);
             break;
         }
         case FMT_BF16: {
             float16_t out;
             switch (*operandFmt) {
             case FMT_INT: {
-                uint32_t serialized_input = (uint32_t)a->lower;
+                uint32_t serialized_input = static_cast<uint32_t>(a);
                 int32_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -873,7 +875,7 @@ int reference_model(
                 break;
             }
             case FMT_UINT: {
-                uint32_t input = (uint32_t)a->lower;
+                uint32_t input = static_cast<uint32_t>(a);
                 out = ui32_to_bf16(input);
                 break;
             }
@@ -899,14 +901,14 @@ int reference_model(
             }
             }
 
-            FLOAT16_TO_UINT128(result, out);
+            FLOAT16_TO_MP(result, out);
             break;
         }
         case FMT_SINGLE: {
             float32_t out;
             switch (*operandFmt) {
             case FMT_INT: {
-                uint32_t serialized_input = (uint32_t)a->lower;
+                uint32_t serialized_input = static_cast<uint32_t>(a);
                 int32_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -915,12 +917,12 @@ int reference_model(
                 break;
             }
             case FMT_UINT: {
-                uint32_t input = (uint32_t)a->lower;
+                uint32_t input = static_cast<uint32_t>(a);
                 out = ui32_to_f32(input);
                 break;
             }
             case FMT_LONG: {
-                uint64_t serialized_input = (uint64_t)a->lower;
+                uint64_t serialized_input = static_cast<uint64_t>(a);
                 int64_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -929,7 +931,7 @@ int reference_model(
                 break;
             }
             case FMT_ULONG: {
-                uint64_t input = (uint64_t)a->lower;
+                uint64_t input = static_cast<uint64_t>(a);
                 out = ui64_to_f32(input);
                 break;
             }
@@ -939,14 +941,14 @@ int reference_model(
             }
             }
 
-            FLOAT32_TO_UINT128(result, out);
+            FLOAT32_TO_MP(result, out);
             break;
         }
         case FMT_DOUBLE: {
             float64_t out;
             switch (*operandFmt) {
             case FMT_INT: {
-                uint32_t serialized_input = (uint32_t)a->lower;
+                uint32_t serialized_input = static_cast<uint32_t>(a);
                 int32_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -955,12 +957,12 @@ int reference_model(
                 break;
             }
             case FMT_UINT: {
-                uint32_t input = (uint32_t)a->lower;
+                uint32_t input = static_cast<uint32_t>(a);
                 out = ui32_to_f64(input);
                 break;
             }
             case FMT_LONG: {
-                uint64_t serialized_input = (uint64_t)a->lower;
+                uint64_t serialized_input = static_cast<uint64_t>(a);
                 int64_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -969,7 +971,7 @@ int reference_model(
                 break;
             }
             case FMT_ULONG: {
-                uint64_t input = (uint64_t)a->lower;
+                uint64_t input = static_cast<uint64_t>(a);
                 out = ui64_to_f64(input);
                 break;
             }
@@ -979,14 +981,14 @@ int reference_model(
             }
             }
 
-            FLOAT64_TO_UINT128(result, out);
+            FLOAT64_TO_MP(result, out);
             break;
         }
         case FMT_QUAD: {
             float128_t out;
             switch (*operandFmt) {
             case FMT_INT: {
-                uint32_t serialized_input = (uint32_t)a->lower;
+                uint32_t serialized_input = static_cast<uint32_t>(a);
                 int32_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -995,12 +997,12 @@ int reference_model(
                 break;
             }
             case FMT_UINT: {
-                uint32_t input = (uint32_t)a->lower;
+                uint32_t input = static_cast<uint32_t>(a);
                 out = ui32_to_f128(input);
                 break;
             }
             case FMT_LONG: {
-                uint64_t serialized_input = (uint64_t)a->lower;
+                uint64_t serialized_input = static_cast<uint64_t>(a);
                 int64_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int32_t is UB
@@ -1009,7 +1011,7 @@ int reference_model(
                 break;
             }
             case FMT_ULONG: {
-                uint64_t input = (uint64_t)a->lower;
+                uint64_t input = static_cast<uint64_t>(a);
                 out = ui64_to_f128(input);
                 break;
             }
@@ -1019,7 +1021,7 @@ int reference_model(
             }
             }
 
-            FLOAT128_TO_UINT128(result, out);
+            FLOAT128_TO_MP(result, out);
             break;
         }
         default: {
@@ -1036,23 +1038,22 @@ int reference_model(
         case FMT_SINGLE: {
             float32_t af;
             // TODO: maybe sign extend...
-            result->upper = 0;
-            UINT128_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(af, a);
             switch (*resultFmt) {
             case FMT_INT: {
-                result->lower = f32_to_i32(af, *rm, true);
+                result = signed_to_unsigned(f32_to_i32(af, *rm, true));
                 break;
             }
             case FMT_UINT: {
-                result->lower = f32_to_ui32(af, *rm, true);
+                result = f32_to_ui32(af, *rm, true);
                 break;
             }
             case FMT_LONG: {
-                result->lower = f32_to_i64(af, *rm, true);
+                result = signed_to_unsigned(f32_to_i64(af, *rm, true));
                 break;
             }
             case FMT_ULONG: {
-                result->lower = f32_to_ui64(af, *rm, true);
+                result = f32_to_ui64(af, *rm, true);
                 break;
             }
             default: {
@@ -1060,29 +1061,28 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT32_TO_UINT128(result, resultf);
+            // FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af;
-            result->upper = 0;
-            UINT128_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(af, a);
             switch (*resultFmt) {
             case FMT_INT: {
-                result->lower = f64_to_i32(af, *rm, true);
+                result = signed_to_unsigned(f64_to_i32(af, *rm, true));
                 break;
             }
             case FMT_UINT: {
-                result->lower = f64_to_ui32(af, *rm, true);
+                result = f64_to_ui32(af, *rm, true);
                 break;
             }
             case FMT_LONG: {
-                result->lower = f64_to_i64(af, *rm, true);
+                result = signed_to_unsigned(f64_to_i64(af, *rm, true));
                 break;
             }
             case FMT_ULONG: {
-                result->lower = f64_to_ui64(af, *rm, true);
+                result = f64_to_ui64(af, *rm, true);
                 break;
             }
             default: {
@@ -1090,29 +1090,28 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT64_TO_UINT128(result, resultf);
+            // FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af;
-            result->upper = 0;
-            UINT128_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(af, a);
             switch (*resultFmt) {
             case FMT_INT: {
-                result->lower = f128_to_i32(af, *rm, true);
+                result = signed_to_unsigned(f128_to_i32(af, *rm, true));
                 break;
             }
             case FMT_UINT: {
-                result->lower = f128_to_ui32(af, *rm, true);
+                result = f128_to_ui32(af, *rm, true);
                 break;
             }
             case FMT_LONG: {
-                result->lower = f128_to_i64(af, *rm, true);
+                result = signed_to_unsigned(f128_to_i64(af, *rm, true));
                 break;
             }
             case FMT_ULONG: {
-                result->lower = f128_to_ui64(af, *rm, true);
+                result = f128_to_ui64(af, *rm, true);
                 break;
             }
             default: {
@@ -1120,29 +1119,28 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT128_TO_UINT128(result, resultf);
+            // FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af;
-            result->upper = 0;
-            UINT128_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(af, a);
             switch (*resultFmt) {
             case FMT_INT: {
-                result->lower = f16_to_i32(af, *rm, true);
+                result = signed_to_unsigned(f16_to_i32(af, *rm, true));
                 break;
             }
             case FMT_UINT: {
-                result->lower = f16_to_ui32(af, *rm, true);
+                result = f16_to_ui32(af, *rm, true);
                 break;
             }
             case FMT_LONG: {
-                result->lower = f16_to_i64(af, *rm, true);
+                result = signed_to_unsigned(f16_to_i64(af, *rm, true));
                 break;
             }
             case FMT_ULONG: {
-                result->lower = f16_to_ui64(af, *rm, true);
+                result = f16_to_ui64(af, *rm, true);
                 break;
             }
             default: {
@@ -1150,29 +1148,28 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT16_TO_UINT128(result, resultf);
+            // FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af;
-            result->upper = 0;
-            UINT128_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(af, a);
             switch (*resultFmt) {
             case FMT_INT: {
-                result->lower = bf16_to_i32(af, *rm, true);
+                result = signed_to_unsigned(bf16_to_i32(af, *rm, true));
                 break;
             }
             case FMT_UINT: {
-                result->lower = bf16_to_ui32(af, *rm, true);
+                result = bf16_to_ui32(af, *rm, true);
                 break;
             }
             case FMT_LONG: {
-                result->lower = f32_to_i64(bf16_to_f32(af), *rm, true);
+                result = f32_to_i64(bf16_to_f32(af), *rm, true);
                 break;
             }
             case FMT_ULONG: {
-                result->lower = f32_to_ui64(bf16_to_f32(af), *rm, true);
+                result = f32_to_ui64(bf16_to_f32(af), *rm, true);
                 break;
             }
             default: {
@@ -1180,7 +1177,7 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT16_TO_UINT128(result, resultf);
+            // FLOAT16_TO_MP(result, resultf);
             break;
         }
         default: {
@@ -1197,16 +1194,16 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af;
-            UINT128_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(af, a);
             switch (*resultFmt) {
             case FMT_HALF: {
                 float16_t resultf = f32_to_f16(af);
-                FLOAT16_TO_UINT128(result, resultf);
+                FLOAT16_TO_MP(result, resultf);
                 break;
             }
             case FMT_BF16: {
                 bfloat16_t resultf = f32_to_bf16(af);
-                FLOAT16_TO_UINT128(result, resultf);
+                FLOAT16_TO_MP(result, resultf);
                 break;
             }
             case FMT_SINGLE: {
@@ -1215,12 +1212,12 @@ int reference_model(
             }
             case FMT_DOUBLE: {
                 float64_t resultf = f32_to_f64(af);
-                FLOAT64_TO_UINT128(result, resultf);
+                FLOAT64_TO_MP(result, resultf);
                 break;
             }
             case FMT_QUAD: {
                 float128_t resultf = f32_to_f128(af);
-                FLOAT128_TO_UINT128(result, resultf);
+                FLOAT128_TO_MP(result, resultf);
                 break;
             }
             default: {
@@ -1228,27 +1225,27 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT32_TO_UINT128(result, resultf);
+            // FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af;
-            UINT128_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(af, a);
             switch (*resultFmt) {
             case FMT_HALF: {
                 float16_t resultf = f64_to_f16(af);
-                FLOAT16_TO_UINT128(result, resultf);
+                FLOAT16_TO_MP(result, resultf);
                 break;
             }
             case FMT_BF16: {
                 bfloat16_t resultf = f64_to_bf16(af);
-                FLOAT16_TO_UINT128(result, resultf);
+                FLOAT16_TO_MP(result, resultf);
                 break;
             }
             case FMT_SINGLE: {
                 float32_t resultf = f64_to_f32(af);
-                FLOAT32_TO_UINT128(result, resultf);
+                FLOAT32_TO_MP(result, resultf);
                 break;
             }
             case FMT_DOUBLE: {
@@ -1257,7 +1254,7 @@ int reference_model(
             }
             case FMT_QUAD: {
                 float128_t resultf = f64_to_f128(af);
-                FLOAT128_TO_UINT128(result, resultf);
+                FLOAT128_TO_MP(result, resultf);
                 break;
             }
             default: {
@@ -1265,17 +1262,17 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT64_TO_UINT128(result, resultf);
+            // FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af;
-            UINT128_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(af, a);
             switch (*resultFmt) {
             case FMT_HALF: {
                 float16_t resultf = f128_to_f16(af);
-                FLOAT16_TO_UINT128(result, resultf);
+                FLOAT16_TO_MP(result, resultf);
                 break;
             }
             case FMT_BF16: {
@@ -1284,17 +1281,17 @@ int reference_model(
                 softFloat_setRoundingMode(*rm);
 
                 bfloat16_t resultf = f32_to_bf16(af_32);
-                FLOAT16_TO_UINT128(result, resultf);
+                FLOAT16_TO_MP(result, resultf);
                 break;
             }
             case FMT_SINGLE: {
                 float32_t resultf = f128_to_f32(af);
-                FLOAT32_TO_UINT128(result, resultf);
+                FLOAT32_TO_MP(result, resultf);
                 break;
             }
             case FMT_DOUBLE: {
                 float64_t resultf = f128_to_f64(af);
-                FLOAT64_TO_UINT128(result, resultf);
+                FLOAT64_TO_MP(result, resultf);
                 break;
             }
             case FMT_QUAD: {
@@ -1306,13 +1303,13 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT128_TO_UINT128(result, resultf);
+            // FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af;
-            UINT128_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(af, a);
             switch (*resultFmt) {
             case FMT_HALF: {
                 fprintf(stderr, "ERROR: float to float conversion with the same operand and result format (half)\n");
@@ -1320,22 +1317,22 @@ int reference_model(
             }
             case FMT_BF16: {
                 bfloat16_t resultf = f32_to_bf16(f16_to_f32(af));
-                FLOAT16_TO_UINT128(result, resultf);
+                FLOAT16_TO_MP(result, resultf);
                 break;
             }
             case FMT_SINGLE: {
                 float32_t resultf = f16_to_f32(af);
-                FLOAT32_TO_UINT128(result, resultf);
+                FLOAT32_TO_MP(result, resultf);
                 break;
             }
             case FMT_DOUBLE: {
                 float64_t resultf = f16_to_f64(af);
-                FLOAT64_TO_UINT128(result, resultf);
+                FLOAT64_TO_MP(result, resultf);
                 break;
             }
             case FMT_QUAD: {
                 float128_t resultf = f16_to_f128(af);
-                FLOAT128_TO_UINT128(result, resultf);
+                FLOAT128_TO_MP(result, resultf);
                 break;
             }
             default: {
@@ -1343,17 +1340,17 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT16_TO_UINT128(result, resultf);
+            // FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af;
-            UINT128_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(af, a);
             switch (*resultFmt) {
             case FMT_HALF: {
                 float16_t resultf = f32_to_f16(bf16_to_f32(af));
-                FLOAT16_TO_UINT128(result, resultf);
+                FLOAT16_TO_MP(result, resultf);
                 break;
             }
             case FMT_BF16: {
@@ -1362,17 +1359,17 @@ int reference_model(
             }
             case FMT_SINGLE: {
                 float32_t resultf = bf16_to_f32(af);
-                FLOAT32_TO_UINT128(result, resultf);
+                FLOAT32_TO_MP(result, resultf);
                 break;
             }
             case FMT_DOUBLE: {
                 float64_t resultf = f32_to_f64(bf16_to_f32(af));
-                FLOAT64_TO_UINT128(result, resultf);
+                FLOAT64_TO_MP(result, resultf);
                 break;
             }
             case FMT_QUAD: {
                 float128_t resultf = f32_to_f128(bf16_to_f32(af));
-                FLOAT128_TO_UINT128(result, resultf);
+                FLOAT128_TO_MP(result, resultf);
                 break;
             }
             default: {
@@ -1380,7 +1377,7 @@ int reference_model(
                 return EXIT_FAILURE;
             }
             }
-            // FLOAT16_TO_UINT128(result, resultf);
+            // FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -1393,41 +1390,41 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, resultf;
-            UINT128_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(af, a);
             resultf = f32_sqrt(af);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, resultf;
-            UINT128_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(af, a);
             resultf = f64_sqrt(af);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, resultf;
-            UINT128_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(af, a);
             resultf = f128_sqrt(af);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, resultf;
-            UINT128_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(af, a);
             resultf = f16_sqrt(af);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, resultf;
-            UINT128_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(af, a);
             resultf = bf16_sqrt(af);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -1440,42 +1437,42 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, resultf;
-            UINT128_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(af, a);
             resultf.v = f32_classify(af);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, resultf;
-            UINT128_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(af, a);
             resultf.v = f64_classify(af);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, resultf;
-            UINT128_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(af, a);
             resultf.v[1] = 0;
             resultf.v[0] = f128_classify(af);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, resultf;
-            UINT128_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(af, a);
             resultf.v = f16_classify(af);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, resultf;
-            UINT128_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(af, a);
             resultf.v = bf16_classify(af);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -1488,51 +1485,51 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
-            UINT128_TO_FLOAT32(cf, c);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(cf, c);
             resultf = f32_mulAdd(af, bf, cf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
-            UINT128_TO_FLOAT64(cf, c);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(cf, c);
             resultf = f64_mulAdd(af, bf, cf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
-            UINT128_TO_FLOAT128(cf, c);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(cf, c);
             resultf = f128_mulAdd(af, bf, cf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
-            UINT128_TO_FLOAT16(cf, c);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(cf, c);
             resultf = f16_mulAdd(af, bf, cf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
-            UINT128_TO_FLOAT16(cf, c);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(cf, c);
             resultf = bf16_mulAdd(af, bf, cf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -1545,56 +1542,56 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
-            UINT128_TO_FLOAT32(cf, c);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(cf, c);
             cf.v ^= 0x80000000; // flip sign
             resultf = f32_mulAdd(af, bf, cf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
-            UINT128_TO_FLOAT64(cf, c);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(cf, c);
             cf.v ^= 0x8000000000000000; // flip sign
             resultf = f64_mulAdd(af, bf, cf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
-            UINT128_TO_FLOAT128(cf, c);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(cf, c);
             cf.v[1] ^= 0x8000000000000000; // flip sign
             resultf = f128_mulAdd(af, bf, cf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
-            UINT128_TO_FLOAT16(cf, c);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(cf, c);
             cf.v ^= 0x8000; // flip sign
             resultf = f16_mulAdd(af, bf, cf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
-            UINT128_TO_FLOAT16(cf, c);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(cf, c);
             cf.v ^= 0x8000; // flip sign
             resultf = bf16_mulAdd(af, bf, cf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -1607,61 +1604,61 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
-            UINT128_TO_FLOAT32(cf, c);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(cf, c);
             af.v ^= 0x80000000; // flip sign
             cf.v ^= 0x80000000; // flip sign
             resultf = f32_mulAdd(af, bf, cf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
-            UINT128_TO_FLOAT64(cf, c);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(cf, c);
             af.v ^= 0x8000000000000000; // flip sign
             cf.v ^= 0x8000000000000000; // flip sign
             resultf = f64_mulAdd(af, bf, cf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
-            UINT128_TO_FLOAT128(cf, c);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(cf, c);
             af.v[1] ^= 0x8000000000000000; // flip sign
             cf.v[1] ^= 0x8000000000000000; // flip sign
             resultf = f128_mulAdd(af, bf, cf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
-            UINT128_TO_FLOAT16(cf, c);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(cf, c);
             af.v ^= 0x8000; // flip sign
             cf.v ^= 0x8000; // flip sign
             resultf = f16_mulAdd(af, bf, cf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
-            UINT128_TO_FLOAT16(cf, c);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(cf, c);
             af.v ^= 0x8000; // flip sign
             cf.v ^= 0x8000; // flip sign
             resultf = bf16_mulAdd(af, bf, cf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -1674,56 +1671,56 @@ int reference_model(
         switch (*operandFmt) {
         case FMT_SINGLE: {
             float32_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT32(af, a);
-            UINT128_TO_FLOAT32(bf, b);
-            UINT128_TO_FLOAT32(cf, c);
+            MP_TO_FLOAT32(af, a);
+            MP_TO_FLOAT32(bf, b);
+            MP_TO_FLOAT32(cf, c);
             af.v ^= 0x80000000; // flip sign
             resultf = f32_mulAdd(af, bf, cf);
-            FLOAT32_TO_UINT128(result, resultf);
+            FLOAT32_TO_MP(result, resultf);
             break;
         }
 
         case FMT_DOUBLE: {
             float64_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT64(af, a);
-            UINT128_TO_FLOAT64(bf, b);
-            UINT128_TO_FLOAT64(cf, c);
+            MP_TO_FLOAT64(af, a);
+            MP_TO_FLOAT64(bf, b);
+            MP_TO_FLOAT64(cf, c);
             af.v ^= 0x8000000000000000; // flip sign
             resultf = f64_mulAdd(af, bf, cf);
-            FLOAT64_TO_UINT128(result, resultf);
+            FLOAT64_TO_MP(result, resultf);
             break;
         }
 
         case FMT_QUAD: {
             float128_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT128(af, a);
-            UINT128_TO_FLOAT128(bf, b);
-            UINT128_TO_FLOAT128(cf, c);
+            MP_TO_FLOAT128(af, a);
+            MP_TO_FLOAT128(bf, b);
+            MP_TO_FLOAT128(cf, c);
             af.v[1] ^= 0x8000000000000000; // flip sign
             resultf = f128_mulAdd(af, bf, cf);
-            FLOAT128_TO_UINT128(result, resultf);
+            FLOAT128_TO_MP(result, resultf);
             break;
         }
 
         case FMT_HALF: {
             float16_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
-            UINT128_TO_FLOAT16(cf, c);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(cf, c);
             af.v ^= 0x8000; // flip sign
             resultf = f16_mulAdd(af, bf, cf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
 
         case FMT_BF16: {
             float16_t af, bf, cf, resultf;
-            UINT128_TO_FLOAT16(af, a);
-            UINT128_TO_FLOAT16(bf, b);
-            UINT128_TO_FLOAT16(cf, c);
+            MP_TO_FLOAT16(af, a);
+            MP_TO_FLOAT16(bf, b);
+            MP_TO_FLOAT16(cf, c);
             af.v ^= 0x8000; // flip sign
             resultf = bf16_mulAdd(af, bf, cf);
-            FLOAT16_TO_UINT128(result, resultf);
+            FLOAT16_TO_MP(result, resultf);
             break;
         }
         }
@@ -1744,8 +1741,8 @@ int reference_model(
         // Then we need to extract an intermediate result from the result
         switch (*resultFmt) {
         case FMT_BF16: {
-            uint64_t sig = fracBF16UI(result->lower);
-            uint32_t exp = expBF16UI(result->lower);
+            uint64_t sig = static_cast<uint64_t>(fracBF16UI(result));
+            uint32_t exp = expBF16UI(result);
 
             // No leading one if subnorm or zero
             if (exp != 0) {
@@ -1755,12 +1752,12 @@ int reference_model(
 
             intermResult->exp = exp;
 
-            intermResult->sign = signBF16UI(result->lower);
+            intermResult->sign = signBF16UI(result);
             break;
         }
         case FMT_HALF: {
-            uint64_t sig = fracF16UI(result->lower);
-            uint32_t exp = expF16UI(result->lower);
+            uint64_t sig = static_cast<uint64_t>(fracF16UI(result));
+            uint32_t exp = expF16UI(result);
 
             // No leading one if it is a subnorm or a zero
             if (exp != 0) {
@@ -1771,12 +1768,12 @@ int reference_model(
 
             intermResult->exp = exp;
 
-            intermResult->sign = signF16UI(result->lower);
+            intermResult->sign = signF16UI(result);
             break;
         }
         case FMT_SINGLE: {
-            uint64_t sig = fracF32UI(result->lower);
-            uint32_t exp = expF32UI(result->lower);
+            uint64_t sig = static_cast<uint64_t>(fracF32UI(result));
+            uint32_t exp = expF32UI(result);
 
             if (exp != 0) {
                 sig |= (1 << 23);
@@ -1785,12 +1782,12 @@ int reference_model(
 
             intermResult->exp = exp;
 
-            intermResult->sign = signF32UI(result->lower);
+            intermResult->sign = signF32UI(result);
             break;
         }
         case FMT_DOUBLE: {
-            uint64_t sig = fracF64UI(result->lower);
-            uint32_t exp = expF64UI(result->lower);
+            uint64_t sig = static_cast<uint64_t>(fracF64UI(result));
+            uint32_t exp = expF64UI(result);
 
             if (exp != 0) {
                 sig |= (1UL << 52);
@@ -1800,24 +1797,23 @@ int reference_model(
 
             intermResult->exp = exp;
 
-            intermResult->sign = signF64UI(result->lower);
+            intermResult->sign = signF64UI(result);
             break;
         }
         case FMT_QUAD: {
-            uint64_t sig_upper = fracF128UI64(result->upper);
-            uint128_t sig = {.upper = sig_upper, .lower = result->lower};
-            uint32_t exp = expF128UI64(result->upper);
+            mp::uint128_t sig = fracF128UI64(result);
+            uint32_t exp = expF128UI64(result >> 64);
 
             // Exp = 0 is a subnorm or a zero
             if (exp != 0) {
-                sig.upper |= (1UL << (112 - 64));
+                sig |= ((mp::uint128_t)1) << 112;
             }
-            intermResult->sig64 = sig.upper;
-            intermResult->sig0 = sig.lower;
+            intermResult->sig64 = static_cast<uint64_t>(sig >> 64);
+            intermResult->sig0 = static_cast<uint64_t>(sig);
 
             intermResult->exp = exp;
 
-            intermResult->sign = signF128UI64(result->upper);
+            intermResult->sign = signF128UI64(result >> 64);
             break;
         }
 
@@ -1887,7 +1883,6 @@ float128_t f128_max(float128_t a, float128_t b) {
 }
 
 std::string coverfloat_runtestvector(const std::string &input, bool suppress_error_check) {
-    namespace mp = boost::multiprecision;
 
 #if 0
     char op_str[MAX_TOKEN_LEN + 1]; // plus one for space for null terminator
@@ -1934,16 +1929,16 @@ std::string coverfloat_runtestvector(const std::string &input, bool suppress_err
     ss >> std::hex;
 
     uint32_t op;
-    uint8_t rm;
-    mp::cpp_int a, b, c;
-    uint8_t opFmt;
-    uint8_t resFmt;
-    mp::cpp_int res;
-    uint8_t flags;
+    uint16_t rm16;
+    mp::uint128_t a, b, c;
+    uint16_t opFmt16;
+    mp::uint128_t res;
+    uint16_t resFmt16;
+    uint16_t flags;
 
     ss >> op;
     ss.ignore(1);
-    ss >> rm;
+    ss >> rm16;
     ss.ignore(1);
     ss >> a;
     ss.ignore(1);
@@ -1951,92 +1946,102 @@ std::string coverfloat_runtestvector(const std::string &input, bool suppress_err
     ss.ignore(1);
     ss >> c;
     ss.ignore(1);
-    ss >> opFmt;
-    ss.ignore(1);
-    ss >> resFmt;
+    ss >> opFmt16;
     ss.ignore(1);
     ss >> res;
     ss.ignore(1);
+    ss >> resFmt16;
+    ss.ignore(1);
     ss >> flags;
 
-    uint128_t a128 = {
-        .upper = static_cast<uint64_t>((a >> 64) & (0xffff'ffff'ffff'ffff)),
-        .lower = static_cast<uint64_t>(a & (0xffff'ffff'ffff'ffff)),
-    };
-    uint128_t b128 = {
-        .upper = static_cast<uint64_t>((b >> 64) & (0xffff'ffff'ffff'ffff)),
-        .lower = static_cast<uint64_t>(b & (0xffff'ffff'ffff'ffff)),
-    };
-    uint128_t c128 = {
-        .upper = static_cast<uint64_t>((c >> 64) & (0xffff'ffff'ffff'ffff)),
-        .lower = static_cast<uint64_t>(c & (0xffff'ffff'ffff'ffff)),
-    };
-    uint128_t res128 = {
-        .upper = static_cast<uint64_t>((res >> 64) & (0xffff'ffff'ffff'ffff)),
-        .lower = static_cast<uint64_t>(res & (0xffff'ffff'ffff'ffff)),
-    };
+    uint8_t rm = static_cast<uint8_t>(rm16);
+    uint8_t opFmt = static_cast<uint8_t>(opFmt16);
+    uint8_t resFmt = static_cast<uint8_t>(resFmt16);
 #endif
 
-    uint128_t newRes;
+    mp::uint128_t newRes;
     uint8_t newFlags;
     intermResult_t intermRes;
 
     // Call reference model
 
-    int success = reference_model(&op, &rm, &a128, &b128, &c128, &opFmt, &resFmt, &newRes, &newFlags, &intermRes);
+    int success = reference_model(&op, &rm, a, b, c, &opFmt, &resFmt, newRes, &newFlags, &intermRes);
 
     if (success == EXIT_FAILURE) {
         return "";
         // return EXIT_FAILURE;
     }
 
-    char output[512];
+    // newRes += newRes128.upper;
+    // newRes <<= 64;
+    // newRes += newRes128.lower;
 
-    snprintf(
-        output,
-        512,
-        "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx%"
-        "016llx%016llx\n",
-        op,
-        rm,
-        a128.upper,
-        a128.lower,
-        b128.upper,
-        b128.lower,
-        c128.upper,
-        c128.lower,
-        opFmt,
-        newRes.upper,
-        newRes.lower,
-        resFmt,
-        newFlags,
-        intermRes.sign,
-        intermRes.exp,
-        intermRes.sig64,
-        intermRes.sig0,
-        intermRes.sigExtra
-    );
+    // char output[512];
+
+    std::stringstream output;
+    output << std::hex;
+    output << std::setw(2) << op << '_' << rm << '_';
+    output << std::setw(32) << a << '_' << b << '_' << c << '_';
+    output << std::setw(2) << opFmt << '_';
+    output << std::setw(32) << newRes << '_';
+    output << std::setw(2) << resFmt << '_' << newFlags << '_';
+    output << std::setw(1) << intermRes.sign << '_';
+    output << std::setw(8) << intermRes.exp << '_';
+    output << std::setw(16) << intermRes.sig64 << intermRes.sig0 << intermRes.sigExtra;
+
+    // snprintf(
+    //     output,
+    //     512,
+    //     "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx%"
+    //     "016llx%016llx\n",
+    //     op,
+    //     rm,
+    //     a128.upper,
+    //     a128.lower,
+    //     b128.upper,
+    //     b128.lower,
+    //     c128.upper,
+    //     c128.lower,
+    //     opFmt,
+    //     newRes.upper,
+    //     newRes.lower,
+    //     resFmt,
+    //     newFlags,
+    //     intermRes.sign,
+    //     intermRes.exp,
+    //     intermRes.sig64,
+    //     intermRes.sig0,
+    //     intermRes.sigExtra
+    // );
 
     if (!suppress_error_check) {
-        if (res128.upper != newRes.upper || res128.lower != newRes.lower || // outputs don't match
-            flags != newFlags) {                                            // flags   don't match
-            snprintf(
-                output,
-                512,
-                "Error: testvector output doesn't match expected value\nTestVector output: %016llx%016llx\nExpected "
-                "output:   %016llx%016llx\nTestVector Flags: %02x\nExpected Flags: %02x\nOperation: %08x\n",
-                res128.upper,
-                res128.lower,
-                newRes.upper,
-                newRes.lower,
-                flags,
-                newFlags,
-                op
-            );
+        if (res != newRes || flags != newFlags) { // Outputs or flags do not match
+            // res128.upper != newRes.upper || res128.lower != newRes.lower || // outputs don't match
+            // flags != newFlags) {                                            // flags   don't match
+            output = std::stringstream();
+            output << "Error: testvector output doesn't match expected value\nTestVector output: ";
+            output << std::hex << std::setw(32) << res;
+            output << "\nExpected output: ";
+            output << newRes;
+            output << std::setw(2) << "\nTestVector Flags: " << flags << "\nExpected Flags: " << newFlags
+                   << "\nOperation: " << op << "\n";
+            // snprintf(
+            //     output,
+            //     512,
+            //     "Error: testvector output doesn't match expected value\nTestVector output: %016llx%016llx\nExpected "
+            //     "output:   %016llx%016llx\nTestVector Flags: %02x\nExpected Flags: %02x\nOperation: %08x\n",
+            //     res128.upper,
+            //     res128.lower,
+            //     newRes128.upper,
+            //     newRes128.lower,
+            //     flags,
+            //     newFlags,
+            //     op
+            // );
 
-            return std::string(output);
+            return output.str();
         }
     }
 
-    return std::string(output);
+    return output.str();
 }

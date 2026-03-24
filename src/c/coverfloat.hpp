@@ -7,6 +7,7 @@
 #include "softfloat/specialize.h"
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 #define TEST_VECTOR_WIDTH_BITS 576
@@ -110,6 +111,37 @@ typedef struct {
         x->lower = f.v[0];                                                                                             \
     } while (0)
 
+#define MP_TO_FLOAT16(f, x) (f.v = static_cast<uint16_t>(x & 0xFFFF))
+#define MP_TO_FLOAT32(f, x) (f.v = static_cast<uint32_t>(x & 0xFFFFFFFF))
+#define MP_TO_FLOAT64(f, x) (f.v = static_cast<uint64_t>(x))
+#define MP_TO_FLOAT128(f, x)                                                                                           \
+    do {                                                                                                               \
+        f.v[1] = static_cast<uint64_t>(x >> 64);                                                                       \
+        f.v[0] = static_cast<uint64_t>(x);                                                                             \
+    } while (0)
+
+#define FLOAT16_TO_MP(x, f) x = f.v
+#define FLOAT32_TO_MP(x, f) x = f.v;
+#define FLOAT64_TO_MP(x, f) x = f.v;
+#define FLOAT128_TO_MP(x, f)                                                                                           \
+    do {                                                                                                               \
+        x = f.v[1];                                                                                                    \
+        x <<= 64;                                                                                                      \
+        x |= f.v[0];                                                                                                   \
+    } while (0)
+
+inline uint32_t signed_to_unsigned(int32_t in) {
+    uint32_t out;
+    std::memcpy(&out, &in, sizeof(uint32_t));
+    return out;
+}
+
+inline uint64_t signed_to_unsigned(int64_t in) {
+    uint64_t out;
+    std::memcpy(&out, &in, sizeof(uint64_t));
+    return out;
+}
+
 void softFloat_clearFlags(uint_fast8_t);
 
 uint_fast8_t softFloat_getFlags();
@@ -118,7 +150,7 @@ void softFloat_setRoundingMode(uint_fast8_t);
 
 void softfloat_getIntermResults(intermResult_t *);
 
-std::string coverfloat_runtestvector(std::string input, bool suppress_error_check);
+std::string coverfloat_runtestvector(const std::string &input, bool suppress_error_check);
 
 // TODO move to own file
 float128_t f128_min(float128_t a, float128_t b);

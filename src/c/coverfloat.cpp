@@ -1,9 +1,11 @@
 #include "coverfloat.hpp"
+#include <boost/multiprecision/cpp_int.hpp>
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 
 void softFloat_clearFlags(uint_fast8_t clearMask) {
     softfloat_exceptionFlags &= ~clearMask;
@@ -1884,15 +1886,10 @@ float128_t f128_max(float128_t a, float128_t b) {
     }
 }
 
-int coverfloat_runtestvector(
-    const char *input,
-    size_t buffer_size,
-    char *output,
-    size_t output_size,
-    bool suppress_error_check
-) {
-    (void)buffer_size; // Unused for now, in theory it should be passed to sscanf, but that is not supported :(
+std::string coverfloat_runtestvector(const std::string &input, bool suppress_error_check) {
+    namespace mp = boost::multiprecision;
 
+#if 0
     char op_str[MAX_TOKEN_LEN + 1]; // plus one for space for null terminator
     char rm_str[MAX_TOKEN_LEN + 1];
     char a_str[MAX_TOKEN_LEN + 1];
@@ -1932,6 +1929,53 @@ int coverfloat_runtestvector(
     uint8_t resFmt = parse_hex_128(resFmt_str).lower;
     uint128_t res = parse_hex_128(res_str);
     uint8_t flags = parse_hex_128(flags_str).lower;
+#else
+    std::stringstream ss(input);
+    ss >> std::hex;
+
+    uint32_t op;
+    uint8_t rm;
+    mp::cpp_int a, b, c;
+    uint8_t opFmt;
+    uint8_t resFmt;
+    mp::cpp_int res;
+    uint8_t flags;
+
+    ss >> op;
+    ss.ignore(1);
+    ss >> rm;
+    ss.ignore(1);
+    ss >> a;
+    ss.ignore(1);
+    ss >> b;
+    ss.ignore(1);
+    ss >> c;
+    ss.ignore(1);
+    ss >> opFmt;
+    ss.ignore(1);
+    ss >> resFmt;
+    ss.ignore(1);
+    ss >> res;
+    ss.ignore(1);
+    ss >> flags;
+
+    uint128_t a128 = {
+        .upper = static_cast<uint64_t>((a >> 64) & (0xffff'ffff'ffff'ffff)),
+        .lower = static_cast<uint64_t>(a & (0xffff'ffff'ffff'ffff)),
+    };
+    uint128_t b128 = {
+        .upper = static_cast<uint64_t>((b >> 64) & (0xffff'ffff'ffff'ffff)),
+        .lower = static_cast<uint64_t>(b & (0xffff'ffff'ffff'ffff)),
+    };
+    uint128_t c128 = {
+        .upper = static_cast<uint64_t>((c >> 64) & (0xffff'ffff'ffff'ffff)),
+        .lower = static_cast<uint64_t>(c & (0xffff'ffff'ffff'ffff)),
+    };
+    uint128_t res128 = {
+        .upper = static_cast<uint64_t>((res >> 64) & (0xffff'ffff'ffff'ffff)),
+        .lower = static_cast<uint64_t>(res & (0xffff'ffff'ffff'ffff)),
+    };
+#endif
 
     uint128_t newRes;
     uint8_t newFlags;
@@ -1939,37 +1983,28 @@ int coverfloat_runtestvector(
 
     // Call reference model
 
-    int success = reference_model(
-        &op,
-        &rm,
-        &a,
-        &b,
-        &c,
-        &opFmt,
-        &resFmt,
-
-        &newRes,
-        &newFlags,
-        &intermRes
-    );
+    int success = reference_model(&op, &rm, &a128, &b128, &c128, &opFmt, &resFmt, &newRes, &newFlags, &intermRes);
 
     if (success == EXIT_FAILURE) {
-        return EXIT_FAILURE;
+        return "";
+        // return EXIT_FAILURE;
     }
+
+    char output[512];
 
     snprintf(
         output,
-        output_size,
+        512,
         "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx%"
         "016llx%016llx\n",
         op,
         rm,
-        a.upper,
-        a.lower,
-        b.upper,
-        b.lower,
-        c.upper,
-        c.lower,
+        a128.upper,
+        a128.lower,
+        b128.upper,
+        b128.lower,
+        c128.upper,
+        c128.lower,
         opFmt,
         newRes.upper,
         newRes.lower,
@@ -1983,15 +2018,15 @@ int coverfloat_runtestvector(
     );
 
     if (!suppress_error_check) {
-        if (res.upper != newRes.upper || res.lower != newRes.lower || // outputs don't match
-            flags != newFlags) {                                      // flags   don't match
+        if (res128.upper != newRes.upper || res128.lower != newRes.lower || // outputs don't match
+            flags != newFlags) {                                            // flags   don't match
             snprintf(
                 output,
-                output_size,
+                512,
                 "Error: testvector output doesn't match expected value\nTestVector output: %016llx%016llx\nExpected "
                 "output:   %016llx%016llx\nTestVector Flags: %02x\nExpected Flags: %02x\nOperation: %08x\n",
-                res.upper,
-                res.lower,
+                res128.upper,
+                res128.lower,
                 newRes.upper,
                 newRes.lower,
                 flags,
@@ -1999,9 +2034,9 @@ int coverfloat_runtestvector(
                 op
             );
 
-            return EXIT_FAILURE;
+            return std::string(output);
         }
     }
 
-    return EXIT_SUCCESS;
+    return std::string(output);
 }

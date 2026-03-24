@@ -4,20 +4,13 @@
 namespace py = pybind11;
 
 std::string run_test_vector(const std::string &test_vector, bool suppress_error_check = true) {
-    const size_t OUTPUT_SIZE = 512;
-    char *output = new char[OUTPUT_SIZE];
+    std::string res = coverfloat_runtestvector(test_vector, suppress_error_check);
 
-    int res =
-        coverfloat_runtestvector(test_vector.c_str(), test_vector.size(), output, OUTPUT_SIZE, suppress_error_check);
+    // if (res != EXIT_SUCCESS) {
+    //     throw py::value_error("Error running test vector: " + result);
+    // }
 
-    std::string result(output);
-    delete[] output;
-
-    if (res != EXIT_SUCCESS) {
-        throw py::value_error("Error running test vector: " + result);
-    }
-
-    return result;
+    return res;
 }
 
 PYBIND11_MODULE(_reference, m) {

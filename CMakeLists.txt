@@ -12,6 +12,7 @@ add_subdirectory(src/submodules)
 
 include_directories(src/c)
 include_directories(src/submodules/spike/)
+include_directories(src/submodules/boost_multiprecision/include)
 
 file(GLOB SOFTFLOAT_SRC submodules/spike/softfloat/*.c)
 
@@ -21,6 +22,7 @@ set_target_properties(coverfloat PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 target_compile_options(coverfloat PRIVATE ${COVER_FLOAT_FLAGS})
+target_compile_definitions(coverfloat PRIVATE BOOST_MP_STANDALONE)
 
 
 pybind11_add_module(_reference MODULE src/c/main.cpp)

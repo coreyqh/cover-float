@@ -292,6 +292,8 @@ int reference_model(
            at their fast approach to calculating single precision div for the motivation */
 
         mp::cpp_int sigA, sigB;
+        bool a_subnorm = false;
+        bool b_subnorm = false;
         int nf;
         int softfloat_undershift = (resultFmt == FMT_QUAD) ? 16 : 2;
 
@@ -307,6 +309,9 @@ int reference_model(
             sigB = fracF32UI(b);
             nf = 23;
 
+            a_subnorm = expF32UI(a) == 0;
+            b_subnorm = expF32UI(b) == 0;
+
             break;
         }
 
@@ -320,6 +325,9 @@ int reference_model(
             sigA = fracF64UI(a);
             sigB = fracF64UI(b);
             nf = 52;
+
+            a_subnorm = expF64UI(a) == 0;
+            b_subnorm = expF64UI(b) == 0;
 
             break;
         }
@@ -339,6 +347,9 @@ int reference_model(
             sigB |= static_cast<uint64_t>(b);
             nf = 112;
 
+            a_subnorm = expF128UI64(a >> 64) == 0;
+            b_subnorm = expF128UI64(b >> 64) == 0;
+
             break;
         }
 
@@ -352,6 +363,9 @@ int reference_model(
             sigA = fracF16UI(a);
             sigB = fracF16UI(b);
             nf = 10;
+
+            a_subnorm = expF16UI(a) == 0;
+            b_subnorm = expF16UI(b) == 0;
 
             break;
         }
@@ -367,6 +381,8 @@ int reference_model(
             sigB = fracBF16UI(b);
             nf = 7;
 
+            a_subnorm = expBF16UI(a) == 0;
+            b_subnorm = expBF16UI(b) == 0;
             break;
         }
         default: {
@@ -376,12 +392,28 @@ int reference_model(
         }
 
         if (operandFmt == FMT_BF16) {
-            // Their approach gives more bits lol
+            // Their approach gives more bits
             break;
         }
 
-        sigA |= (mp::cpp_int(1) << nf);
-        sigB |= (mp::cpp_int(1) << nf);
+        // If we have a trivial intermediate result
+        if (softfloat_intermediateResult.sig64 == 0 && softfloat_intermediateResult.sig0 == 0 &&
+            softfloat_intermediateResult.sigExtra == 0) {
+            break;
+        }
+
+        if (!a_subnorm) {
+            sigA |= (mp::cpp_int(1) << nf);
+        } else {
+            int align_shift = nf - mp::msb(sigA);
+            sigA <<= align_shift;
+        }
+        if (!b_subnorm) {
+            sigB |= (mp::cpp_int(1) << nf);
+        } else {
+            int align_shift = nf - mp::msb(sigB);
+            sigB <<= align_shift;
+        }
 
         int extra_bits = nf + 3;
         mp::cpp_int shifted_sigA = sigA << (nf + extra_bits);
@@ -394,8 +426,8 @@ int reference_model(
         }
 
         // Now compare to the extracted bits
-        int alignment_shift =
-            192 - mp::msb(pre_rounding) - softfloat_undershift; // msb is zero indexed, so this has the intended effect
+        // msb is zero indexed, so this has the intended effect
+        int alignment_shift = 192 - mp::msb(pre_rounding) - softfloat_undershift;
         if (alignment_shift > 0) {
             pre_rounding <<= alignment_shift;
         } else {
@@ -425,10 +457,37 @@ int reference_model(
 
             if (softfloat_bit != pre_rounding_bit) {
                 if (!only_zeros) {
-                    std::cerr << "Division Prerounding Calculation Failed: Softfloat gave ";
-                    std::cerr << std::hex << std::setfill('0') << std::setw(48) << softfloat_computed;
-                    std::cerr << " We generated: " << std::setw(48) << pre_rounding << std::endl;
-                    return EXIT_FAILURE;
+                    mp::cpp_int sig_mask = ((mp::cpp_int(1) << (nf + 1)) - 1);
+                    int align_shift = 192 - mp::msb(sig_mask) - softfloat_undershift;
+                    sig_mask <<= align_shift;
+
+                    mp::cpp_int guard_mask = mp::cpp_int(1) << (align_shift - 1);
+                    mp::cpp_int sticky_mask = sig_mask | guard_mask;
+
+                    bool dirty = ((pre_rounding & sig_mask) != (softfloat_computed & sig_mask)) ||
+                                 ((pre_rounding & guard_mask) != (softfloat_computed & guard_mask)) ||
+                                 (((pre_rounding & sticky_mask) != 0) ^ ((pre_rounding & sticky_mask) != 0));
+
+                    // Exact Sticky Bits are Wrong for Doubles, but overall correct (normally)
+                    if (!(operandFmt == FMT_DOUBLE || operandFmt == FMT_QUAD) || dirty) {
+                        std::cerr << "Division Prerounding Calculation Failed: Softfloat gave ";
+                        std::cerr << std::hex << std::setfill('0') << std::setw(48) << softfloat_computed;
+                        std::cerr << " We generated: " << std::setw(48) << pre_rounding << std::endl;
+                    }
+
+                    if ((pre_rounding & sig_mask) != (softfloat_computed & sig_mask)) {
+                        std::cerr << "Sigs Disagree" << std::endl;
+                    }
+                    if ((pre_rounding & guard_mask) != (softfloat_computed & guard_mask)) {
+                        std::cerr << "Guards Disagree" << std::endl;
+                    }
+                    if (((pre_rounding & sticky_mask) != 0) ^ ((pre_rounding & sticky_mask) != 0)) {
+                        std::cerr << "Stickies Disagree" << std::endl;
+                    }
+
+                    if (dirty) {
+                        return EXIT_FAILURE;
+                    }
                 }
             }
 
@@ -988,7 +1047,7 @@ int reference_model(
                 break;
             }
             case FMT_LONG: {
-                uint64_t serialized_input = (uint64_t)a->lower;
+                uint64_t serialized_input = static_cast<uint64_t>(a);
                 int64_t input;
                 // We need to be careful not to throw out the signed part of it
                 // a direct conversion to int64_t is UB
@@ -996,17 +1055,17 @@ int reference_model(
 
                 softFloat_setRoundingMode(softfloat_round_odd);
                 float64_t out_64 = i64_to_f64(input);
-                softFloat_setRoundingMode(*rm);
+                softFloat_setRoundingMode(rm);
                 out = f64_to_bf16(out_64);
 
                 break;
             }
             case FMT_ULONG: {
-                uint64_t input = (uint64_t)a->lower;
+                uint64_t input = static_cast<uint64_t>(a);
 
                 softFloat_setRoundingMode(softfloat_round_odd);
                 float64_t out_64 = ui64_to_f64(input);
-                softFloat_setRoundingMode(*rm);
+                softFloat_setRoundingMode(rm);
                 out = f64_to_bf16(out_64);
 
                 break;
@@ -1853,7 +1912,7 @@ int reference_model(
     *flags = softFloat_getFlags();
     softfloat_getIntermResults(intermResult);
 
-    if (*op == OP_CFI && *operandFmt == FMT_HALF && (*resultFmt == FMT_LONG || *resultFmt == FMT_ULONG)) {
+    if (op == OP_CFI && operandFmt == FMT_HALF && (resultFmt == FMT_LONG || resultFmt == FMT_ULONG)) {
         struct uint128 res = softfloat_shiftRightJam128(intermResult->sig64, intermResult->sig0, 32);
         intermResult->sig64 = res.v64;
         intermResult->sig0 = res.v0;

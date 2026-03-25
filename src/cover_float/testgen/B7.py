@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Optional, TextIO
 
 import cover_float.common.constants as constants
 from cover_float.common.util import generate_float, generate_test_vector, reproducible_hash
-from cover_float.reference import run_and_store_test_vector, run_test_vector, store_cover_vector
+from cover_float.reference import run_test_vector, store_cover_vector
 
 if TYPE_CHECKING:
     # This block is seen by Pyright but ignored at runtime
@@ -578,32 +578,61 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
 
         for extra_bit in range(1, from_nf - nf):
             upper_bits = random.getrandbits(nf)
-            extra_bits = 1 << ((from_nf - nf) - extra_bit)
+            extra_bits = 1 << ((from_nf - nf) - extra_bit - 1)
 
             sig = (upper_bits << (from_nf - nf)) | extra_bits
+            f = generate_float(0, random.randint(-10, 10), sig, from_fmt)
 
-            tv = generate_test_vector(constants.OP_CFF, sig, 0, 0, from_fmt, fmt, constants.ROUND_MAX)
-            run_and_store_test_vector(tv, test_f, cover_f)
+            tv = generate_test_vector(constants.OP_CFF, f, 0, 0, from_fmt, fmt, constants.ROUND_MAX)
+            result = run_test_vector(tv)
+            interm_mantissa = bin(int("1" + result.split("_")[-1], 16))[3:][:from_nf]
+            rounding_bits = interm_mantissa[nf:]
+
+            if rounding_bits == bin(extra_bits)[2:].zfill(from_nf - nf):
+                store_cover_vector(result, test_f, cover_f)
+            elif fmt == "04" and constants.MANTISSA_BITS[fmt] + extra_bit >= 23:
+                store_cover_vector(result, test_f, cover_f)  # This is just a quirk of how bf16 converts work
+            else:
+                print(f"CFF Generation Failure From: {from_fmt}, To: {fmt}, Extra-Bits: {extra_bits:b}")
+                breakpoint()
 
     # CFI
     for to_fmt in constants.INT_FMTS:
-        # to_bits = INT_MAX_EXPS[to_fmt]
+        to_bits = INT_MAX_EXPS[to_fmt]
 
         for extra_bit in range(1, nf):
             # Min_int_bits is 0 as we can do 1.frac with the leading one
             min_int_bits = 0
             # Max_int_bits places the target extra_bit last
-            max_int_bits = nf - extra_bit
+            max_int_bits = min(nf - extra_bit - 1, to_bits - 1)
 
             int_bits = random.randint(min_int_bits, max_int_bits)
             frac_bits = nf - int_bits
 
             int_part = random.getrandbits(int_bits)
-            frac_part = 1 << (frac_bits - extra_bit)
+            frac_part = 1 << (frac_bits - extra_bit - 1)
 
             sig = int_part << frac_bits | frac_part
-            tv = generate_test_vector(constants.OP_CFI, sig, 0, 0, fmt, to_fmt, constants.ROUND_MAX)
-            run_and_store_test_vector(tv, test_f, cover_f)
+
+            f = generate_float(0, int_bits, sig, fmt)
+
+            tv = generate_test_vector(constants.OP_CFI, f, 0, 0, fmt, to_fmt, constants.ROUND_MAX)
+            # run_and_store_test_vector(tv, test_f, cover_f)
+            result = run_test_vector(tv)
+            interm_mantissa = bin(int("1" + result.split("_")[-1], 16))[3:]
+            rounding_bits = interm_mantissa[to_bits : to_bits + frac_bits]
+
+            if rounding_bits == bin(frac_part)[2:].zfill(frac_bits):
+                store_cover_vector(result, test_f, cover_f)
+            elif (
+                (to_fmt in [constants.FMT_UINT, constants.FMT_INT] and extra_bit >= 12)
+                or (to_fmt == constants.FMT_LONG and fmt == constants.FMT_QUAD and extra_bit >= 63)
+                or (to_fmt == constants.FMT_ULONG and fmt == constants.FMT_QUAD and extra_bit >= 62)
+            ):
+                store_cover_vector(result, test_f, cover_f)  # We only record this many extra bits
+            else:
+                print(f"CFI Generation Failure From: {fmt}, To: {to_fmt}, Extra-Bits: {frac_part:b}")
+                breakpoint()
 
     # CIF
     for from_fmt in constants.INT_FMTS:
@@ -613,8 +642,8 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             # Not a narrowing conversion
             continue
 
-        for extra_bit in range(1, from_bits - nf):
-            upper_bits = random.getrandbits(nf)
+        for extra_bit in range(1, from_bits - nf - 1):  # - nf - 1 because one extra bit from the leading one
+            upper_bits = random.getrandbits(nf) | (1 << nf)
 
             sig = upper_bits << (extra_bit + 1)
             sig |= 1  # Places the extra bit in the right place
@@ -624,7 +653,32 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             sig <<= additional_zeros
 
             tv = generate_test_vector(constants.OP_CIF, sig, 0, 0, from_fmt, fmt, constants.ROUND_MAX)
-            run_and_store_test_vector(tv, test_f, cover_f)
+            # run_and_store_test_vector(tv, test_f, cover_f)
+            result = run_test_vector(tv)
+            interm_mantissa = bin(int("1" + result.split("_")[-1], 16))[3:]
+            rounding_bits = interm_mantissa[nf:]
+
+            if rounding_bits.count("1") == 1 and rounding_bits.find("1") == extra_bit:
+                store_cover_vector(result, test_f, cover_f)
+            elif (
+                (from_fmt == constants.FMT_ULONG and fmt == constants.FMT_SINGLE and extra_bit > 38)
+                or (from_fmt == constants.FMT_UINT and fmt == constants.FMT_HALF and extra_bit > 19)
+                or (from_fmt == constants.FMT_ULONG and fmt == constants.FMT_HALF and extra_bit > 51)
+                or (
+                    from_fmt in [constants.FMT_INT, constants.FMT_UINT]
+                    and fmt == constants.FMT_BF16
+                    and extra_bit + constants.MANTISSA_BITS[fmt] >= constants.MANTISSA_BITS[constants.FMT_SINGLE]
+                )
+                or (
+                    from_fmt in [constants.FMT_LONG, constants.FMT_ULONG]
+                    and fmt == constants.FMT_BF16
+                    and extra_bit + constants.MANTISSA_BITS[fmt] >= constants.MANTISSA_BITS[constants.FMT_DOUBLE]
+                )
+            ):
+                store_cover_vector(result, test_f, cover_f)  # Softfloat quirk makes it not track correctly here
+            else:
+                print(f"CIF Generation Failure From: {from_fmt}, To: {fmt}, Extra-Bit: {extra_bit}")
+                breakpoint()
 
 
 def main() -> None:

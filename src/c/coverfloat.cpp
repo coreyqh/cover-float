@@ -288,6 +288,12 @@ int reference_model(
     }
 
     case OP_DIV: {
+        /* We can extract more intermediate bits using mp::cpp_ints instead of what softfloat gives, look
+           at their fast approach to calculating single precision div for the motivation */
+
+        mp::cpp_int sigA, sigB;
+        int nf;
+        int softfloat_undershift = (resultFmt == FMT_QUAD) ? 16 : 2;
 
         switch (operandFmt) {
         case FMT_SINGLE: {
@@ -296,6 +302,11 @@ int reference_model(
             MP_TO_FLOAT32(bf, b);
             resultf = f32_div(af, bf);
             FLOAT32_TO_MP(result, resultf);
+
+            sigA = fracF32UI(a);
+            sigB = fracF32UI(b);
+            nf = 23;
+
             break;
         }
 
@@ -305,6 +316,11 @@ int reference_model(
             MP_TO_FLOAT64(bf, b);
             resultf = f64_div(af, bf);
             FLOAT64_TO_MP(result, resultf);
+
+            sigA = fracF64UI(a);
+            sigB = fracF64UI(b);
+            nf = 52;
+
             break;
         }
 
@@ -314,6 +330,15 @@ int reference_model(
             MP_TO_FLOAT128(bf, b);
             resultf = f128_div(af, bf);
             FLOAT128_TO_MP(result, resultf);
+
+            sigA = fracF128UI64(a >> 64);
+            sigA <<= 64;
+            sigA |= static_cast<uint64_t>(a);
+            sigB = fracF128UI64(b >> 64);
+            sigB <<= 64;
+            sigB |= static_cast<uint64_t>(b);
+            nf = 112;
+
             break;
         }
 
@@ -323,6 +348,11 @@ int reference_model(
             MP_TO_FLOAT16(bf, b);
             resultf = f16_div(af, bf);
             FLOAT16_TO_MP(result, resultf);
+
+            sigA = fracF16UI(a);
+            sigB = fracF16UI(b);
+            nf = 10;
+
             break;
         }
 
@@ -332,9 +362,87 @@ int reference_model(
             MP_TO_FLOAT16(bf, b);
             resultf = bf16_div(af, bf);
             FLOAT16_TO_MP(result, resultf);
+
+            sigA = fracBF16UI(a);
+            sigB = fracBF16UI(b);
+            nf = 7;
+
             break;
         }
+        default: {
+            fprintf(stderr, "Bad Operand Format for Div: %08x", operandFmt);
+            return EXIT_FAILURE;
         }
+        }
+
+        if (operandFmt == FMT_BF16) {
+            // Their approach gives more bits lol
+            break;
+        }
+
+        sigA |= (mp::cpp_int(1) << nf);
+        sigB |= (mp::cpp_int(1) << nf);
+
+        int extra_bits = nf + 3;
+        mp::cpp_int shifted_sigA = sigA << (nf + extra_bits);
+        mp::cpp_int pre_rounding = (shifted_sigA) / sigB;
+
+        // std::cout << std::hex << pre_rounding << std::dec << std::endl;
+
+        if (pre_rounding * sigB != shifted_sigA) {
+            pre_rounding |= 1;
+        }
+
+        // Now compare to the extracted bits
+        int alignment_shift =
+            192 - mp::msb(pre_rounding) - softfloat_undershift; // msb is zero indexed, so this has the intended effect
+        if (alignment_shift > 0) {
+            pre_rounding <<= alignment_shift;
+        } else {
+            pre_rounding >>= -alignment_shift;
+        }
+
+        // pre_rounding ^= mp::cpp_int(1) << 192;
+
+        // Sanity Checks
+#if 1
+        mp::cpp_int softfloat_computed = 0;
+        softfloat_computed |= softfloat_intermediateResult.sig64;
+        softfloat_computed <<= 64;
+        softfloat_computed |= softfloat_intermediateResult.sig0;
+        softfloat_computed <<= 64;
+        softfloat_computed |= softfloat_intermediateResult.sigExtra;
+
+        // std::string pre_rounding_binary = pre_rounding.str(0, std::ios_base::binary);
+        // std::string softfloat_computed_binary = softfloat_computed.str(0, std::ios_base::binary);
+
+        bool only_zeros = true;
+        for (int i = 0; i < 192; i++) {
+            mp::cpp_int bit_mask = mp::cpp_int(1) << i;
+
+            bool softfloat_bit = (softfloat_computed & bit_mask) != 0;
+            bool pre_rounding_bit = (pre_rounding & bit_mask) != 0;
+
+            if (softfloat_bit != pre_rounding_bit) {
+                if (!only_zeros) {
+                    std::cerr << "Division Prerounding Calculation Failed: Softfloat gave ";
+                    std::cerr << std::hex << std::setfill('0') << std::setw(48) << softfloat_computed;
+                    std::cerr << " We generated: " << std::setw(48) << pre_rounding << std::endl;
+                    return EXIT_FAILURE;
+                }
+            }
+
+            if (only_zeros && softfloat_bit == 1) {
+                // Because of the way their sticky calculation works, we should let the last bit of
+                // softfloats sticky differ from ours
+                only_zeros = false;
+            }
+        }
+#endif
+
+        softfloat_intermediateResult.sig64 = static_cast<uint64_t>(pre_rounding >> 128);
+        softfloat_intermediateResult.sig0 = static_cast<uint64_t>(pre_rounding >> 64);
+        softfloat_intermediateResult.sigExtra = static_cast<uint64_t>(pre_rounding);
 
         break;
     }
@@ -1978,16 +2086,20 @@ std::string coverfloat_runtestvector(const std::string &input, bool suppress_err
 
     // char output[512];
 
+    uint16_t newFlags16 = newFlags;
+
     std::stringstream output;
-    output << std::hex;
-    output << std::setw(2) << op << '_' << rm << '_';
-    output << std::setw(32) << a << '_' << b << '_' << c << '_';
-    output << std::setw(2) << opFmt << '_';
+    output << std::hex << std::setfill('0');
+    output << std::setw(8) << op << '_';
+    output << std::setw(2) << rm16 << '_';
+    output << std::setw(32) << a << '_' << std::setw(32) << b << '_' << std::setw(32) << c << '_';
+    output << std::setw(2) << opFmt16 << '_';
     output << std::setw(32) << newRes << '_';
-    output << std::setw(2) << resFmt << '_' << newFlags << '_';
+    output << std::setw(2) << resFmt16 << '_' << std::setw(2) << newFlags16 << '_';
     output << std::setw(1) << intermRes.sign << '_';
     output << std::setw(8) << intermRes.exp << '_';
-    output << std::setw(16) << intermRes.sig64 << intermRes.sig0 << intermRes.sigExtra;
+    output << std::setw(16) << intermRes.sig64 << std::setw(16) << intermRes.sig0 << std::setw(16)
+           << intermRes.sigExtra;
 
     // snprintf(
     //     output,
@@ -2020,11 +2132,11 @@ std::string coverfloat_runtestvector(const std::string &input, bool suppress_err
             // flags != newFlags) {                                            // flags   don't match
             output = std::stringstream();
             output << "Error: testvector output doesn't match expected value\nTestVector output: ";
-            output << std::hex << std::setw(32) << res;
+            output << std::hex << std::setfill('0') << std::setw(32) << res;
             output << "\nExpected output: ";
-            output << newRes;
-            output << std::setw(2) << "\nTestVector Flags: " << flags << "\nExpected Flags: " << newFlags
-                   << "\nOperation: " << op << "\n";
+            output << std::setw(32) << newRes;
+            output << "\nTestVector Flags: " << std::setw(2) << flags << "\nExpected Flags: " << std::setw(2)
+                   << newFlags16 << "\nOperation: " << std::setw(8) << op << "\n";
             // snprintf(
             //     output,
             //     512,

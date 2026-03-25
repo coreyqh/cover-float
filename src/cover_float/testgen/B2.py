@@ -294,7 +294,7 @@ def main() -> None:
 
             bases = {
                 "Zero": (0, 0),
-                "One": (0, (1 << (EXPONENT_BITS[fmt] - 1)) - 1),  # ?
+                "One": (0, (1 << (EXPONENT_BITS[fmt] - 1)) - 1),
                 "MinSub": (1, 0),
                 "MaxSub": ((1 << m_bits) - 1, 0),
                 "MinNorm": (0, 1),

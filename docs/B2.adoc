@@ -27,6 +27,7 @@ Maxsubnorm  0.7FFFFF P-126
 MinNorm     1.000000 P-126
 MaxNorm     1.7FFFFF P127
 
+We're only testing arithmetic operations
 === Design choices & Impossible cases
 1. By significand, we took it as mantissa
 2. We don't test negative values of sqrt because they are tested in other models

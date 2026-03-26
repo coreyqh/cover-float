@@ -6,9 +6,18 @@ covergroup B4_cg (virtual coverfloat_interface CFI);
     General Helper Coverpoints
     ************************************************************************/
 
-    FP_result_ops: coverpoint CFI.op {
+    FP_arith_ops_no_sqrt: coverpoint CFI.op {
         type_option.weight = 0;
-        `include "bins_templates/FP_result_op_bins.svh"
+
+        bins op_add    = {[OP_ADD : OP_ADD | 32'hF]};
+        bins op_sub    = {[OP_SUB : OP_SUB | 32'hF]};
+        bins op_mul    = {[OP_MUL : OP_MUL | 32'hF]};
+        bins op_div    = {[OP_DIV : OP_DIV | 32'hF]};
+        bins op_fma    = {[OP_FMA : OP_FMA | 32'hF]};
+        bins op_fmadd  = {OP_FMADD};
+        bins op_fmsub  = {OP_FMSUB};
+        bins op_fnmadd = {OP_FNMADD};
+        bins op_fnmsub = {OP_FNMSUB};
     }
 
     rounding_mode_all: coverpoint CFI.rm {
@@ -180,33 +189,33 @@ covergroup B4_cg (virtual coverfloat_interface CFI);
     ************************************************************************/
 
     `ifdef COVER_F32
-        B4_F32_maxNorm_pm_3ulp:       cross FP_result_ops, rounding_mode_all, F32_sign, F32_maxNorm_pm_3ulp,       F32_result_fmt;
-        B4_F32_gt_maxNorm_p_3ulp:     cross FP_result_ops, rounding_mode_all, F32_sign, F32_gt_maxNorm_p_3ulp,     F32_result_fmt;
-        B4_F32_maxNorm_pm3_exp_range: cross FP_result_ops, rounding_mode_all, F32_sign, F32_maxNorm_pm3_exp_range, F32_result_fmt;
+        B4_F32_maxNorm_pm_3ulp:       cross FP_arith_ops_no_sqrt, rounding_mode_all, F32_sign, F32_maxNorm_pm_3ulp,       F32_result_fmt;
+        B4_F32_gt_maxNorm_p_3ulp:     cross FP_arith_ops_no_sqrt, rounding_mode_all, F32_sign, F32_gt_maxNorm_p_3ulp,     F32_result_fmt;
+        B4_F32_maxNorm_pm3_exp_range: cross FP_arith_ops_no_sqrt, rounding_mode_all, F32_sign, F32_maxNorm_pm3_exp_range, F32_result_fmt;
     `endif
 
     `ifdef COVER_F64
-        B4_F64_maxNorm_pm_3ulp:       cross FP_result_ops, rounding_mode_all, F64_sign, F64_maxNorm_pm_3ulp,       F64_result_fmt;
-        B4_F64_gt_maxNorm_p_3ulp:     cross FP_result_ops, rounding_mode_all, F64_sign, F64_gt_maxNorm_p_3ulp,     F64_result_fmt;
-        B4_F64_maxNorm_pm3_exp_range: cross FP_result_ops, rounding_mode_all, F64_sign, F64_maxNorm_pm3_exp_range, F64_result_fmt;
+        B4_F64_maxNorm_pm_3ulp:       cross FP_arith_ops_no_sqrt, rounding_mode_all, F64_sign, F64_maxNorm_pm_3ulp,       F64_result_fmt;
+        B4_F64_gt_maxNorm_p_3ulp:     cross FP_arith_ops_no_sqrt, rounding_mode_all, F64_sign, F64_gt_maxNorm_p_3ulp,     F64_result_fmt;
+        B4_F64_maxNorm_pm3_exp_range: cross FP_arith_ops_no_sqrt, rounding_mode_all, F64_sign, F64_maxNorm_pm3_exp_range, F64_result_fmt;
     `endif
 
     `ifdef COVER_F128
-        B4_F128_maxNorm_pm_3ulp:       cross FP_result_ops, rounding_mode_all, F128_sign, F128_maxNorm_pm_3ulp,       F128_result_fmt;
-        B4_F128_gt_maxNorm_p_3ulp:     cross FP_result_ops, rounding_mode_all, F128_sign, F128_gt_maxNorm_p_3ulp,     F128_result_fmt;
-        B4_F128_maxNorm_pm3_exp_range: cross FP_result_ops, rounding_mode_all, F128_sign, F128_maxNorm_pm3_exp_range, F128_result_fmt;
+        B4_F128_maxNorm_pm_3ulp:       cross FP_arith_ops_no_sqrt, rounding_mode_all, F128_sign, F128_maxNorm_pm_3ulp,       F128_result_fmt;
+        B4_F128_gt_maxNorm_p_3ulp:     cross FP_arith_ops_no_sqrt, rounding_mode_all, F128_sign, F128_gt_maxNorm_p_3ulp,     F128_result_fmt;
+        B4_F128_maxNorm_pm3_exp_range: cross FP_arith_ops_no_sqrt, rounding_mode_all, F128_sign, F128_maxNorm_pm3_exp_range, F128_result_fmt;
     `endif
 
     `ifdef COVER_F16
-        B4_F16_maxNorm_pm_3ulp:       cross FP_result_ops, rounding_mode_all, F16_sign, F16_maxNorm_pm_3ulp,       F16_result_fmt;
-        B4_F16_gt_maxNorm_p_3ulp:     cross FP_result_ops, rounding_mode_all, F16_sign, F16_gt_maxNorm_p_3ulp,     F16_result_fmt;
-        B4_F16_maxNorm_pm3_exp_range: cross FP_result_ops, rounding_mode_all, F16_sign, F16_maxNorm_pm3_exp_range, F16_result_fmt;
+        B4_F16_maxNorm_pm_3ulp:       cross FP_arith_ops_no_sqrt, rounding_mode_all, F16_sign, F16_maxNorm_pm_3ulp,       F16_result_fmt;
+        B4_F16_gt_maxNorm_p_3ulp:     cross FP_arith_ops_no_sqrt, rounding_mode_all, F16_sign, F16_gt_maxNorm_p_3ulp,     F16_result_fmt;
+        B4_F16_maxNorm_pm3_exp_range: cross FP_arith_ops_no_sqrt, rounding_mode_all, F16_sign, F16_maxNorm_pm3_exp_range, F16_result_fmt;
     `endif
 
     `ifdef COVER_BF16
-        B4_BF16_maxNorm_pm_3ulp:       cross FP_result_ops, rounding_mode_all, BF16_sign, BF16_maxNorm_pm_3ulp,       BF16_result_fmt;
-        B4_BF16_gt_maxNorm_p_3ulp:     cross FP_result_ops, rounding_mode_all, BF16_sign, BF16_gt_maxNorm_p_3ulp,     BF16_result_fmt;
-        B4_BF16_maxNorm_pm3_exp_range: cross FP_result_ops, rounding_mode_all, BF16_sign, BF16_maxNorm_pm3_exp_range, BF16_result_fmt;
+        B4_BF16_maxNorm_pm_3ulp:       cross FP_arith_ops_no_sqrt, rounding_mode_all, BF16_sign, BF16_maxNorm_pm_3ulp,       BF16_result_fmt;
+        B4_BF16_gt_maxNorm_p_3ulp:     cross FP_arith_ops_no_sqrt, rounding_mode_all, BF16_sign, BF16_gt_maxNorm_p_3ulp,     BF16_result_fmt;
+        B4_BF16_maxNorm_pm3_exp_range: cross FP_arith_ops_no_sqrt, rounding_mode_all, BF16_sign, BF16_maxNorm_pm3_exp_range, BF16_result_fmt;
     `endif
 
 endgroup

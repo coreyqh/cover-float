@@ -2,8 +2,8 @@
 // e.g. `define COVER_B1 for model B1
 
 `define COVER_B1
-// `define COVER_B2
-// `define COVER_B3
+`define COVER_B2
+`define COVER_B3
 `define COVER_B4
 `define COVER_B5
 // `define COVER_B6

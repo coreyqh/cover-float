@@ -343,7 +343,9 @@ covergroup B2_cg (virtual coverfloat_interface CFI);
 
     // main coverpoints
     `ifdef COVER_F32
-        B2_F32_near_one        : cross FP_arith_ops, F32_sign, F32_near_one,        F32_result_fmt;
+        B2_F32_near_one        : cross FP_arith_ops, F32_sign, F32_near_one,        F32_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) with (F32_sign == 1'b1);
+        }
         B2_F32_near_zero       : cross FP_arith_ops, F32_sign, F32_near_zero,       F32_result_fmt {
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt);
         }
@@ -362,7 +364,10 @@ covergroup B2_cg (virtual coverfloat_interface CFI);
     `endif // COVER_F32
 
     `ifdef COVER_F64
-        B2_F64_near_one        : cross FP_arith_ops, F64_sign, F64_near_one,        F64_result_fmt;
+        B2_F64_near_one        : cross FP_arith_ops, F64_sign, F64_near_one,        F64_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) with (F64_sign == 1'b1);
+
+        }
         B2_F64_near_zero       : cross FP_arith_ops, F64_sign, F64_near_zero,       F64_result_fmt {
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt);
         }
@@ -381,7 +386,10 @@ covergroup B2_cg (virtual coverfloat_interface CFI);
     `endif // COVER_F64
 
     `ifdef COVER_F16
-        B2_F16_near_one        : cross FP_arith_ops, F16_sign, F16_near_one,        F16_result_fmt;
+        B2_F16_near_one        : cross FP_arith_ops, F16_sign, F16_near_one,        F16_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) with (F16_sign == 1'b1);
+
+        }
         B2_F16_near_zero       : cross FP_arith_ops, F16_sign, F16_near_zero,       F16_result_fmt {
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt);
         }
@@ -400,7 +408,9 @@ covergroup B2_cg (virtual coverfloat_interface CFI);
     `endif // COVER_F16
 
     `ifdef COVER_BF16
-        B2_BF16_near_one        : cross FP_arith_ops, BF16_sign, BF16_near_one,        BF16_result_fmt;
+        B2_BF16_near_one        : cross FP_arith_ops, BF16_sign, BF16_near_one,        BF16_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) with (BF16_sign == 1'b1);
+        }
         B2_BF16_near_zero       : cross FP_arith_ops, BF16_sign, BF16_near_zero,       BF16_result_fmt {
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt);
         }
@@ -419,7 +429,9 @@ covergroup B2_cg (virtual coverfloat_interface CFI);
     `endif // COVER_BF16
 
     `ifdef COVER_F128
-        B2_F128_near_one        : cross FP_arith_ops, F128_sign, F128_near_one,        F128_result_fmt;
+        B2_F128_near_one        : cross FP_arith_ops, F128_sign, F128_near_one,        F128_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) with (F128_sign == 1'b1);
+        }
         B2_F128_near_zero       : cross FP_arith_ops, F128_sign, F128_near_zero,       F128_result_fmt {
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt);
         }

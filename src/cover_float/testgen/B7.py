@@ -56,7 +56,7 @@ def bezout_inverse(x: int, base: int) -> int:
 
 
 def add_sub_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
-    hashval = reproducible_hash(fmt + "add sub" + "b9")
+    hashval = reproducible_hash(fmt + "add sub" + "b7")
     random.seed(hashval)
 
     for op in [constants.OP_ADD, constants.OP_SUB]:
@@ -108,8 +108,25 @@ def add_sub_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                 breakpoint()
 
 
+def mul_sigs_with_trailing(target: int, bit_length: int, fmt: str) -> tuple[int, int]:
+    nf = constants.MANTISSA_BITS[fmt]
+
+    for _ in range(100):
+        sig_a = 1 << nf | random.getrandbits(nf) | 1  # A must be odd, this is a place for randomization in the future
+        sig_a_inv = bezout_inverse(sig_a, 2 ** (bit_length))
+
+        sig_b = (sig_a_inv * target) % (2 ** (bit_length))
+
+        if sig_b.bit_length() != nf + 1:
+            continue
+
+        return (sig_a, sig_b)
+
+    return (0, 0)
+
+
 def mul_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
-    hashval = reproducible_hash(fmt + "mul" + "b9")
+    hashval = reproducible_hash(fmt + "mul" + "b7")
     random.seed(hashval)
 
     # Mul generates U2.2Nf, this means that rounding bits are either going to have
@@ -131,14 +148,8 @@ def mul_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
         hit_without_shift = False
 
         for _ in range(100):
-            sig_a = (
-                1 << nf | random.getrandbits(nf) | 1
-            )  # A must be odd, this is a place for randomization in the future
-            sig_a_inv = bezout_inverse(sig_a, 2 ** (nf + 2))
-
-            sig_b = (sig_a_inv * target) % (2 ** (nf + 2))
-
-            if sig_b.bit_length() != nf + 1:
+            sig_a, sig_b = mul_sigs_with_trailing(target, nf + 2, fmt)
+            if sig_a == 0:
                 continue
 
             sign = random.randint(0, 1)
@@ -244,6 +255,7 @@ def two_ones_multiplicands(fmt: str) -> dict[int, tuple[int, int]]:
 
 
 STICKY_LIMITS = {
+    constants.FMT_HALF: 18,
     constants.FMT_SINGLE: 37,
     constants.FMT_DOUBLE: 72,
     constants.FMT_QUAD: 127,
@@ -320,15 +332,13 @@ def multiplicand_generator(
 
 
 def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
-    hashval = reproducible_hash(fmt + "fma" + "b9")
+    hashval = reproducible_hash(fmt + "fma" + "b7")
     random.seed(hashval)
 
     # For FMA, the output is U(Nf + 4).(2Nf + 2)
     # So, (Nf + 4) refers to adding a full significand (Nf + 1) bits then a U2.2nf where the top bit hits the sticky
     # (thus, it is 1 Nf (0 -- guard) 2.2Nf) for a total of Nf + 4 . 2Nf bits
     # Then we get 2Nf + 2 in the other end because the Z addend is squashed into the last sticky bit
-
-    # TODO: The (2nf + 1)th sticky bit!
 
     # For the purposes of our tests, we want to set all of the possible Nf + 1 extra_bits with the Z shifted
     # into the sticky, Then we want to test sticky calculation with the multiplication result shifted into the
@@ -339,6 +349,8 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
     max_exp -= constants.BIAS[fmt]
 
     for op in [constants.OP_FMADD, constants.OP_FMSUB, constants.OP_FNMADD, constants.OP_FNMSUB]:
+        effective_subtraction = op == constants.OP_FMSUB or op == constants.OP_FNMADD
+
         for extra_bit in range(1, constants.MANTISSA_BITS[fmt] + 1):
             for _ in range(100):
                 # Logic taken from B3.py
@@ -448,6 +460,68 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             else:
                 print("Failure to generate a Guard=0 Case in FMA Testgen")
 
+        # Now do the addend hanging off of the end of the mantissa
+        # This will be the (2nf + 1)th extra bit
+        for overhang_extra in range(constants.MANTISSA_BITS[fmt] + 1, 2 * constants.MANTISSA_BITS[fmt] + 1):
+            for _ in range(100):
+                if not effective_subtraction:
+                    sigC = 1 << (2 * constants.MANTISSA_BITS[fmt] - overhang_extra) | (
+                        1 << constants.MANTISSA_BITS[fmt]
+                    )
+                    sigA, sigB = mul_sigs_with_trailing(
+                        (1 << constants.MANTISSA_BITS[fmt] + 1) - 1, constants.MANTISSA_BITS[fmt] + 1, fmt
+                    )
+                else:
+                    sigC = 1 << (2 * constants.MANTISSA_BITS[fmt] - overhang_extra)
+                    sigC = (1 << constants.MANTISSA_BITS[fmt]) - sigC
+                    sigC |= 1 << constants.MANTISSA_BITS[fmt]
+                    sigA, sigB = mul_sigs_with_trailing(2, constants.MANTISSA_BITS[fmt] + 1, fmt)
+
+                if sigA == 0:
+                    continue
+
+                # Place the leading one in bit 2nf
+                exp_diff = -2 * constants.MANTISSA_BITS[fmt]
+
+                # Randomized Exponents so that we get the desired exponent difference
+                prod_exp = random.randint(max(min_exp, min_exp - exp_diff), min(max_exp, max_exp - exp_diff))
+                add_exp = prod_exp + exp_diff
+
+                # Find two exponents that add to prod_exp
+                mul_exp1 = random.randint(max(min_exp, prod_exp - max_exp), min(max_exp, prod_exp - min_exp))
+                mul_exp2 = prod_exp - mul_exp1
+
+                mul_sign = random.randint(0, 1)
+                overall_negate = op in [constants.OP_FNMADD, constants.OP_FNMSUB]
+
+                floatA = generate_float(mul_sign, mul_exp1, sigA ^ (1 << constants.MANTISSA_BITS[fmt]), fmt)
+                floatB = generate_float(
+                    mul_sign ^ overall_negate, mul_exp2, sigB ^ (1 << constants.MANTISSA_BITS[fmt]), fmt
+                )
+                floatC = generate_float(0, add_exp, sigC ^ (1 << constants.MANTISSA_BITS[fmt]), fmt)
+
+                tv = generate_test_vector(op, floatA, floatB, floatC, fmt, fmt, constants.ROUND_MAX)
+                result = run_test_vector(tv)
+
+                interm_mantissa = bin(int("1" + result.split("_")[-1], 16))[3:]
+                actual_extra_bits = interm_mantissa[constants.MANTISSA_BITS[fmt] :]
+                placement = actual_extra_bits.rfind("1")
+
+                if (
+                    ((sigA * sigB).bit_length() != 2 * constants.MANTISSA_BITS[fmt] + 2 and not effective_subtraction)
+                    or (placement != overhang_extra and overhang_extra <= STICKY_LIMITS.get(fmt, 1000))
+                    or actual_extra_bits.count("1") != 1
+                ):
+                    continue
+                else:
+                    store_cover_vector(result, test_f, cover_f)
+                    break
+            else:
+                print(
+                    f"Failure to generate big multiplication, small, far addend for fma with sticky = {overhang_extra}"
+                    f" in fmt: {fmt}"
+                )
+
         # Now consider the cases where the multiplicand is responsible for sticky bit generation,
         # That is, cases where the addend has an exponent that does not let it cancel the remaining
         # Sticky Bits.
@@ -474,8 +548,6 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             # We want the lowest possible exponent difference
             shift_amount = max(3, target_placement - constants.MANTISSA_BITS[fmt] + 1)
             target_location = target_placement - shift_amount
-
-            effective_subtraction = op == constants.OP_FMSUB or op == constants.OP_FNMADD
 
             attempted_sigs = multiplicand_generator(
                 target_location, shift_amount, effective_subtraction, constants.MANTISSA_BITS[fmt]
@@ -546,7 +618,8 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             if (
                 placement != target_placement and target_placement <= STICKY_LIMITS.get(fmt, 1000)
             ) or actual_extra_bits.count("1") != 1:
-                breakpoint()
+                # breakpoint()
+                continue
             elif placement not in placements:
                 placements.append(placement)
                 store_cover_vector(result, test_f, cover_f)

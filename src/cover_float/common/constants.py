@@ -47,6 +47,29 @@ FMT_ULONG = "C2"  # 11000010
 FLOAT_FMTS = [FMT_SINGLE, FMT_DOUBLE, FMT_QUAD, FMT_HALF, FMT_BF16]
 INT_FMTS = [FMT_INT, FMT_UINT, FMT_LONG, FMT_ULONG]
 
+# Size of each integer in bits
+INT_SIZES = {
+    FMT_INT: 32,
+    FMT_UINT: 32,
+    FMT_LONG: 64,
+    FMT_ULONG: 64,
+}
+
+# Excluding the bit for the sign (i.e. int represents numbers from -2^31 to 2^31 - 1)
+INT_MAX_EXPS = {
+    FMT_INT: 31,
+    FMT_UINT: 32,
+    FMT_LONG: 63,
+    FMT_ULONG: 64,
+}
+
+INT_SIGNED = {
+    FMT_INT: True,
+    FMT_UINT: False,
+    FMT_LONG: True,
+    FMT_ULONG: False,
+}
+
 # Codes for rounding modes in test vectors
 
 ROUND_NEAR_EVEN = "00"
@@ -80,3 +103,4 @@ TEST_VECTOR_WIDTH_HEX = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = TEST_VECTOR_WIDTH_HEX + 8
 COVER_VECTOR_WIDTH_HEX = 201
 COVER_VECTOR_WIDTH_HEX_WITH_SEPARATORS = COVER_VECTOR_WIDTH_HEX + 11
+INTER_SIGNIFICAND_LENGTH = 192

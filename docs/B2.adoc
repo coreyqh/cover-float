@@ -1,0 +1,54 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+
+== B2
+
+Aharoni et al.
+
+=== Description
+
+SUMMARY
+This script generates test vectors for the B2 model: Near FP Base Values - Hamming Distance.
+It takes specific boundary values (Zero, One, MinSubNorm, etc.) and enumerates over
+small deviations by flipping one bit of the significand at a time.
+
+DEFINITION
+Base Values: Zero, One, MinSubNorm, MaxSubNorm, MinNorm, MaxNorm
+Operations: add, sub, multiply, fmadd, fmsub, fnmadd, fnmsub, sqrt
+Total test vectors generated: 19788
+
+For 32 b fp,
+Zero        0.000000 P-126
+One         1.000000 P0
+Minsubnorm  0.000001 P-126
+Maxsubnorm  0.7FFFFF P-126
+MinNorm     1.000000 P-126
+MaxNorm     1.7FFFFF P127
+
+We're only testing arithmetic operations
+=== Design choices & Impossible cases
+1. By significand, we took it as mantissa
+2. We don't test negative values of sqrt because they are tested in other models
+3. Because sqrt require operands that double the desired exponents, we can only generate sqrt cases for One.
+4. For add and subtract operations, we choose to set one of the operand exponents as the desired exponent, because when adding and subtracting numbers with different exponents, the exponents shift, and the loss of precision cannot be fully compensated with adjusting ulps.
+
+== General Procedure
+
+Challenge:
+When we shift ulp, the result will be rounded.
+
+We have to separate different parts of the desired result because
+1. We need to toggle every bit of the mantissa only
+2. we need to iterate through positive and negative desired values
+
+addTest: check for maxnorm and constraints sign for maxnorm
+subTest: check for maxnorm and constraints sign for maxnorm
+mulTest: check for maxnorm to constraint operand exponents
+divTest: check for maxnorm to constraint operand exponents
+sqrtTest: nothing
+fmaddTest (a*b+c = desired result): check maxnorm to constraint operand exponents
+fmsubTest (a*b-c = desired result): check maxnorm to constraint operand exponents
+fnmaddTest (-a*b-c = desired result): check maxnorm to constraint operand exponents
+fnmsubTest (-a*b+c = desired result): check maxnorm to constraint operand exponents

@@ -95,7 +95,6 @@ def add_sub_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                 f1, f2 = f2, f1
 
             tv = generate_test_vector(op, f1, f2, 0, fmt, fmt, constants.ROUND_MAX)
-            # run_and_store_test_vector(tv, cover_f, test_f)
             result = run_test_vector(tv)
 
             pre_rounding_mantissa = int("1" + result.split("_")[-1], 16)
@@ -105,7 +104,9 @@ def add_sub_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             rounding_bits = rounding_bits[:nf]
 
             if int(rounding_bits, 2) != 1 << (nf - extra_bit - 1):
-                breakpoint()
+                print(f"Add Sub Generation Failed: extra_bit: {extra_bit}, op: {op}")
+            else:
+                store_cover_vector(result, test_f, cover_f)
 
 
 def mul_sigs_with_trailing(target: int, bit_length: int, fmt: str) -> tuple[int, int]:
@@ -136,25 +137,36 @@ def mul_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
     # correct test plan is hitting each of these cases for all Nf + 1 possible sticky bits
 
     # A number theory approach works well here: We are searching for a pair of significands
-    # a and b such that a, b = (target_bit) (mod 2^(nf + 2)). Finding significands that fit our
+    # a and b such that a, b = (target_bit) (mod 2^(nf + 1)). Finding significands that fit our
     # criteria should be very easy with a random search (quick math says 16 iterations on average
     # to find working significands for both mul behaviors)
+
+    exp_min, exp_max = constants.BIASED_EXP[fmt]
+    exp_min -= constants.BIAS[fmt]
+    exp_max -= constants.BIAS[fmt]
+    exp_min += 1
+    exp_max -= 1
 
     nf = constants.MANTISSA_BITS[fmt]
     for extra_bit in range(nf):  # The first bit of sticky being active in a shifted case is impossible
         target = 1 << extra_bit
 
         hit_with_shift = False
-        hit_without_shift = False
+        # We cannot hit this case without a shift
+        hit_without_shift = extra_bit == nf - 1
 
         for _ in range(100):
-            sig_a, sig_b = mul_sigs_with_trailing(target, nf + 2, fmt)
+            sig_a, sig_b = mul_sigs_with_trailing(target, nf + 1, fmt)
             if sig_a == 0:
                 continue
 
             sign = random.randint(0, 1)
-            expA = random.randint(-5, 5)  # Make this more robust
-            expB = random.randint(-5, 5)  # Make this more robust
+            expA = random.randint(exp_min, exp_max)
+            expB = random.randint(exp_min, exp_max)
+            while not exp_min <= expA + expB <= exp_max:
+                expA = random.randint(exp_min, exp_max)
+                expB = random.randint(exp_min, exp_max)
+
             f1 = generate_float(sign, expA, sig_a ^ (1 << nf), fmt)  # Sign is the same so that the output is positive
             f2 = generate_float(sign, expB, sig_b ^ (1 << nf), fmt)
 
@@ -170,6 +182,9 @@ def mul_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
 
             if int(rounding_bits, 2) != target:
                 continue
+
+            if rounding_bits.startswith("1"):
+                continue  # This means guard is 1
 
             if expected_shift_left and not hit_with_shift:
                 store_cover_vector(result, test_f, cover_f)
@@ -316,11 +331,6 @@ def multiplicand_generator(
             leaders = [random.getrandbits(leading_bit_count) for _ in range(100)]
 
         for leading_bits in leaders:
-            # if 2 * nf + 1 <= total_multiplicand_rounding_bits:
-            #     leading_bits = 0
-            # else:
-            #     leading_bits = random.getrandbits(2 * nf + 1 - total_multiplicand_rounding_bits)
-
             factor_target = target | (leading_bits << total_multiplicand_rounding_bits) | (1 << 2 * nf + 1)
             factors = factorint(factor_target)
             f1, f2 = factors_to_bit_width(factors, factor_target, nf + 1)
@@ -564,7 +574,6 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                         if exp_diff > constants.MANTISSA_BITS[fmt]:
                             continue
                 else:
-                    # print(f"\x1b[2K\rFailure {target_placement}")
                     continue
             else:
                 sigA, sigB = attempted_sigs
@@ -613,19 +622,16 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             interm_mantissa = bin(int("1" + result.split("_")[-1], 16))[3:]
             actual_extra_bits = interm_mantissa[constants.MANTISSA_BITS[fmt] :]
             placement = actual_extra_bits.rfind("1")
-            # target_placement =  + exp_diff - constants.MANTISSA_BITS[fmt]  # -1 because sigA * sigB uses all of U2.2nf
 
             if (
                 placement != target_placement and target_placement <= STICKY_LIMITS.get(fmt, 1000)
             ) or actual_extra_bits.count("1") != 1:
-                # breakpoint()
                 continue
             elif placement not in placements:
                 placements.append(placement)
                 store_cover_vector(result, test_f, cover_f)
 
         print("\x1b[2K", end="\r")
-        # print(sorted(placements), fmt)
 
 
 INT_MAX_EXPS = {
@@ -667,7 +673,6 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                 store_cover_vector(result, test_f, cover_f)  # This is just a quirk of how bf16 converts work
             else:
                 print(f"CFF Generation Failure From: {from_fmt}, To: {fmt}, Extra-Bits: {extra_bits:b}")
-                breakpoint()
 
     # CFI
     for to_fmt in constants.INT_FMTS:
@@ -690,7 +695,6 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             f = generate_float(0, int_bits, sig, fmt)
 
             tv = generate_test_vector(constants.OP_CFI, f, 0, 0, fmt, to_fmt, constants.ROUND_MAX)
-            # run_and_store_test_vector(tv, test_f, cover_f)
             result = run_test_vector(tv)
             interm_mantissa = bin(int("1" + result.split("_")[-1], 16))[3:]
             rounding_bits = interm_mantissa[to_bits : to_bits + frac_bits]
@@ -705,7 +709,6 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                 store_cover_vector(result, test_f, cover_f)  # We only record this many extra bits
             else:
                 print(f"CFI Generation Failure From: {fmt}, To: {to_fmt}, Extra-Bits: {frac_part:b}")
-                breakpoint()
 
     # CIF
     for from_fmt in constants.INT_FMTS:
@@ -726,7 +729,6 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             sig <<= additional_zeros
 
             tv = generate_test_vector(constants.OP_CIF, sig, 0, 0, from_fmt, fmt, constants.ROUND_MAX)
-            # run_and_store_test_vector(tv, test_f, cover_f)
             result = run_test_vector(tv)
             interm_mantissa = bin(int("1" + result.split("_")[-1], 16))[3:]
             rounding_bits = interm_mantissa[nf:]
@@ -751,7 +753,6 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                 store_cover_vector(result, test_f, cover_f)  # Softfloat quirk makes it not track correctly here
             else:
                 print(f"CIF Generation Failure From: {from_fmt}, To: {fmt}, Extra-Bit: {extra_bit}")
-                breakpoint()
 
 
 def main() -> None:

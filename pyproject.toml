@@ -12,7 +12,7 @@ authors = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "sympy>=1.14.0",
+    "sympy==1.14.0",
 ]
 
 [project.scripts]

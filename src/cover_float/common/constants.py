@@ -74,14 +74,6 @@ BIASED_EXP = {  # Range of biased exponents based on precision
     FMT_BF16: [1, 254],
 }
 
-EXPONENT_BIASES = {
-    FMT_HALF: 15,
-    FMT_SINGLE: 127,
-    FMT_DOUBLE: 1023,
-    FMT_QUAD: 16383,
-    FMT_BF16: 127,
-}
-
 # Test vector widths
 
 TEST_VECTOR_WIDTH_HEX = 144

@@ -7,7 +7,7 @@ def generate_test_vector(op: str, in1: int, in2: int, in3: int, fmt1: str, fmt2:
 
 
 def generate_float(sign: int, exponent: int, mantissa: int, fmt: str) -> int:
-    exponent += constants.EXPONENT_BIASES[fmt]
+    exponent += constants.BIAS[fmt]
     return (
         (sign << (constants.MANTISSA_BITS[fmt] + constants.EXPONENT_BITS[fmt]))
         | (exponent << constants.MANTISSA_BITS[fmt])

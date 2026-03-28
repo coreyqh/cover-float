@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional, TextIO
 
 import cover_float.common.constants as common
-from cover_float.common.util import generate_test_vector, reproducible_hash
+from cover_float.common.util import generate_test_vector, get_rounding_bits, reproducible_hash, unpack_test_vector
 from cover_float.reference import run_test_vector, store_cover_vector
 
 SRC1_OPS = [common.OP_SQRT]
@@ -44,13 +44,15 @@ def get_significand_from_float(float_: int, fmt: str) -> int:
 
 
 def extract_rounding_info(cover_vector: str) -> dict[str, int]:
-    fields = cover_vector.split("_")
-    sgn = fields[-3]
-    result_fmt = fields[-5].upper()
+    # fields = cover_vector.split("_")
+    fields = unpack_test_vector(cover_vector)
+    sgn = fields.interm_sign
+    result_fmt = fields.output_format
 
     # Place in a leading one so that we get all the significant figures possible
-    interm_significand = int("1" + fields[-1], 16)
-    interm_significand = bin(interm_significand)[2:][1:]
+    # interm_significand = int("1" + fields[-1], 16)
+    # interm_significand = bin(interm_significand)[2:][1:]
+    interm_significand = f"{fields.interm_sig:0{common.INTER_SIGNIFICAND_LENGTH}b}"
 
     if result_fmt in common.FLOAT_FMTS:
         mantissa_length = common.MANTISSA_BITS[result_fmt]
@@ -214,6 +216,11 @@ def write_fma_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
                 tv = generate_test_vector(op, in1, in2, in3, fmt, fmt, mode)
                 result = run_test_vector(tv)
+
+                fields = unpack_test_vector(result)
+                if (sigA * sigB) != fields.fma_pre_addition:
+                    print("FMA PreAddition is being Incorrectly Calculated, Please Investigate")
+                    print("\t{in1:x} * {in2:x} + {in3:x}")
 
                 rounding = extract_rounding_info(result)
 
@@ -601,7 +608,7 @@ def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                 info = extract_rounding_info(results)
 
                 # Extract rounding bits
-                sig = bin(int(results.split("_")[-1], 16))[2:].zfill(192)
+                sig = get_rounding_bits(results)
                 _rounding_bits = sig[common.INT_MAX_EXPS[target_fmt] :]
 
                 # Calculate rounding bits

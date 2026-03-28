@@ -26,7 +26,8 @@ void softfloat_getIntermResults(intermResult_t *result) {
     result->exp = softfloat_intermediateResult.exp;
     result->sig64 = softfloat_intermediateResult.sig64;
     result->sig0 = softfloat_intermediateResult.sig0;
-    result->sigExtra = softfloat_intermediateResult.sigExtra;
+    result->sigExtra64 = softfloat_intermediateResult.sigExtra64;
+    result->sigExtra0 = softfloat_intermediateResult.sigExtra0;
 
     result->fmaPreAddition[indexWord(4, 3)] = softfloat_intermediateResult.fmaPreAddition[indexWord(4, 3)];
     result->fmaPreAddition[indexWord(4, 2)] = softfloat_intermediateResult.fmaPreAddition[indexWord(4, 2)];
@@ -42,7 +43,9 @@ void softfloat_getIntermResults(MPIntermResult &result) {
     result.sig <<= 64;
     result.sig |= softfloat_intermediateResult.sig0;
     result.sig <<= 64;
-    result.sig |= softfloat_intermediateResult.sigExtra;
+    result.sig |= softfloat_intermediateResult.sigExtra64;
+    result.sig <<= 64;
+    result.sig |= softfloat_intermediateResult.sigExtra0;
 
     result.fma_pre_addition = softfloat_intermediateResult.fmaPreAddition[indexWord(4, 3)];
     result.fma_pre_addition <<= 64;
@@ -59,7 +62,8 @@ void softfloat_clearIntermResults() {
     softfloat_intermediateResult.exp = 0;
     softfloat_intermediateResult.sig64 = 0;
     softfloat_intermediateResult.sig0 = 0;
-    softfloat_intermediateResult.sigExtra = 0;
+    softfloat_intermediateResult.sigExtra64 = 0;
+    softfloat_intermediateResult.sigExtra0 = 0;
     softfloat_intermediateResult.fmaPreAddition[indexWord(4, 0)] = 0;
     softfloat_intermediateResult.fmaPreAddition[indexWord(4, 1)] = 0;
     softfloat_intermediateResult.fmaPreAddition[indexWord(4, 2)] = 0;
@@ -1787,7 +1791,7 @@ int reference_model(
             if (exp != 0) {
                 sig |= BF16_IMPLICIT_ONE;
             }
-            intermResult.sig = mp::uint256_t(sig) << (192 - 2 - BF16_SIG_BITS);
+            intermResult.sig = mp::uint256_t(sig) << (INTERM_SIG_LENGTH - 2 - BF16_SIG_BITS);
 
             intermResult.exp = exp;
 
@@ -1803,7 +1807,7 @@ int reference_model(
                 sig |= (1 << 10);
             }
 
-            intermResult.sig = mp::uint256_t(sig) << (192 - 2 - 10);
+            intermResult.sig = mp::uint256_t(sig) << (INTERM_SIG_LENGTH - 2 - 10);
 
             intermResult.exp = exp;
 
@@ -1816,7 +1820,7 @@ int reference_model(
 
             if (exp != 0) {
                 sig |= (1 << 23);
-                intermResult.sig = mp::uint256_t(sig) << (192 - 2 - 23);
+                intermResult.sig = mp::uint256_t(sig) << (INTERM_SIG_LENGTH - 2 - 23);
             }
 
             intermResult.exp = exp;
@@ -1832,7 +1836,7 @@ int reference_model(
                 sig |= (1UL << 52);
             }
 
-            intermResult.sig = mp::uint256_t(sig) << (192 - 2 - 52);
+            intermResult.sig = mp::uint256_t(sig) << (INTERM_SIG_LENGTH - 2 - 52);
 
             intermResult.exp = exp;
 
@@ -1851,7 +1855,7 @@ int reference_model(
             }
             // intermResult.sig64 = static_cast<uint64_t>(sig >> 64);
             // intermResult.sig0 = static_cast<uint64_t>(sig);
-            intermResult.sig = sig << 64;
+            intermResult.sig = sig << (INTERM_SIG_LENGTH - 128);
 
             intermResult.exp = exp;
 
@@ -1942,7 +1946,7 @@ int reference_model(
     //     shifted_sig.v0 | (intermResult->sigExtra >> (-shift_amount & 63)); // Look at shortShiftLeft source
     // intermResult->sigExtra = intermResult->sigExtra << shift_amount;
     intermResult.sig <<= shift_amount;
-    intermResult.sig &= (mp::uint256_t(1) << 192) - 1;
+    intermResult.sig &= ~mp::uint256_t(0);
 
     return EXIT_SUCCESS;
 }
@@ -2080,7 +2084,7 @@ std::string coverfloat_runtestvector(const std::string &input, bool suppress_err
     output << std::setw(2) << resFmt16 << '_' << std::setw(2) << static_cast<uint16_t>(newFlags) << '_';
     output << std::setw(1) << intermRes.sign << '_';
     output << std::setw(8) << intermRes.exp << '_';
-    output << std::setw(48) << intermRes.sig << '_';
+    output << std::setw(64) << intermRes.sig << '_';
     output << std::setw(64) << intermRes.fma_pre_addition;
 
     output << "\n";

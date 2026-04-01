@@ -7,7 +7,6 @@ from pathlib import Path
 from random import seed
 from typing import TextIO
 
-# from cover_float.testgen import softfloat_parser
 from cover_float.common.constants import (
     EXPONENT_BIAS,
     EXPONENT_BITS,
@@ -283,7 +282,7 @@ def convertTests(test_f: TextIO, cover_f: TextIO) -> None:
                 tests_conversion_9(lp, hp, rounding_mode, test_f, cover_f)
 
 
-def genSpecExp(precision: str, target: int, hashString: str) -> tuple[int, int]:
+def genSpecExp_mul(precision: str, target: int, hashString: str) -> tuple[int, int]:
     hashval = reproducible_hash(hashString)
     seed(hashval)
     m_bits = MANTISSA_BITS[precision]
@@ -296,7 +295,7 @@ def genSpecExp(precision: str, target: int, hashString: str) -> tuple[int, int]:
     return (a_exp, b_exp)
 
 
-def genSpecExp_div(precision: str, target: int, hashString: str) -> tuple[int, int]:
+def genSpecExp_div(precision: str, target: int, hashString: str, grs_int: int) -> tuple[int, int]:
     hashval = reproducible_hash(hashString)
     seed(hashval)
     m_bits = MANTISSA_BITS[precision]
@@ -304,12 +303,16 @@ def genSpecExp_div(precision: str, target: int, hashString: str) -> tuple[int, i
     max_exp = UNBIASED_EXP[precision][1]
 
     # Absolute lowest effective exponent (subnormal floor)
-    min_sn = min_exp - m_bits
+    min_sn = min_exp - m_bits + 1
 
     # Mathematical rule for Division: target = a_exp - b_exp
     # Therefore: b_exp = a_exp - target
 
     lower_bound = max(min_sn, min_sn + target)
+
+    if grs_int == 7 or grs_int == 5:
+        lower_bound = max(min_exp, min_sn + target)  # No Subnormal Values, so mantissa has same # of bits
+
     upper_bound = min(max_exp, max_exp + target)
 
     if lower_bound > upper_bound:
@@ -318,21 +321,12 @@ def genSpecExp_div(precision: str, target: int, hashString: str) -> tuple[int, i
     a_exp = random.randint(lower_bound, upper_bound)
     b_exp = a_exp - target
 
-    return (a_exp, b_exp)
+    large_exp = max(a_exp, b_exp)
+    small_exp = min(b_exp, a_exp)
+    return (small_exp, large_exp)
 
 
-def genRandExp(precision: str, max_exp: int, hashString: str) -> tuple[int, int]:
-    hashval = reproducible_hash(hashString)
-    seed(hashval)
-    m_bits = MANTISSA_BITS[precision]
-    min_exp = UNBIASED_EXP[precision][0]
-
-    smallest_res_exp = min_exp - (2 * m_bits)
-    target = random.randint(smallest_res_exp, max_exp)
-    return genSpecExp(precision, target, hashString)
-
-
-def get_grs_mant(precision: str, a_exp: int, b_exp: int, hashString: str, grs: str) -> tuple[str, str]:
+def get_grs_mant(operation: str, precision: str, a_exp: int, b_exp: int, hashString: str, grs: str) -> tuple[str, str]:
     m_bits = MANTISSA_BITS[precision]
     e_min = UNBIASED_EXP[precision][0]
     min_sn = e_min - m_bits
@@ -356,22 +350,63 @@ def get_grs_mant(precision: str, a_exp: int, b_exp: int, hashString: str, grs: s
     b_rBit = False
     if grs_int == 6:
         if a_exp == min_sn or b_exp == min_sn:  # If exp = min_sn, then you can't have the rBit
-            if a_exp == min_sn and b_exp == min_sn:
-                raise ValueError("a_exp and b_exp can't both be min_sn")
-            elif a_exp == min_sn:
-                b_rBit = True
-            elif b_exp == min_sn:
+            if operation == OP_MUL:
+                if a_exp == min_sn and b_exp == min_sn:
+                    raise ValueError("a_exp and b_exp can't both be min_sn")
+                elif a_exp == min_sn:
+                    b_rBit = True
+                elif b_exp == min_sn:
+                    a_rBit = True
+            else:
                 a_rBit = True
         else:  # Random selection otherwise
-            a_rBit = random.randint(0, 1) == 1  # If 1 is randomly selected, then a_rBit = True
-            b_rBit = not a_rBit
+            if operation == OP_MUL:
+                a_rBit = random.randint(0, 1) == 1  # If 1 is randomly selected, then a_rBit = True
+                b_rBit = not a_rBit
+            else:
+                a_rBit = True
         if a_rBit:
-            a_mantissa += 1 << a_bits_left - 1
+            a_mantissa += 1 << (a_bits_left - 1)
         elif b_rBit:
-            b_mantissa += 1 << b_bits_left - 1
+            b_mantissa += 1 << (b_bits_left - 1)
 
-    # grs 2 and 4 want need 0s after specified 1 bit
-    if grs_int != 2 and grs_int != 6 and grs_int != 4:
+    elif (grs_int == 7 and operation == OP_DIV) or (grs_int == 5 and operation == OP_DIV):
+        a_max = (1 << (a_bits_left + 1)) - 1
+        # a_min = 1 << a_bits_left  # With hidden 1
+
+        b_min = 1 << b_bits_left
+        b_max = (1 << (b_bits_left + 1)) - 1
+
+        a_int = 0
+        b_int = 0
+
+        if grs_int == 7 or grs_int == 5:  # G = 1, R = 1, S = 1
+            # b and a mantissas have the same range
+            b_min_range = b_min
+            b_max_range = (2 * b_max) // 3
+
+            small_int = random.randint(b_min_range, b_max_range)
+
+            a_min_range = (3 * small_int) // 2
+            a_max_range = a_max
+
+            large_int = random.randint(a_min_range, a_max_range)
+
+            if grs_int == 7:
+                a_int = large_int
+                b_int = small_int
+            else:
+                a_int = small_int
+                b_int = large_int
+
+        a_mantissa = a_int - (1 << a_bits_left)  # Remove hidden 1
+        b_mantissa = b_int - (1 << b_bits_left)
+
+    if grs_int == 3 and operation == OP_DIV:
+        a_mantissa = random.randint(1, (1 << a_bits_left) - 1)
+        b_mantissa = random.randint(1, (1 << b_bits_left) - 1)
+
+    if grs_int != 2 and grs_int != 6 and grs_int != 4 and operation == OP_MUL:
         while not met_conditions:
             seed(cycles_attempted)  # Make deterministic
 
@@ -395,12 +430,12 @@ def get_grs_mant(precision: str, a_exp: int, b_exp: int, hashString: str, grs: s
             maxNorm = 1 << (product_bits - 1)  # Really the smallest nonNorm
 
             if product_a_b < maxNorm:
-                if grs_int == 5 or grs_int == 8:
+                if grs_int == 5 or grs_int == 7:
                     subtract_g_bit = product_a_b - (1 << decimal_bit)
                     subtract_r_bit = subtract_g_bit - (1 << (decimal_bit - 1))
                     if grs_int == 5:
                         met_conditions = subtract_r_bit < 0
-                    elif grs_int == 8:
+                    elif grs_int == 7:
                         met_conditions = subtract_r_bit > 0
                 else:
                     met_conditions = True
@@ -424,7 +459,8 @@ def get_grs_mant(precision: str, a_exp: int, b_exp: int, hashString: str, grs: s
     return (bin_a_mantissa, bin_b_mantissa)
 
 
-def mul_grs_gen(
+def mul_div_grs_gen(
+    operation: str,
     precision: str,
     rounding_mode: str,
     grs: str,
@@ -440,6 +476,7 @@ def mul_grs_gen(
 
     # g_exp is needed for going below normal, getting specific subnorm results
     e_bits = EXPONENT_BITS[precision]
+    m_bits = MANTISSA_BITS[precision]
     e_bias = EXPONENT_BIAS[precision]
     min_exp = UNBIASED_EXP[precision][0]
     sn_exp = min_exp - 1
@@ -454,12 +491,18 @@ def mul_grs_gen(
         b_sign = (a_sign + 1) % 2
 
     grs_int = int(grs, 2)
-    if grs_int == 1:
-        a_exp, b_exp = genRandExp(precision, first_bit, hashString + grs + sign)
-    else:
-        a_exp, b_exp = genSpecExp(precision, first_bit, hashString + grs + sign)
 
-    a_mant, b_mant = get_grs_mant(precision, a_exp, b_exp, hashString + grs + sign, grs)
+    target_exp = first_bit
+    if grs_int == 1:
+        smallest_res_exp = min_exp - (2 * m_bits)
+        target_exp = random.randint(smallest_res_exp, g_exp)
+
+    if operation == OP_MUL:
+        a_exp, b_exp = genSpecExp_mul(precision, target_exp, hashString + grs + sign)
+    else:  # operation == OP_DIV
+        a_exp, b_exp = genSpecExp_div(precision, target_exp, hashString, grs_int)
+
+    a_mant, b_mant = get_grs_mant(operation, precision, a_exp, b_exp, hashString + grs + sign, grs)
 
     # Normalize exponents
     a_exp = max(a_exp, sn_exp)
@@ -470,7 +513,7 @@ def mul_grs_gen(
 
     if genTests:
         run_and_store_test_vector(
-            f"{OP_MUL}_{rounding_mode}_{a}_{b}_{32 * '0'}_{precision}_{32 * '0'}_{precision}_00", test_f, cover_f
+            f"{operation}_{rounding_mode}_{a}_{b}_{32 * '0'}_{precision}_{32 * '0'}_{precision}_00", test_f, cover_f
         )
 
     return (a, b)
@@ -483,8 +526,8 @@ def tests_multiply_1_2(precision: str, rounding_mode: str, test_f: TextIO, cover
     min_exp = UNBIASED_EXP[precision][0]
     sn_exp = min_exp - 1
 
-    mul_grs_gen(precision, rounding_mode, "001", sn_exp, "0", test_f, cover_f, "1/2", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "001", sn_exp, "1", test_f, cover_f, "1/2", True)  # Negative Test
+    mul_div_grs_gen(OP_MUL, precision, rounding_mode, "001", sn_exp, "0", test_f, cover_f, "1/2", True)  # Positive Test
+    mul_div_grs_gen(OP_MUL, precision, rounding_mode, "001", sn_exp, "1", test_f, cover_f, "1/2", True)  # Negative Test
 
 
 def tests_multiply_3_4(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -497,43 +540,79 @@ def tests_multiply_3_4(precision: str, rounding_mode: str, test_f: TextIO, cover
     minSNPos = min_exp - m_bits  # Treating the minSN as normalized
 
     # minSN - 3 ulp G = 0, R = 0, S = 1
-    mul_grs_gen(precision, rounding_mode, "001", minSNPos, "0", test_f, cover_f, "minSN-3ulppos", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "001", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "001", minSNPos, "0", test_f, cover_f, "minSN-3ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "001", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True
+    )  # Negative Test
 
     # minSN - 2 ulp G = 0, R = 1, S = 0
-    mul_grs_gen(precision, rounding_mode, "010", minSNPos, "0", test_f, cover_f, "minSN-2ulppos", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "010", minSNPos, "1", test_f, cover_f, "minSN-2ulpneg", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "010", minSNPos, "0", test_f, cover_f, "minSN-2ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "010", minSNPos, "1", test_f, cover_f, "minSN-2ulpneg", True
+    )  # Negative Test
 
     # minSN - 1 ulp G = 0, R = 1, S = 1
-    mul_grs_gen(precision, rounding_mode, "011", minSNPos, "0", test_f, cover_f, "minSN-1ulppos", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "011", minSNPos, "1", test_f, cover_f, "minSN-1ulpneg", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "011", minSNPos, "0", test_f, cover_f, "minSN-1ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "011", minSNPos, "1", test_f, cover_f, "minSN-1ulpneg", True
+    )  # Negative Test
 
     # minSN G = 1, R = 0, S = 0
-    mul_grs_gen(precision, rounding_mode, "100", minSNPos, "0", test_f, cover_f, "minSNpos", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "100", minSNPos, "1", test_f, cover_f, "minSNneg", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "100", minSNPos, "0", test_f, cover_f, "minSNpos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "100", minSNPos, "1", test_f, cover_f, "minSNneg", True
+    )  # Negative Test
 
     # minSN + 1 ulp G = 1, R = 0, S = 1
-    mul_grs_gen(precision, rounding_mode, "101", minSNPos, "0", test_f, cover_f, "minSN+1ulppos", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "101", minSNPos, "1", test_f, cover_f, "minSN+1ulpneg", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "101", minSNPos, "0", test_f, cover_f, "minSN+1ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "101", minSNPos, "1", test_f, cover_f, "minSN+1ulpneg", True
+    )  # Negative Test
 
     # minSN + 2 ulp G = 1, R = 1, S = 0
-    mul_grs_gen(precision, rounding_mode, "110", minSNPos, "0", test_f, cover_f, "minSN+2ulppos", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "110", minSNPos, "1", test_f, cover_f, "minSN+2ulpneg", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "110", minSNPos, "0", test_f, cover_f, "minSN+2ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "110", minSNPos, "1", test_f, cover_f, "minSN+2ulpneg", True
+    )  # Negative Test
 
     # minSN + 3 ulp G = 1, R = 1, S = 1
-    mul_grs_gen(precision, rounding_mode, "111", minSNPos, "0", test_f, cover_f, "minSN-3ulppos", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "111", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "111", minSNPos, "0", test_f, cover_f, "minSN-3ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "111", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True
+    )  # Negative Test
 
 
 def tests_multiply_5_6(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
     min_exp = UNBIASED_EXP[precision][0]
     # MinNorm - 3ulp
-    mul_grs_gen(precision, rounding_mode, "100", min_exp, "0", test_f, cover_f, "minExp", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "100", min_exp, "1", test_f, cover_f, "minExp", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "100", min_exp, "0", test_f, cover_f, "minExp", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "100", min_exp, "1", test_f, cover_f, "minExp", True
+    )  # Negative Test
 
     # MinNorm
-    mul_grs_gen(precision, rounding_mode, "100", min_exp, "0", test_f, cover_f, "minExp", True)  # Positive Test
-    mul_grs_gen(precision, rounding_mode, "100", min_exp, "1", test_f, cover_f, "minExp", True)  # Negative Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "100", min_exp, "0", test_f, cover_f, "minExp", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_MUL, precision, rounding_mode, "100", min_exp, "1", test_f, cover_f, "minExp", True
+    )  # Negative Test
 
 
 def tests_multiply_7_8(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -542,8 +621,8 @@ def tests_multiply_7_8(precision: str, rounding_mode: str, test_f: TextIO, cover
 
     target_exp = min_exp - m_bits
 
-    mul_grs_gen(precision, rounding_mode, "011", target_exp, "0", test_f, cover_f, "1/2 pos", True)
-    mul_grs_gen(precision, rounding_mode, "011", target_exp, "1", test_f, cover_f, "1/2 neg", True)
+    mul_div_grs_gen(OP_MUL, precision, rounding_mode, "011", target_exp, "0", test_f, cover_f, "1/2 pos", True)
+    mul_div_grs_gen(OP_MUL, precision, rounding_mode, "011", target_exp, "1", test_f, cover_f, "1/2 neg", True)
 
 
 def tests_multiply_9(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -557,17 +636,20 @@ def tests_multiply_9(precision: str, rounding_mode: str, test_f: TextIO, cover_f
         seed("b5" + OP_MUL + precision + rounding_mode + str(target_exp))
         sign = str(random.randint(0, 1))
 
-        mul_grs_gen(precision, rounding_mode, "011", target_exp, sign, test_f, cover_f, str(target_exp), True)
+        mul_div_grs_gen(
+            OP_MUL, precision, rounding_mode, "011", target_exp, sign, test_f, cover_f, str(target_exp), True
+        )
 
 
 def multiplyTests(test_f: TextIO, cover_f: TextIO) -> None:
-    for precision in FLOAT_FMTS:
-        for rounding_mode in ROUNDING_MODES:
-            tests_multiply_1_2(precision, rounding_mode, test_f, cover_f)
-            tests_multiply_3_4(precision, rounding_mode, test_f, cover_f)
-            tests_multiply_5_6(precision, rounding_mode, test_f, cover_f)
-            tests_multiply_7_8(precision, rounding_mode, test_f, cover_f)
-            tests_multiply_9(precision, rounding_mode, test_f, cover_f)
+    # for precision in FLOAT_FMTS:
+    precision = FMT_HALF
+    for rounding_mode in ROUNDING_MODES:
+        tests_multiply_1_2(precision, rounding_mode, test_f, cover_f)
+        tests_multiply_3_4(precision, rounding_mode, test_f, cover_f)
+        tests_multiply_5_6(precision, rounding_mode, test_f, cover_f)
+        tests_multiply_7_8(precision, rounding_mode, test_f, cover_f)
+        tests_multiply_9(precision, rounding_mode, test_f, cover_f)
 
 
 def fma_gen(
@@ -603,8 +685,17 @@ def fma_gen(
     c_sign = (op_add_sign + addend_sign) % 2
 
     # Generate the multiplication testvectors
-    a, b = mul_grs_gen(
-        precision, rounding_mode, product_grs, product_exponent, str(mul_sign), test_f, cover_f, hashEnding, False
+    a, b = mul_div_grs_gen(
+        OP_MUL,
+        precision,
+        rounding_mode,
+        product_grs,
+        product_exponent,
+        str(mul_sign),
+        test_f,
+        cover_f,
+        hashEnding,
+        False,
     )
 
     # Generate the addition testvector
@@ -802,10 +893,7 @@ def fmaTests(test_f: TextIO, cover_f: TextIO) -> None:
                 tests_fma_9(operation, precision, rounding_mode, test_f, cover_f)
 
 
-# def get_div_mant(precision: str, a_exp: int, b_exp: int, hashString: str, grs: str) -> str:
-
-
-def div_grs_gen(
+def div_grs_mant(
     test_f: TextIO,
     cover_f: TextIO,
     grs: str,
@@ -822,7 +910,7 @@ def div_grs_gen(
     min_exp = UNBIASED_EXP[precision][0]
 
     # Determine exponents, subtract to target_exp
-    possible_exponents = genSpecExp_div(precision, target_exp, hashString)
+    possible_exponents = genSpecExp_div(precision, target_exp, hashString, int(grs, 2))
 
     a_exp = max(possible_exponents)
     b_exp = min(possible_exponents)
@@ -864,24 +952,109 @@ def div_grs_gen(
 
 
 def tests_div_1_2(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
+    min_exp = UNBIASED_EXP[precision][0]
+
+    # Random SN: G = 0, R = 0, S = 1
+    mul_div_grs_gen(OP_DIV, precision, rounding_mode, "001", min_exp + 1, "0", test_f, cover_f, "positive", True)
+    mul_div_grs_gen(OP_DIV, precision, rounding_mode, "001", min_exp + 1, "0", test_f, cover_f, "positive", True)
+
+
+def tests_div_3_4(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
     m_bits = MANTISSA_BITS[precision]
     min_exp = UNBIASED_EXP[precision][0]
 
-    min_sn = min_exp - m_bits
+    minSNPos = min_exp - m_bits  # Treating the minSN as normalized
 
-    p_sn_exp = random.randint(min_sn, min_exp - 1)
-    n_sn_exp = random.randint(min_sn, min_exp - 1)
+    # minSN - 3 ulp G = 0, R = 0, S = 1
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "001", minSNPos, "0", test_f, cover_f, "minSN-3ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "001", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True
+    )  # Negative Test
 
-    # Random SN: G = 0, R = 0, S = 1
-    div_grs_gen(test_f, cover_f, "001", min_sn, precision, rounding_mode, p_sn_exp, "0", "positive")
-    div_grs_gen(test_f, cover_f, "001", min_sn, precision, rounding_mode, n_sn_exp, "1", "negative")
+    # minSN - 2 ulp G = 0, R = 1, S = 0
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "010", minSNPos, "0", test_f, cover_f, "minSN-2ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "010", minSNPos, "1", test_f, cover_f, "minSN-2ulpneg", True
+    )  # Negative Test
+
+    # minSN - 1 ulp G = 0, R = 1, S = 1
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "011", minSNPos, "0", test_f, cover_f, "minSN-1ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "011", minSNPos, "1", test_f, cover_f, "minSN-1ulpneg", True
+    )  # Negative Test
+
+    # minSN G = 1, R = 0, S = 0
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "100", minSNPos, "0", test_f, cover_f, "minSNpos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "100", minSNPos, "1", test_f, cover_f, "minSNneg", True
+    )  # Negative Test
+
+    # minSN + 1 ulp G = 1, R = 0, S = 1
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "101", minSNPos, "0", test_f, cover_f, "minSN+1ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "101", minSNPos, "1", test_f, cover_f, "minSN+1ulpneg", True
+    )  # Negative Test
+
+    # minSN + 2 ulp G = 1, R = 1, S = 0
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "110", minSNPos, "0", test_f, cover_f, "minSN+2ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "110", minSNPos, "1", test_f, cover_f, "minSN+2ulpneg", True
+    )  # Negative Test
+
+    # minSN + 3 ulp G = 1, R = 1, S = 1
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "111", minSNPos, "0", test_f, cover_f, "minSN-3ulppos", True
+    )  # Positive Test
+    mul_div_grs_gen(
+        OP_DIV, precision, rounding_mode, "111", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True
+    )  # Negative Test
+
+
+def tests_div_7_8(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
+    m_bits = MANTISSA_BITS[precision]
+    min_exp = UNBIASED_EXP[precision][0]
+
+    minSNPos = min_exp - m_bits  # Treating the minSN as normalized
+
+    mul_div_grs_gen(OP_DIV, precision, rounding_mode, "001", minSNPos, "0", test_f, cover_f, "minSN", True)
+    mul_div_grs_gen(OP_DIV, precision, rounding_mode, "001", minSNPos, "1", test_f, cover_f, "minSN", True)
+
+
+def tests_div_9(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
+    min_exp = UNBIASED_EXP[precision][0]
+
+    min_exp_range = min_exp - 1  # SN exp, or minNorm.exp
+    max_exp_range = min_exp_range + 5
+
+    for target_exp in range(min_exp_range, max_exp_range + 1):  # Because end is exclusive
+        seed("b5" + OP_DIV + precision + rounding_mode + str(target_exp))
+        sign = str(random.randint(0, 1))
+
+        mul_div_grs_gen(
+            OP_DIV, precision, rounding_mode, "011", target_exp + 1, sign, test_f, cover_f, str(target_exp), True
+        )
 
 
 def divTests(test_f: TextIO, cover_f: TextIO) -> None:
     # for precision in FLOAT_FMTS:
     precision = FMT_HALF
     for rounding_mode in ROUNDING_MODES:
-        tests_div_1_2(precision, rounding_mode, test_f, cover_f)
+        # tests_div_1_2(precision, rounding_mode, test_f, cover_f)
+        tests_div_3_4(precision, rounding_mode, test_f, cover_f)
+        # tests_div_7_8(precision, rounding_mode, test_f, cover_f)
+        # tests_div_9(precision, rounding_mode, test_f, cover_f)
 
 
 def tests_add_sub_1_2(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -1039,10 +1212,6 @@ def main() -> None:
         addSubTests(test_f, cover_f)
         fmaTests(test_f, cover_f)
         divTests(test_f, cover_f)
-
-    # Set your input and output file names here
-    # input_filename = "./tests/covervectors/B5_cv.txt"
-    # output_filename = "./tests/readable/decoded_results.txt"
 
 
 if __name__ == "__main__":

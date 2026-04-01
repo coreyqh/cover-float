@@ -1,7 +1,8 @@
 """
 Angela Zheng (angela20061015@gmail.com)
 
-Basically just loop through -p to +1 that results in -126
+Created:        March 30, 2026
+Last Edited:    March 30, 2026
 """
 
 import random
@@ -10,7 +11,6 @@ from random import seed
 from typing import TextIO
 
 from cover_float.common.constants import (
-    BIASED_EXP,
     EXPONENT_BITS,
     FLOAT_FMTS,
     MANTISSA_BITS,
@@ -46,77 +46,113 @@ def writeSub(fmt: str, a_hex: str, b_hex: str, test_f: TextIO, cover_f: TextIO) 
     )
 
 
-def makeNegPMantissas(fmt: str) -> tuple[int, int]:
+def makeNegPMantissas(fmt: str, m_shifts: int) -> tuple[int, int]:
+    """Create mantissas for the most extreme cancellation (d = -p)"""
     m = MANTISSA_BITS[fmt]
-    a_m = 0
-    b_m = (1 << m) - 1
+
+    a_m = 0  # A = 1.00...0 (Mantissa 0)
+    b_m = ((1 << m) - 1) >> m_shifts  # B = 0.01...1 (Mantissa all 1s)
+
     return a_m, b_m
 
 
-def makeCancellationMantissas(fmt: str, d: int) -> tuple[int, int]:
+def makeCancellationMantissas(fmt: str, d: int, m_shifts: int) -> tuple[int, int]:
+    """Generate identical -d bits for both mantissas such that exactly -d bits cancel."""
     m = MANTISSA_BITS[fmt]
     k = -d
 
-    prefix = random.getrandbits(k - 1) << m - k + 1 if k > 1 else 0
-    diff_bit = 1 << (m - k)
+    # generate identical prefixes for both operands
+    if k > 1:
+        a_prefix = 1 << (m - 1 - m_shifts) | random.getrandbits(k - 1) << (m - k + 1 - m_shifts)
+        b_prefix = a_prefix
+    else:
+        a_prefix = 0
+        b_prefix = 0
 
-    if k < (m - 1):
-        a_tail = 1 << (m - k - 2) | random.getrandbits(m - k - 2)
-        b_tail = random.getrandbits(m - k - 2)
+    diff_bit = 1 << (m - k - m_shifts)  # differing bit
+
+    # randomly generate tails for both operands
+    if k < (m - 1 - m_shifts):
+        a_tail = 1 << (m - k - m_shifts - 2) | random.getrandbits(m - k - m_shifts - 2)
+        b_tail = random.getrandbits(m - k - m_shifts - 2)
     else:
         a_tail = 0
         b_tail = 0
 
-    a_m = prefix | diff_bit | a_tail
-    b_m = prefix | b_tail
+    a_m = a_prefix | diff_bit | a_tail
+    b_m = b_prefix | b_tail
 
     return a_m, b_m
 
 
-def makeNoCancelMantissas(fmt: str) -> tuple[int, int]:
+def makeNoCancelMantissas(fmt: str, m_shifts: int) -> tuple[int, int]:
+    """Generate mantissas that result in no bit cancellation (d = 0)"""
     m = MANTISSA_BITS[fmt]
-    a_m = (1 << m) - 1
-    b_m = ((1 << (m - 1)) - 1) << 1
+
+    a_m = ((1 << m) - 1) >> m_shifts
+    b_m = (((1 << (m - 1)) - 1) << 1) >> m_shifts
+
     return a_m, b_m
 
 
-def makeTestVectors_B13(
-    fmt: str,
-    d: int,
-    operation: str,
-    test_f: TextIO,
-    cover_f: TextIO,
-) -> None:
+def makeCarryMantissas(fmt: str, m_shifts: int) -> tuple[int, int]:
+    """Generate mantissas that will cause a carry (d = +1)"""
+    m = MANTISSA_BITS[fmt]
+
+    a_m = ((1 << m) - 1) >> m_shifts  # 0.011...111
+    b_m = a_m  # 0.011...111
+
+    return a_m, b_m
+
+
+def makeTestVectors(fmt: str, d: int, leading_zeros: int, operation: str, test_f: TextIO, cover_f: TextIO) -> None:
     m = MANTISSA_BITS[fmt]
     p = m + 1
-    min_exp = BIASED_EXP[fmt][0]
 
+    is_carry = False
     is_add = operation == "add"
     write_fn = writeAdd if is_add else writeSub
+    m_shifts = 0
 
-    # B13 sweep exponent near minimum
-    base_exp = min_exp - d
+    # Randomly generate exponents
+    a_exp = (
+        -1
+    ) * d - leading_zeros  # if a_exp is less than zero, clips to zero and shifts mantissa to the right by m_shift bits
+    if a_exp < 0:
+        m_shifts = (-1) * a_exp
+        a_exp = 0
+    b_exp = a_exp
 
-    a_exp = base_exp
-    b_exp = base_exp
-
-    # Mantissas (same logic as B12)
-    if d == 0:
-        a_m, b_m = makeNoCancelMantissas(fmt)
-        b_exp -= 1
+    # Generate mantissas based on d
+    if d == 1:
+        is_carry = True
+        a_m, b_m = makeCarryMantissas(fmt, m_shifts)
+    elif d == 0:
+        a_m, b_m = makeNoCancelMantissas(fmt, m_shifts)
+        b_m >>= 1  # absorb the exponent shift into mantissa shift
     elif d == -p:
-        a_m, b_m = makeNegPMantissas(fmt)
-        b_exp -= 1
+        a_m, b_m = makeNegPMantissas(fmt, m_shifts)
+        if a_exp == 0:
+            a_exp = 1  # minimum normal, so b_exp = 0 (subnormal) is valid
+        b_exp = a_exp - 1  # impossible case is when a_exp = 0
     else:
-        a_m, b_m = makeCancellationMantissas(fmt, d)
+        a_m, b_m = makeCancellationMantissas(fmt, d, m_shifts)
 
-    # Sign logic
+    # Sign assignments based on whether d is 1
     if is_add:
-        a_sign = 0
-        b_sign = 1
+        if is_carry:
+            a_sign = 0
+            b_sign = 0
+        else:
+            a_sign = 0
+            b_sign = 1
     else:
-        a_sign = 0
-        b_sign = 0
+        if is_carry:
+            a_sign = 0
+            b_sign = 1
+        else:
+            a_sign = 0
+            b_sign = 0
 
     a_hex = decimalComponentsToHex(fmt, a_sign, a_exp, a_m)
     b_hex = decimalComponentsToHex(fmt, b_sign, b_exp, b_m)
@@ -125,14 +161,16 @@ def makeTestVectors_B13(
 
 
 def SubnormCancellationTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
-    p = MANTISSA_BITS[fmt] + 1
+    m = MANTISSA_BITS[fmt]
+    p = m + 1
 
-    for d in range(-p, 1):  # d = 1 is impossible
-        seed(reproducible_hash(OP_ADD + fmt + "b13"))
-        makeTestVectors_B13(fmt, d, "add", test_f, cover_f)
+    for leading_zeros in range(m):
+        for d in range(-p, 2):
+            seed(reproducible_hash(f"{fmt}_b13_add_{d}_{leading_zeros}"))
+            makeTestVectors(fmt, d, leading_zeros, "add", test_f, cover_f)
 
-        seed(reproducible_hash(OP_SUB + fmt + "b13"))
-        makeTestVectors_B13(fmt, d, "sub", test_f, cover_f)
+            seed(reproducible_hash(f"{fmt}_b13_sub_{d}_{leading_zeros}"))
+            makeTestVectors(fmt, d, leading_zeros, "sub", test_f, cover_f)
 
 
 def main() -> None:
@@ -140,8 +178,8 @@ def main() -> None:
         Path("./tests/testvectors/B13_tv.txt").open("w") as test_f,
         Path("./tests/covervectors/B13_cv.txt").open("w") as cover_f,
     ):
-        test_f.write("// B13 Cancellation + Subnormal Region Tests\n")
-        test_f.write("// Operations: ADD, SUB\n")
+        test_f.write("// B13 Cancellation + Subnormal Tests\n")
+        test_f.write("// ADD, SUB\n")
 
         for fmt in FLOAT_FMTS:
             SubnormCancellationTests(test_f, cover_f, fmt)

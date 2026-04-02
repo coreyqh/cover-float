@@ -1,0 +1,82 @@
+// Ryan Wolk (rwolk@g.hmc.edu)
+
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+
+== B11 Add: Shift Combined with Special Significands
+
+Aharoni et al.
+
+=== Description
+
+In this model we test the combination of different shift values between the inputs, with special patterns in the significands of the inputs.  Significands of Input1 and Input2: as in model (B9) "Special Significands on Inputs"
+
+Shift: as in model (B10) "Shift - Add"
+
+We test both effective operations: addition and subtraction.
+
+*Operations Supported*: Add, Subtract
+
+*Precisions Supported*: BF_16, F16, F32, F64, F128
+
+== Background
+
+The goals of this test are similar to that of B9: generate a set of traditionally difficult sequences to deal with. The caveat here is that we want them to be dealt with for all possible add and subtract shifts. As they change the way that significands interact with each other.
+
+== Implementation
+
+=== Coverage Limitations
+
+This is up to a few hundred shifts in the quad precision case, so again we have to be judicious in how we split our coverage. We believe that the most interesting shifts happen close to 0 and on the ends of the range. For these reasons, we cover all significand pairings for shifts within the ranges [-2, 2], [-nf, -nf + 2], and [nf - 2, nf] where nf is the size of mantissa for a given format. The other cases are covered less so, and instead we iterate over the remaining cases, generating an equal amount of precedence on each other shift and allocating only one cross of the significands to this entire range. This way we can test everything, while keeping the number of generated tests manageable.
+
+=== Test Plan
+
+We split the tests into two cases, interesting and uninteresting tests. This split is just based off of the above observation, that we care about some shifts more than others.
+
+For each shift in the interesting ranges, we compute random exponents that create the relevant shift and a random sign. This sign is kept the same between the two significands as we need to create tests for both effective addition and effective subtraction, rather than add and sub operations. This way we guarantee that the sub tests test effective subtraction and the add tests test effective addition. Significands for each float are taken from a cross product of the significand list onto itself.
+
+For the uninteresting shifts, we iterate through a cross product of significands and a rotating shift from our shift list. This way we get equal coverage of all shifts and hit every pairing of significand. Similarly, sign and exponent are random, but within the constraints of the shift and operation. For the shifts that correspond with one significand becoming a sticky bit, we generate a random exponent that causes that, rather than letting it be the first exponent that causes such behavior.
+
+Throughout the tests, the rounding mode is also randomly selected.
+
+== Test Count Breakdown
+
+|===
+| Precision | B9 Pairs | Total Tests (per Operation)
+
+| BF16
+| 5776
+| 69312
+
+| F16
+| 7396
+| 88752
+
+| F32
+| 9604
+| 115248
+
+| F64
+| 10000
+| 120000
+
+| F128
+| 10000
+| 120000
+|===
+
+=== Overall Test Count
+
+|===
+| Description | Value
+
+| Total Tests Per Operation
+| 513312
+
+| Total Tests
+| 1026624
+|===

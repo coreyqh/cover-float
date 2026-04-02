@@ -2,3 +2,6 @@
 	path = src/submodules/spike
 	url = https://github.com/coreyqh/riscv-isa-sim.git
 	branch = dev
+[submodule "src/submodules/boost_multiprecision"]
+	path = src/submodules/boost_multiprecision
+	url = https://github.com/boostorg/multiprecision.git

@@ -16,3 +16,4 @@ _vmake
 __pycache__/
 tests/covervectors/B*_cv.txt
 tests/testvectors/B*_tv.txt
+tests/readable/B*_parsed.txt

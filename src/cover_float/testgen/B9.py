@@ -1,181 +1,204 @@
-# Created By: Ryan Wolk (rwolk@hmc.edu) on 1/29/2026
+# Created By: Ryan Wolk (rwolk@hmc.edu) on 2/26/2026
 
+import math
 import random
-from collections.abc import Generator
 from pathlib import Path
-from random import seed
 from typing import TextIO
 
-from cover_float.common.constants import EXPONENT_BITS, FLOAT_FMTS, MANTISSA_BITS, OP_DIV, OP_MUL, OP_SQRT
-from cover_float.common.util import generate_test_vector, reproducible_hash
+import cover_float.common.constants as constants
+from cover_float.common.util import generate_float, generate_test_vector, reproducible_hash
 from cover_float.reference import run_and_store_test_vector
 
-"""
-From Ahronhi et al 2008:
-
-B9. Special Significands on Inputs
-This model tests special patterns in the significands of the input operands. Each
-of the input operands should contain one of the following patterns (each
-sequence can be of length 0 up to the number of bits in the significand - the
-more interesting cases will be chosen).
-i. A sequence of leading zeroes
-ii. A sequence of leading ones
-iii. A sequence of trailing zeroes
-iv. A sequence of trailing ones
-v. A small number of 1s as compared to 0s
-vi. A small number of 0s as compared to 1s
-vii. A "checkerboard" pattern (for example 00110011… or 011011011…)
-viii. Long sequences of 1s
-ix. Long sequences of 0s
-Operation: Divide, Remainder, Square-root, Multiply
-Enable Bits: XE
-"""
-
-TWO_SRC_OPS = [
-    OP_DIV,
-    # OP_REM,
-    OP_MUL,
-]
-
-ONE_SRC_OPS = [
-    OP_SQRT,
+B9_1SRC = [constants.OP_SQRT]
+B9_2SRC = [
+    constants.OP_MUL,
+    constants.OP_DIV,
+    constants.OP_REM,
 ]
 
 
-def generate_checkerboards(length: int) -> Generator[str, None, None]:
-    for zeros_length in range(1, length // 2 + 1):
-        # for ones_length in range(1, length // 2 + 1):
-        ones_length = zeros_length
+class B9SignificandGenerator:
+    def __init__(self, nf: int, seed: str) -> None:
+        """Initialize B9 Significand Generation With the Default Generators"""
+        self.nf = nf
+        self.lead_trail_lengths = [
+            nf - 1,
+            nf - 2,
+            nf - 3,
+            math.ceil(3 * nf / 4),
+            math.ceil(nf / 2),
+            math.ceil(nf / 2 - 1),
+            math.floor(nf / 4),
+            3,
+            2,
+            1,
+        ]
+        self.seed = seed
+        random.seed(reproducible_hash(seed))
 
-        pattern = "0" * zeros_length + "1" * ones_length
-        pattern *= length // (zeros_length + ones_length) + 1
-        yield pattern[:length]
-        yield pattern[::-1][:length]
+        # 0, nf - 1, nf/2, nf/2 - 2, powers of 2, random to fill 10
+        one_sparse_positions = [[0], [nf - 1], [math.ceil(nf / 2)], [math.ceil(nf / 2 - 1)]]
+        position = 1
+        while position < nf and len(one_sparse_positions) < 10:
+            one_sparse_positions.append([position])
+            position *= 2
+        while len(one_sparse_positions) < min(nf, 10):
+            val = [random.randint(0, nf - 1)]
+            if val not in one_sparse_positions:
+                one_sparse_positions.append(val)
+
+        two_sparse_positions: list[list[int]] = []
+        while len(two_sparse_positions) < 3:
+            k1 = random.randint(0, nf - 1)
+            k2 = random.randint(0, nf - 1)
+
+            if abs(k1 - k2) > nf / 2 and [k1, k2] not in two_sparse_positions:
+                two_sparse_positions.append([k1, k2])
+
+        self.sparse_positions = [*one_sparse_positions, *two_sparse_positions]
+
+        # Checkerboards: List of (run_length, offset)
+        self.checkerboards = [(run_length, offset) for run_length in range(1, 3) for offset in range(0, run_length * 2)]
+
+        # Long Runs: List of (length, positions)
+        self.long_runs: list[tuple[int, int]] = []
+        self.long_runs.extend(self.evenly_generated_runs(math.floor(3 * nf / 4), nf, 6))
+        self.long_runs.extend(self.evenly_generated_runs(math.floor(nf / 2), nf, 7))
+
+    @staticmethod
+    def swap_ones_and_zeros(s: str) -> str:
+        swap_map = str.maketrans({"1": "0", "0": "1"})
+        return s.translate(swap_map)
+
+    @staticmethod
+    def evenly_generated_runs(run_length: int, total_size: int, max_n: int) -> list[tuple[int, int]]:
+        ans: list[tuple[int, int]] = []
+        start = 1
+        end = total_size - run_length
+
+        for i in range(max_n):
+            interpolated = start + (end - start) * (i / max_n)
+            ans.append((run_length, math.floor(interpolated)))
+
+        return sorted(list(set(ans)))
+
+    def generate_leading_and_trailing(self) -> list[str]:
+        random.seed(reproducible_hash(self.seed + "leading/trailing"))
+
+        def with_n_leading_zeros(n: int) -> str:
+            mantissa = "0" * n + "1" + bin(random.getrandbits(self.nf))[2:]
+            return mantissa[: self.nf]
+
+        ans = ["1" * self.nf, "0" * self.nf]
+        for length in self.lead_trail_lengths:
+            leading_zeros = with_n_leading_zeros(length)
+            leading_ones = self.swap_ones_and_zeros(with_n_leading_zeros(length))
+            trailing_zeros = with_n_leading_zeros(length)[::-1]
+            trailing_ones = self.swap_ones_and_zeros(with_n_leading_zeros(length))[::-1]
+
+            ans.append(leading_zeros)
+            ans.append(leading_ones)
+            ans.append(trailing_zeros)
+            ans.append(trailing_ones)
+
+        return ans
+
+    def generate_sparse(self) -> list[str]:
+        random.seed(reproducible_hash(self.seed + "sparse"))
+
+        answer: list[str] = []
+
+        for positions in self.sparse_positions:
+            as_list = ["0" for _ in range(self.nf)]
+            for i in positions:
+                as_list[i] = "1"
+
+            answer.append("".join(as_list))
+            answer.append(self.swap_ones_and_zeros("".join(as_list)))
+
+        return answer
+
+    def generate_checkerboards(self) -> list[str]:
+        random.seed(reproducible_hash(self.seed + "checkerboard"))
+
+        answer: list[str] = []
+
+        for run_length, offset in self.checkerboards:
+            pattern = ("1" * run_length + "0" * run_length) * (self.nf + 2)
+            answer.append(pattern[offset : offset + self.nf])
+
+        return answer
+
+    def generate_long_runs(self) -> list[str]:
+        random.seed(reproducible_hash(self.seed + "long runs"))
+
+        answer: list[str] = []
+
+        for run_length, start in self.long_runs:
+            one_run_list = list(bin(random.getrandbits(self.nf))[2:].zfill(self.nf))
+
+            # We want the run to be exact so we pad it
+            one_run_list[start - 1] = "0"
+            one_run_list[start + run_length] = "0"
+            for i in range(start, start + run_length):
+                one_run_list[i] = "1"
+            answer.append("".join(one_run_list))
+
+            zero_run_list = list(bin(random.getrandbits(self.nf))[2:].zfill(self.nf))
+
+            # We want the run to be exact so we pad it
+            zero_run_list[start - 1] = "0"
+            zero_run_list[start + run_length] = "0"
+            for i in range(start, start + run_length):
+                zero_run_list[i] = "1"
+            answer.append("".join(zero_run_list))
+
+        return answer
+
+    def generate(self) -> list[str]:
+        return [
+            *self.generate_leading_and_trailing(),
+            *self.generate_sparse(),
+            *self.generate_checkerboards(),
+            *self.generate_long_runs(),
+        ]
 
 
-def generate_leading_and_trailing_zeros(length: int) -> Generator[str, None, None]:
-    for zeros_length in range(1, length + 1):
-        pattern = "0" * zeros_length + "1" + bin(random.getrandbits(length))[2:]
-        yield pattern[:length]
-        yield pattern[:length][::-1]
+def B9_generator(sigs: list[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
+    exp_min, exp_max = constants.BIASED_EXP[fmt]
+    exp_max -= constants.BIAS[fmt]
+    exp_min -= constants.BIAS[fmt]
 
+    # Make it impossible to overflow or underflow with multiplication or division
+    exp_max //= 2
+    exp_min //= 2
 
-def generate_leading_and_trailing_ones(length: int) -> Generator[str, None, None]:
-    for ones_length in range(1, length + 1):
-        pattern = "1" * ones_length + "0" + bin(random.getrandbits(length))[2:]
-        yield pattern[:length]
-        yield pattern[:length][::-1]
+    for op in [*B9_1SRC, *B9_2SRC]:
+        for sig1 in sigs:
+            for sig2 in sigs:
+                # TODO: Be more careful here so as to not accidentally create subnorms/underflows/overflows
+                exp1 = random.randint(exp_min, exp_max)
+                sign1 = random.randint(0, 1)
+                exp2 = random.randint(exp_min, exp_max)
+                sign2 = random.randint(0, 1)
 
+                float1 = generate_float(sign1, exp1, int(sig1, 2), fmt)
+                float2 = generate_float(sign2, exp2, int(sig2, 2), fmt) if op not in B9_1SRC else 0
 
-def generate_with_k_ones(k: int, length: int, limit: int) -> Generator[str, None, None]:
-    for _ in range(limit):
-        pattern = random.sample(range(length), k)
-        bits = ["0"] * length
-        for i in pattern:
-            bits[i] = "1"
+                tv = generate_test_vector(op, float1, float2, 0, fmt, fmt, random.choice(constants.ROUNDING_MODES))
+                run_and_store_test_vector(tv, test_f, cover_f)
 
-        yield "".join(bits)
-
-
-def generate_with_long_runs(min_run_length: int, length: int) -> Generator[str, None, None]:
-    # for start in range(length - min_run_length + 1):
-    start = random.randint(0, length - min_run_length)
-
-    # Generate a pattern with random digits
-    pattern = list(bin(random.getrandbits(length))[2:].zfill(length))
-
-    # Fill in a run of ones
-    ones_pattern = pattern[:]
-    for i in range(start, start + min_run_length):
-        ones_pattern[i] = "1"
-    yield "".join(ones_pattern)
-
-    zeros_pattern = pattern[:]
-    for i in range(start, start + min_run_length):
-        zeros_pattern[i] = "0"
-    yield "".join(zeros_pattern)
-
-
-def generate_special_significands(fmt: str) -> list[str]:
-    mantissa_length = MANTISSA_BITS[fmt]
-    ans: list[str] = []
-
-    # Leading zeros
-    ans.extend(generate_leading_and_trailing_zeros(mantissa_length))
-
-    # Leading ones
-    ans.extend(generate_leading_and_trailing_ones(mantissa_length))
-
-    # Small number of 1s
-    for k in range(1, mantissa_length // 2 + 1):
-        ans.extend(generate_with_k_ones(k, mantissa_length, 1))
-
-    # Small number of 0s
-    for k in range(1, mantissa_length // 2 + 1):
-        ans.extend(generate_with_k_ones(mantissa_length - k, mantissa_length, 1))
-
-    # Checkerboard patterns
-    ans.extend(generate_checkerboards(mantissa_length))
-
-    # Long runs of 1s and 0s
-    for run_length in range(1, mantissa_length + 1):
-        ans.extend(generate_with_long_runs(run_length, mantissa_length))
-
-    return ans
-
-
-def generate_test_vectors(special_significands: list[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> int:
-    total_tests = len(special_significands) ** 2 * len(TWO_SRC_OPS) + len(special_significands) * len(ONE_SRC_OPS)
-
-    for significand_a in special_significands:
-        sign = "0"  # We need positive for sqrt
-
-        exponent = bin(2 ** (EXPONENT_BITS[fmt] - 1))[2:].zfill(EXPONENT_BITS[fmt])
-        a = sign + exponent + significand_a
-        a = int(a, 2)
-
-        # The only SRC1_OP is SQRT
-        test_vector = generate_test_vector(OP_SQRT, a, 0, 0, fmt, fmt)
-        run_and_store_test_vector(test_vector, test_f, cover_f)
-
-        for significand_b in special_significands:
-            for op in TWO_SRC_OPS:
-                sign = "0"
-                exponent = bin(2 ** (EXPONENT_BITS[fmt] - 1))[2:].zfill(EXPONENT_BITS[fmt])
-                a = sign + exponent + significand_a
-                # breakpoint()
-                a = int(a, 2)
-
-                sign = "0"  # Only positive
-                # The idea here is to get a biased exponent of 1
-                exponent = bin(2 ** (EXPONENT_BITS[fmt] - 1))[2:].zfill(EXPONENT_BITS[fmt])
-                b = sign + exponent + significand_b
-                b = int(b, 2)
-
-                test_vector = generate_test_vector(op, a, b, 0, fmt, fmt)
-
-                run_and_store_test_vector(test_vector, test_f, cover_f)
-
-    return total_tests
+                if op in B9_1SRC:
+                    break  # Don't over generate tests
 
 
 def main() -> None:
-    total_tests: int = 0
-
     with (
         Path("tests/testvectors/B9_tv.txt").open("w") as test_f,
         Path("tests/covervectors/B9_cv.txt").open("w") as cover_f,
     ):
-        for fmt in FLOAT_FMTS:
-            hashval = reproducible_hash(fmt + "b9")
-            seed(hashval)
-            special_significands = generate_special_significands(fmt)
+        for fmt in constants.FLOAT_FMTS:
+            generator = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b9")
+            sigs = generator.generate()
 
-            generated = generate_test_vectors(special_significands, fmt, test_f, cover_f)
-            total_tests += generated
-
-    print(f"Generated {total_tests} tests for B9.")
-
-
-if __name__ == "__main__":
-    main()
+            B9_generator(sigs, fmt, test_f, cover_f)

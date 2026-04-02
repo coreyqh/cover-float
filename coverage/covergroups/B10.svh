@@ -54,9 +54,7 @@ covergroup B10_cg (virtual coverfloat_interface CFI);
     // exponent difference = exponent(a) - exponent(b)
     // extracted directly from input operands, per format
 
-    // TODO: re-work ranges with constants instead of these magic numbers
-
-    F16_exp_diff: coverpoint $signed(int'(CFI.a[14:10]) - int'(CFI.b[14:10])) {
+    F16_exp_diff: coverpoint $signed(int'(CFI.a[F16_E_UPPER : F16_E_LOWER]) - int'(CFI.b[F16_E_UPPER : F16_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(F16_P + 5) : 0]};
@@ -65,7 +63,7 @@ covergroup B10_cg (virtual coverfloat_interface CFI);
 
     }
 
-    BF16_exp_diff: coverpoint $signed(int'(CFI.a[14:7]) - int'(CFI.b[14:7])) {
+    BF16_exp_diff: coverpoint $signed(int'(CFI.a[BF16_E_UPPER : BF16_E_LOWER]) - int'(CFI.b[BF16_E_UPPER : BF16_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(BF16_P + 5) : 0]};
@@ -74,7 +72,7 @@ covergroup B10_cg (virtual coverfloat_interface CFI);
 
     }
 
-    F32_exp_diff: coverpoint $signed(int'(CFI.a[30:23]) - int'(CFI.b[30:23])) {
+    F32_exp_diff: coverpoint $signed(int'(CFI.a[F32_E_UPPER : F32_E_LOWER]) - int'(CFI.b[F32_E_UPPER : F32_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(F32_P + 5) : 0]};
@@ -83,7 +81,7 @@ covergroup B10_cg (virtual coverfloat_interface CFI);
 
     }
 
-    F64_exp_diff: coverpoint $signed(int'(CFI.a[62:52]) - int'(CFI.b[62:52])) {
+    F64_exp_diff: coverpoint $signed(int'(CFI.a[F64_E_UPPER : F64_E_LOWER]) - int'(CFI.b[F64_E_UPPER : F64_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(F64_P + 5) : 0]};
@@ -92,7 +90,7 @@ covergroup B10_cg (virtual coverfloat_interface CFI);
 
     }
 
-    F128_exp_diff: coverpoint $signed(int'(CFI.a[126:112]) - int'(CFI.b[126:112])) {
+    F128_exp_diff: coverpoint $signed(int'(CFI.a[F128_E_UPPER : F128_E_LOWER]) - int'(CFI.b[F128_E_UPPER : F128_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[-(F128_P + 5) : 0]};

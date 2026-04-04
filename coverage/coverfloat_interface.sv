@@ -22,4 +22,6 @@ interface coverfloat_interface; import coverfloat_pkg::*; // TODO: add params fo
 
     bit [7:0]  exceptionBits;
 
+    bit [255:0] fmaPreAddition;
+
 endinterface

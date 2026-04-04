@@ -14,7 +14,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, TextIO
 
 import cover_float.common.constants as constants
-from cover_float.common.util import generate_float, generate_test_vector, reproducible_hash
+from cover_float.common.util import (
+    bezout_inverse,
+    factors_to_bit_width,
+    generate_float,
+    generate_test_vector,
+    reproducible_hash,
+)
 from cover_float.reference import run_test_vector, store_cover_vector
 
 if TYPE_CHECKING:
@@ -22,37 +28,6 @@ if TYPE_CHECKING:
     def factorint(n: int) -> dict[int, int]: ...
 else:
     from sympy import factorint
-
-
-def bezout_inverse(x: int, base: int) -> int:
-    # Find the inverse of an element using the Euclidean algorithm and applying Bezout's identity
-    # The euclidean algorithm says: gcd(x, y) = gcd(y, x % y) for x > y
-    # Bezout's identity says that there exists A, B in Z such that Ax + By = gcd(x, y)
-    # With proper book keeping, we can find these X and Y, and noticing that
-    # Ax + By = 1 when x, y are relatively prime (as x and base are assumed to be),
-    # Ax = 1 - By implies Ax = 1 (mod y) and thus A inverts X in base y
-
-    # Algorithm taken from https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
-    r = [base, x]
-    s = [1, 0]
-    t = [0, 1]
-
-    while r[-1] != 0:
-        q = r[-2] // r[-1]
-        r.append(r[-2] - q * r[-1])
-        s.append(s[-2] - q * s[-1])
-        t.append(t[-2] - q * t[-1])
-
-    gcd = r[-2]
-    _bezout_A = s[-2]
-    bezout_B = t[-2]
-
-    if gcd != 1:
-        return -1
-
-    # We have bezout_A(base) + bezout_B(x) = gcd
-    # So, as shown above, bezout_B inverts x
-    return bezout_B % base
 
 
 def add_sub_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -200,34 +175,6 @@ def mul_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                 f"Failure to generate mul tests :(, fmt={fmt}, extra_bit={extra_bit}, hit_with_shift={hit_with_shift}, "
                 f"hit_without_shift={hit_without_shift}"
             )
-
-
-def factors_to_bit_width(factors: dict[int, int], target: int, bit_width: int) -> tuple[int, int]:
-    usable_factors = [factor for factor, count in factors.items() for _ in range(count)]
-    usable_factors.sort(key=lambda x: -x)  # Sort Descending
-
-    def recurse(running_count: int, i: int) -> int:
-        last_factor = 0
-        for idx, factor in enumerate(usable_factors[i:], i):
-            if last_factor == factor:
-                continue
-            last_factor = factor
-
-            guess = running_count * factor
-            if guess.bit_length() == bit_width and (target // guess).bit_length() == bit_width:
-                return running_count * factor
-            elif guess.bit_length() < bit_width:
-                attempt = recurse(guess, idx + 1)
-                if attempt != 0:
-                    return attempt
-
-        return 0
-
-    res = recurse(1, 0)
-    if res == 0:
-        return (0, 0)
-
-    return (res, target // res)
 
 
 def two_ones_multiplicands(fmt: str) -> dict[int, tuple[int, int]]:
@@ -647,24 +594,14 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             actual_extra_bits = interm_mantissa[constants.MANTISSA_BITS[fmt] :]
             placement = actual_extra_bits.rfind("1")
 
-            if (
-                placement != target_placement  # and target_placement <= STICKY_LIMITS.get(fmt, 1000)
-            ) or actual_extra_bits.count("1") != 1:
-                breakpoint()
+            if (placement != target_placement) or actual_extra_bits.count("1") != 1:
+                print(f"B7: Failed To Generate C +- Prod Cases for FMA, op={op}, target={target_placement}")
                 continue
             elif placement not in placements:
                 placements.append(placement)
                 store_cover_vector(result, test_f, cover_f)
 
         print("\x1b[2K", end="\r")
-
-
-INT_MAX_EXPS = {
-    constants.FMT_INT: 31,
-    constants.FMT_UINT: 32,
-    constants.FMT_LONG: 63,
-    constants.FMT_ULONG: 64,
-}
 
 
 def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -701,7 +638,7 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
 
     # CFI
     for to_fmt in constants.INT_FMTS:
-        to_bits = INT_MAX_EXPS[to_fmt]
+        to_bits = constants.INT_MAX_EXPS[to_fmt]
 
         for extra_bit in range(1, nf):
             # Min_int_bits is 0 as we can do 1.frac with the leading one
@@ -731,7 +668,7 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
 
     # CIF
     for from_fmt in constants.INT_FMTS:
-        from_bits = INT_MAX_EXPS[from_fmt]
+        from_bits = constants.INT_MAX_EXPS[from_fmt]
 
         if from_bits <= nf:
             # Not a narrowing conversion

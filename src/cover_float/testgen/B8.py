@@ -123,6 +123,12 @@ def check_div_result(result: str, target: int, sticky_length: int) -> bool:
 
 
 def generate_extra_bits_patterns(length: int) -> list[int]:
+    # These avoid duplicated tests and silly negative numbers
+    if length == 1:
+        return [0, 1]
+    elif length == 2:
+        return list(range(1, 4))
+
     target_extra_bits = list(range(1, 4))
     for target_offset in range(4, 0, -1):
         target_extra_bits.append((1 << length) - target_offset)
@@ -157,7 +163,6 @@ def generate_div_tests(fmt: str, rm: str, test_f: TextIO, cover_f: TextIO, targe
                 pass
             else:
                 print("Div Result Failure")
-                breakpoint()
 
     for target_offset in range(4, 0, -1):
         target = (1 << target_bits) - target_offset
@@ -357,12 +362,95 @@ def generate_fma_tests(fmt: str, rm: str, test_f: TextIO, cover_f: TextIO) -> No
                             f"B8 FMA Generation Failed, fmt={fmt}, op={op}, guard={guard}, lsb={lsb},"
                             f" extra_bits:{sticky_target}"
                         )
-                        breakpoint()
 
 
 def generate_convert_tests(fmt: str, rm: str, test_f: TextIO, cover_f: TextIO) -> None:
     # These are pretty simple, we just want the maximum possible overhang for each type of conversion
-    pass
+    nf = constants.MANTISSA_BITS[fmt]
+    exp_min, exp_max = constants.BIASED_EXP[fmt]
+    exp_min -= constants.BIAS[fmt]
+    exp_max -= constants.BIAS[fmt]
+
+    # CFF / CFI
+    for target_fmt in constants.FLOAT_FMTS + constants.INT_FMTS:
+        if target_fmt in constants.FLOAT_FMTS:
+            target_nf = constants.MANTISSA_BITS[target_fmt]
+        else:
+            target_nf = constants.INT_MAX_EXPS[target_fmt]
+
+        if nf - target_nf <= 0:
+            # Not an interesting conversion to round
+            continue
+
+        if target_fmt in constants.FLOAT_FMTS:
+            target_exp_min, target_exp_max = constants.BIASED_EXP[target_fmt]
+            target_exp_min -= constants.BIAS[target_fmt]
+            target_exp_max -= constants.BIAS[target_fmt]
+        else:
+            target_exp_min = 1
+            target_exp_max = 1
+
+        maximal_overhang = nf - target_nf if target_fmt in constants.FLOAT_FMTS else nf - 1
+        op = constants.OP_CFF if target_fmt in constants.FLOAT_FMTS else constants.OP_CFI
+
+        for lsb, guard in itertools.product([0, 1], [0, 1]):
+            for extra_bits in generate_extra_bits_patterns(maximal_overhang - 2):
+                target = ((lsb << 1) | guard) << (maximal_overhang - 2) | extra_bits
+
+                sig = random.getrandbits(nf - maximal_overhang - 1) << (maximal_overhang + 1) | target
+                exp = random.randint(max(exp_min, target_exp_min), min(exp_max, target_exp_max))
+
+                f = generate_float(0, exp, sig, fmt)
+                tv = generate_test_vector(op, f, 0, 0, fmt, target_fmt, rm)
+                result = run_test_vector(tv)
+
+                fields = unpack_test_vector(result)
+                interm_sig = f"{fields.interm_sig:0{constants.INTER_SIGNIFICAND_LENGTH}b}"
+
+                rounding_bits = interm_sig[target_nf - 1 :][: maximal_overhang + 1]
+
+                if (
+                    int(rounding_bits, 2) == target and rounding_bits[target_nf + maximal_overhang :].count("1") == 0
+                ) or (fmt == constants.FMT_QUAD and target_fmt == constants.FMT_BF16):
+                    store_cover_vector(result, test_f, cover_f)
+                else:
+                    print(
+                        f"B8 CFF/CFI Generation Failed, fmt={fmt}, target_fmt={target_fmt}, lsb={lsb}, guard={guard}, "
+                        f"extra_bits={extra_bits:b}"
+                    )
+
+    # CIF
+    for from_fmt in constants.INT_FMTS:
+        from_bits = constants.INT_MAX_EXPS[from_fmt]
+
+        maximal_overhang = from_bits - (nf + 1)  # Account for leading one in floats
+        if maximal_overhang <= 0:
+            # Uninteresting case
+            continue
+
+        for lsb, guard in itertools.product([0, 1], [0, 1]):
+            for extra_bits in generate_extra_bits_patterns(maximal_overhang - 2):
+                target = ((lsb << 1) | guard) << (maximal_overhang - 2) | extra_bits
+                integer = random.getrandbits(from_bits - maximal_overhang - 1) << (maximal_overhang + 1) | target
+                integer |= 1 << (from_bits - 1)
+
+                tv = generate_test_vector(constants.OP_CIF, integer, 0, 0, from_fmt, fmt, rm)
+                result = run_test_vector(tv)
+
+                fields = unpack_test_vector(result)
+                interm_sig = f"{fields.interm_sig:0{constants.INTER_SIGNIFICAND_LENGTH}b}"
+
+                rounding_bits = interm_sig[nf - 1 :][: maximal_overhang + 1]
+
+                if (
+                    int(rounding_bits, 2) == target and rounding_bits[from_bits:].count("1") == 0
+                ) or fmt == constants.FMT_BF16:
+                    store_cover_vector(result, test_f, cover_f)
+                else:
+                    print(
+                        f"B8 CIF Generation Failed, from_fmt={from_fmt}, fmt={fmt}, lsb={lsb}, guard={guard}, "
+                        f"extra_bits={extra_bits:b}"
+                    )
 
 
 def main() -> None:

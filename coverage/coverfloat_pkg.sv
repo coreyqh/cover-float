@@ -477,7 +477,159 @@ package coverfloat_pkg;
 
     endfunction
 
+    function automatic int get_sign(
+        input logic [127:0] input_val,
+        input logic [7:0]   fmt);
 
+        int input_sign;
 
+        case (fmt)
+            FMT_HALF: begin
+                input_sign = input_val[15];
+            end
+            FMT_BF16: begin
+                input_sign = input_val[15];
+            end
+            FMT_SINGLE: begin
+                input_sign = input_val[31];
+            end
+            FMT_DOUBLE: begin
+                input_sign = input_val[63];
+            end
+            FMT_QUAD: begin
+                input_sign = input_val[127];
+            end
+
+            default: begin
+                return 0;
+            end
+        endcase
+
+        return input_sign;
+    endfunction
+
+    function automatic int get_unbiased_exponent(
+        input logic [127:0] input_val,
+        input logic [7:0] fmt
+    );
+
+    int unbiased_exp;
+
+    case (fmt)
+            FMT_HALF: begin
+                logic [F16_E_BITS-1:0] biased_exp = input_val[14:10];
+                unbiased_exp = int'(biased_exp) - F16_EXP_BIAS;
+            end
+            FMT_BF16: begin
+                logic [BF16_E_BITS-1:0] biased_exp = input_val[14:7];
+                unbiased_exp = int'(biased_exp) - BF16_EXP_BIAS;
+            end
+            FMT_SINGLE: begin
+                logic [F32_E_BITS-1:0] biased_exp = input_val[30:23];
+                unbiased_exp = int'(biased_exp) - F32_EXP_BIAS;
+            end
+            FMT_DOUBLE: begin
+                logic [F64_E_BITS-1:0] biased_exp = input_val[62:52];
+                unbiased_exp = int'(biased_exp) - F64_EXP_BIAS;
+            end
+            FMT_QUAD: begin
+                logic [F128_E_BITS-1:0] biased_exp = input_val[126:112];
+                unbiased_exp = int'(biased_exp) - F128_EXP_BIAS;
+            end
+
+            default: begin
+                return 0;
+            end
+    endcase
+        return unbiased_exp;
+    endfunction
+
+    function automatic int get_proximity_to_zero(
+        input logic [127:0] input_val,
+        input logic [7:0]   fmt
+    );
+
+    int exp_bias;
+    int unbiased_exp = get_unbiased_exponent(input_val, fmt);
+    int m_bits;
+    logic less_than_one_mantissa;
+    logic less_than_two_mantissa;
+    logic less_than_three_mantissa;
+    logic zero_mantissa;
+
+    case (fmt)
+            FMT_HALF: begin
+                exp_bias = F16_EXP_BIAS;
+                less_than_one_mantissa = (input_val[F16_M_UPPER:0] <= 112'b1 << (F16_M_BITS - 1));
+                less_than_two_mantissa = (input_val[F16_M_UPPER:0] <= 112'b1 << (F16_M_BITS - 2));
+                less_than_three_mantissa = (input_val[F16_M_UPPER:0] <= 112'b11 << (F16_M_BITS - 2));
+                zero_mantissa = (input_val[F16_M_UPPER:0] == '0);
+            end
+            FMT_BF16: begin
+                exp_bias = BF16_EXP_BIAS;
+                less_than_one_mantissa = (input_val[BF16_M_UPPER:0] <= 112'b1 << (BF16_M_BITS - 1));
+                less_than_two_mantissa = (input_val[BF16_M_UPPER:0] <= 112'b1 << (BF16_M_BITS - 2));
+                less_than_three_mantissa = (input_val[BF16_M_UPPER:0] <= 112'b11 << (BF16_M_BITS - 2));
+                zero_mantissa = (input_val[BF16_M_UPPER:0] == '0);
+            end
+            FMT_SINGLE: begin
+                exp_bias = F32_EXP_BIAS;
+                less_than_one_mantissa = (input_val[F32_M_UPPER:0] <= 112'b1 << (F32_M_BITS - 1));
+                less_than_two_mantissa = (input_val[F32_M_UPPER:0] <= 112'b1 << (F32_M_BITS - 2));
+                less_than_three_mantissa = (input_val[F32_M_UPPER:0] <= 112'b11 << (F32_M_BITS - 2));
+                zero_mantissa = (input_val[F32_M_UPPER:0] == '0);
+            end
+            FMT_DOUBLE: begin
+                exp_bias = F64_EXP_BIAS;
+                less_than_one_mantissa = (input_val[F64_M_UPPER:0] <= 112'b1 << (F64_M_BITS - 1));
+                less_than_two_mantissa = (input_val[F64_M_UPPER:0] <= 112'b1 << (F64_M_BITS - 2));
+                less_than_three_mantissa = (input_val[F64_M_UPPER:0] <= 112'b11 << (F64_M_BITS - 2));
+                zero_mantissa = (input_val[F64_M_UPPER:0] == '0);
+            end
+            FMT_QUAD: begin
+                exp_bias = F128_EXP_BIAS;
+                less_than_one_mantissa = (input_val[F128_M_UPPER:0] <= 112'b1 << (F128_M_BITS - 1));
+                less_than_two_mantissa = (input_val[F128_M_UPPER:0] <= 112'b1 << (F128_M_BITS - 2));
+                less_than_three_mantissa = (input_val[F128_M_UPPER:0] <= 112'b11 << (F128_M_BITS - 2));
+                zero_mantissa = (input_val[F128_M_UPPER:0] == '0);
+            end
+            default: begin
+                exp_bias = 0;
+                less_than_one_mantissa = 0;
+                less_than_two_mantissa = 0;
+                less_than_three_mantissa = 0;
+                zero_mantissa = 0;
+            end
+    endcase
+
+    if((unbiased_exp == -exp_bias) && (zero_mantissa)) begin
+        return 1;
+    end
+    else if(((unbiased_exp == -2) && (zero_mantissa)) || (unbiased_exp < -2)) begin
+        return 2;
+    end
+    else if(((unbiased_exp == -1) && (zero_mantissa)) || (unbiased_exp < -1)) begin
+        return 3;
+    end
+    else if((unbiased_exp == -1) && (less_than_one_mantissa)) begin
+        return 4;
+    end
+    else if(((unbiased_exp == 0) && (zero_mantissa)) || (unbiased_exp < 0)) begin
+        return 5;
+    end
+    else if(((unbiased_exp == 0) && (less_than_two_mantissa))) begin
+        return 6;
+    end
+    else if(((unbiased_exp == 0) && (less_than_one_mantissa))) begin
+        return 7;
+    end
+    else if(((unbiased_exp == 0) && (less_than_three_mantissa))) begin
+        return 8;
+    end
+    else begin
+        return 0;
+    end
+
+    endfunction
 
 endpackage

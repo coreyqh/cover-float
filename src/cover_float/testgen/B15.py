@@ -607,7 +607,7 @@ class B15SignificandGenerator:
                 res = best[1] * best[2]
                 self.sigs.append(B15Significand(sig1, sig2, res))
 
-    def generate(self) -> list[tuple[str, str]]:
+    def generate(self, file: TextIO) -> list[tuple[str, str]]:
         print("\tChecker Boards")
         self.checkerboards()
         print("\tTrailing Zeros")
@@ -627,7 +627,13 @@ class B15SignificandGenerator:
         print("\tLong Runs of Zeros")
         self.long_run_zeros()
 
+        self.store_sigs(file)
+
         return [(sig.sig1, sig.sig2) for sig in self.sigs]
+
+    def store_sigs(self, file: TextIO) -> None:
+        for i, sig in enumerate(self.sigs):
+            file.write(f"bins bin_{i} = {{ 'b{sig.result:0{2 * self.nf + 2}b} }}; \n")
 
 
 def interesting_tests(
@@ -759,18 +765,24 @@ def main() -> None:
             hashval = reproducible_hash(fmt + "b15")
             random.seed(hashval)
 
-            print(f"Generating {fmt} Sigs & Shifts")
-            b9_sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
-            b9_sigs = [int(sig, 2) for sig in b9_sig_gen.generate()]
+            bins_path = Path("coverage", "covergroups", "bins_templates", "generated")
+            bins_path.mkdir(parents=True, exist_ok=True)
 
-            b15_sig_gen = B15SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
-            b15_sigs = [(int(sig1, 2), int(sig2, 2)) for sig1, sig2 in b15_sig_gen.generate()]
+            add_sigs_path = bins_path / f"B15_{constants.FMT_TO_STRING[fmt]}_special_sigs.svh"
+            mul_sigs_path = bins_path / f"B15_{constants.FMT_TO_STRING[fmt]}_prod_special_sigs.svh"
+            with add_sigs_path.open("w") as add_sigs_file, mul_sigs_path.open("w") as mul_sigs_file:
+                print(f"Generating {fmt} Sigs & Shifts")
+                b9_sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
+                b9_sigs = [int(sig, 2) for sig in b9_sig_gen.generate(add_sigs_file)]
 
-            interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+                b15_sig_gen = B15SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
+                b15_sigs = [(int(sig1, 2), int(sig2, 2)) for sig1, sig2 in b15_sig_gen.generate(mul_sigs_file)]
 
-            print(f"Generating {fmt} Tests")
-            interesting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)
-            uninteresting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)
+                interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+
+                print(f"Generating {fmt} Tests")
+                interesting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)
+                uninteresting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)
 
 
 if __name__ == "__main__":

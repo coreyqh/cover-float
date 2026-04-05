@@ -1,10 +1,10 @@
-covergroup B24 (virtual coverfloat_interface CFI);
+covergroup B24_cg (virtual coverfloat_interface CFI);
     option.per_instance = 0;
 
     //Rounding Mode coverpoint
     rounding_modes: coverpoint(CFI.rm){
         type_option.weight = 0;
-        `include "bins_templates/rounding_modes.svh"
+        `include "bins_templates/rounding_modes_bins.svh"
     }
 
     // Input Precision coverpoints
@@ -41,7 +41,7 @@ covergroup B24 (virtual coverfloat_interface CFI);
     }
 
     //Proximity To Zero Coverpoint
-    proximity_to_zero: coverpoint $signed(proximity_to_zero(CFI.a, CFI.operandFmt)){
+    proximity_to_zero: coverpoint $signed(get_proximity_to_zero(CFI.a, CFI.operandFmt)){
         type_option.weight = 0;
         bins zero = {1};
         bins one_quarter = {2};

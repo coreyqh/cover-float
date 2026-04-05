@@ -22,7 +22,7 @@
 // `define COVER_B19
 // `define COVER_B20
 `define COVER_B21
-// `define COVER_B22
+`define COVER_B22
 // `define COVER_B23
 // `define COVER_B24
 // `define COVER_B25
@@ -43,3 +43,4 @@
 // define macro for long int support (i.e. 64 bit DUT)
 
 `define COVER_LONG
+`define COVER_INT

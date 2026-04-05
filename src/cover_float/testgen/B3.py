@@ -3,7 +3,14 @@ from pathlib import Path
 from typing import Optional, TextIO
 
 import cover_float.common.constants as common
-from cover_float.common.util import generate_test_vector, get_rounding_bits, reproducible_hash, unpack_test_vector
+from cover_float.common.util import (
+    extract_rounding_info,
+    generate_float,
+    generate_test_vector,
+    get_rounding_bits,
+    reproducible_hash,
+    unpack_test_vector,
+)
 from cover_float.reference import run_test_vector, store_cover_vector
 
 SRC1_OPS = [common.OP_SQRT]
@@ -16,15 +23,6 @@ SRC3_OPS = [
     common.OP_FNMADD,
     common.OP_FNMSUB,
 ]
-
-
-def generate_float(sign: int, exponent: int, mantissa: int, fmt: str) -> int:
-    exponent += common.BIAS[fmt]
-    return (
-        (sign << (common.MANTISSA_BITS[fmt] + common.EXPONENT_BITS[fmt]))
-        | (exponent << common.MANTISSA_BITS[fmt])
-        | mantissa
-    )
 
 
 def generate_random_float(exponent: int, fmt: str, sign: Optional[int] = None) -> int:
@@ -41,36 +39,6 @@ def generate_random_float(exponent: int, fmt: str, sign: Optional[int] = None) -
 def get_significand_from_float(float_: int, fmt: str) -> int:
     mask = (1 << common.MANTISSA_BITS[fmt]) - 1
     return float_ & mask | (1 << common.MANTISSA_BITS[fmt])
-
-
-def extract_rounding_info(cover_vector: str) -> dict[str, int]:
-    # fields = cover_vector.split("_")
-    fields = unpack_test_vector(cover_vector)
-    sgn = fields.interm_sign
-    result_fmt = fields.output_format
-
-    # Place in a leading one so that we get all the significant figures possible
-    # interm_significand = int("1" + fields[-1], 16)
-    # interm_significand = bin(interm_significand)[2:][1:]
-    interm_significand = f"{fields.interm_sig:0{common.INTER_SIGNIFICAND_LENGTH}b}"
-
-    if result_fmt in common.FLOAT_FMTS:
-        mantissa_length = common.MANTISSA_BITS[result_fmt]
-    elif result_fmt in common.INT_FMTS:
-        mantissa_length = common.INT_MAX_EXPS[result_fmt]
-    else:
-        raise ValueError(f"Unknown Result Format: {result_fmt}")
-
-    lsb = interm_significand[mantissa_length - 1]
-    guard = interm_significand[mantissa_length]
-    sticky = interm_significand[mantissa_length + 1 :]
-
-    return {
-        "Sign": int(sgn),
-        "LSB": int(lsb),
-        "Guard": int(guard),
-        "Sticky": 1 if any(x == "1" for x in sticky) else 0,
-    }
 
 
 def write_fma_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
@@ -228,7 +196,7 @@ def write_fma_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                     print("FMA Sticky Bit Generation Failed! This should not happen, please investigate")
                     print(
                         f"\tInputs: signA={signA}, sigA={sigA:#x}, expA={expA}, signB={signB}, sigB={sigB:#x}, "
-                        "expB={expB}, fmt={fmt}, op={op}"
+                        f"expB={expB}, fmt={fmt}, op={op}"
                     )
 
                 if rounding in to_cover:

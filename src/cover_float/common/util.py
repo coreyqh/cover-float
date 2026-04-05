@@ -152,3 +152,33 @@ def unpack_test_vector(tv: str) -> UnpackedTestVector:
 
 def get_rounding_bits(cover_vector: str) -> str:
     return bin(unpack_test_vector(cover_vector).interm_sig)[2:].zfill(constants.INTER_SIGNIFICAND_LENGTH)
+
+
+def extract_rounding_info(cover_vector: str) -> dict[str, int]:
+    # fields = cover_vector.split("_")
+    fields = unpack_test_vector(cover_vector)
+    sgn = fields.interm_sign
+    result_fmt = fields.output_format
+
+    # Place in a leading one so that we get all the significant figures possible
+    # interm_significand = int("1" + fields[-1], 16)
+    # interm_significand = bin(interm_significand)[2:][1:]
+    interm_significand = f"{fields.interm_sig:0{constants.INTER_SIGNIFICAND_LENGTH}b}"
+
+    if result_fmt in constants.FLOAT_FMTS:
+        mantissa_length = constants.MANTISSA_BITS[result_fmt]
+    elif result_fmt in constants.INT_FMTS:
+        mantissa_length = constants.INT_MAX_EXPS[result_fmt]
+    else:
+        raise ValueError(f"Unknown Result Format: {result_fmt}")
+
+    lsb = interm_significand[mantissa_length - 1]
+    guard = interm_significand[mantissa_length]
+    sticky = interm_significand[mantissa_length + 1 :]
+
+    return {
+        "Sign": int(sgn),
+        "LSB": int(lsb),
+        "Guard": int(guard),
+        "Sticky": 1 if any(x == "1" for x in sticky) else 0,
+    }

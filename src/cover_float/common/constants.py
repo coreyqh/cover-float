@@ -55,6 +55,29 @@ FMT_TO_STRING = {
     FMT_QUAD: "F128",
 }
 
+# Size of each integer in bits
+INT_SIZES = {
+    FMT_INT: 32,
+    FMT_UINT: 32,
+    FMT_LONG: 64,
+    FMT_ULONG: 64,
+}
+
+# Excluding the bit for the sign (i.e. int represents numbers from -2^31 to 2^31 - 1)
+INT_MAX_EXPS = {
+    FMT_INT: 31,
+    FMT_UINT: 32,
+    FMT_LONG: 63,
+    FMT_ULONG: 64,
+}
+
+INT_SIGNED = {
+    FMT_INT: True,
+    FMT_UINT: False,
+    FMT_LONG: True,
+    FMT_ULONG: False,
+}
+
 # Codes for rounding modes in test vectors
 
 ROUND_NEAR_EVEN = "00"
@@ -82,17 +105,10 @@ BIASED_EXP = {  # Range of biased exponents based on precision
     FMT_BF16: [1, 254],
 }
 
-EXPONENT_BIASES = {
-    FMT_HALF: 15,
-    FMT_SINGLE: 127,
-    FMT_DOUBLE: 1023,
-    FMT_QUAD: 16383,
-    FMT_BF16: 127,
-}
-
 # Test vector widths
 
 TEST_VECTOR_WIDTH_HEX = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = TEST_VECTOR_WIDTH_HEX + 8
-COVER_VECTOR_WIDTH_HEX = 201
-COVER_VECTOR_WIDTH_HEX_WITH_SEPARATORS = COVER_VECTOR_WIDTH_HEX + 11
+COVER_VECTOR_WIDTH_HEX = 281
+COVER_VECTOR_WIDTH_HEX_WITH_SEPARATORS = COVER_VECTOR_WIDTH_HEX + 12
+INTER_SIGNIFICAND_LENGTH = 256

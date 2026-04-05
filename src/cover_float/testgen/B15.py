@@ -647,8 +647,8 @@ def interesting_tests(
     random.seed(reproducible_hash(f"b15 {fmt} interesting"))
 
     exp_min, exp_max = constants.BIASED_EXP[fmt]
-    exp_min -= constants.EXPONENT_BIASES[fmt]
-    exp_max -= constants.EXPONENT_BIASES[fmt]
+    exp_min -= constants.BIAS[fmt]
+    exp_max -= constants.BIAS[fmt]
 
     for op in B15_OPS:
         for shift in interesting_shifts:
@@ -699,8 +699,8 @@ def uninteresting_tests(
     shift_generator = itertools.cycle(possible_shifts)
 
     exp_min, exp_max = constants.BIASED_EXP[fmt]
-    exp_min -= constants.EXPONENT_BIASES[fmt]
-    exp_max -= constants.EXPONENT_BIASES[fmt]
+    exp_min -= constants.BIAS[fmt]
+    exp_max -= constants.BIAS[fmt]
 
     for op in B15_OPS:
         for mul_sigs, add_sig in itertools.product(b15_sigs, b9_sigs):

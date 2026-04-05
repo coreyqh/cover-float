@@ -103,13 +103,23 @@ def main() -> None:
             random.seed(seed)
 
             print(f"Generating {fmt} Sigs & Shifts")
-            sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], "b11" + fmt)
-            sigs = [int(sig, 2) for sig in sig_gen.generate()]
-            interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+            bins_path = Path(
+                "coverage",
+                "covergroups",
+                "bins_templates",
+                "generated",
+                f"B11_{constants.FMT_TO_STRING[fmt]}_special_sigs.svh",
+            )
+            bins_path.parent.mkdir(parents=True, exist_ok=True)
 
-            print(f"Generating {fmt} Tests")
-            interesting_tests(sigs, interesting_shifts, fmt, test_f, cover_f)
-            uninteresting_tests(sigs, interesting_shifts, fmt, test_f, cover_f)
+            with bins_path.open("w") as generated_coverage:
+                sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], "b11" + fmt)
+                sigs = [int(sig, 2) for sig in sig_gen.generate(generated_coverage)]
+                interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+
+                print(f"Generating {fmt} Tests")
+                interesting_tests(sigs, interesting_shifts, fmt, test_f, cover_f)
+                uninteresting_tests(sigs, interesting_shifts, fmt, test_f, cover_f)
 
 
 if __name__ == "__main__":

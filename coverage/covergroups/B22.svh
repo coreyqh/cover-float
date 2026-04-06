@@ -99,66 +99,56 @@ covergroup B22_cg (virtual coverfloat_interface CFI);
     //Crosses
     //FMT_HALF
     `ifdef COVER_F16
-            B22_F16_INT:
-                cross F16_input_fmt, F16_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
+        B22_F16_INT: cross F16_input_fmt, F16_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
     `endif
 
     `ifdef COVER_F16
         `ifdef COVER_LONG
-            B22_F16_LONG:
-                cross F16_input_fmt, F16_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
+            B22_F16_LONG: cross F16_input_fmt, F16_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
         `endif
     `endif
 
     //FMT_BF16
     `ifdef COVER_BF16
-            B22_BF16_INT:
-                cross BF16_input_fmt, BF16_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
+            B22_BF16_INT: cross BF16_input_fmt, BF16_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
     `endif
 
     `ifdef COVER_BF16
         `ifdef COVER_LONG
-            B22_BF16_LONG:
-                cross BF16_input_fmt, BF16_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
+            B22_BF16_LONG: cross BF16_input_fmt, BF16_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
         `endif
     `endif
 
     //FMT_SINGLE
     `ifdef COVER_F32
-            B22_F32_INT:
-                cross F32_input_fmt, F32_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
+            B22_F32_INT: cross F32_input_fmt, F32_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
     `endif
 
     `ifdef COVER_F32
         `ifdef COVER_LONG
-            B22_F32_LONG:
-                cross F32_input_fmt, F32_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
+            B22_F32_LONG: cross F32_input_fmt, F32_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
         `endif
     `endif
 
     //FMT_DOUBLE
     `ifdef COVER_F64
-            B22_F64_INT:
-                cross F64_input_fmt, F64_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
+            B22_F64_INT: cross F64_input_fmt, F64_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
     `endif
 
     `ifdef COVER_F64
         `ifdef COVER_LONG
-            B22_F64_LONG:
-                cross F64_input_fmt, F64_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
+            B22_F64_LONG: cross F64_input_fmt, F64_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
         `endif
     `endif
 
     //FMT_QUAD
     `ifdef COVER_F128
-            B22_F128_INT:
-                cross F128_input_fmt, F128_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
+            B22_F128_INT: cross F128_input_fmt, F128_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
     `endif
 
     `ifdef COVER_F128
         `ifdef COVER_LONG
-            B22_F128_LONG:
-                cross F128_input_fmt, F128_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
+            B22_F128_LONG: cross F128_input_fmt, F128_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
         `endif
     `endif
 

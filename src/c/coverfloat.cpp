@@ -6,6 +6,14 @@
 #include <cstring>
 #include <sstream>
 
+#ifndef TEST_FMA
+// #define TEST_FMA
+#endif
+
+#ifndef TEST_DIV
+#define TEST_DIV
+#endif
+
 namespace mp = boost::multiprecision;
 
 void softFloat_clearFlags(uint_fast8_t clearMask) {
@@ -68,6 +76,54 @@ void softfloat_clearIntermResults() {
     softfloat_intermediateResult.fmaPreAddition[indexWord(4, 1)] = 0;
     softfloat_intermediateResult.fmaPreAddition[indexWord(4, 2)] = 0;
     softfloat_intermediateResult.fmaPreAddition[indexWord(4, 3)] = 0;
+}
+
+void softfloat_clearFMAAddShiftInfo() {
+    softfloat_fmaAddShiftInfo.mode = fmaFullShiftInfo_t::NONE;
+    softfloat_fmaAddShiftInfo.sigProd[indexWord(4, 0)] = 0;
+    softfloat_fmaAddShiftInfo.sigProd[indexWord(4, 1)] = 0;
+    softfloat_fmaAddShiftInfo.sigProd[indexWord(4, 2)] = 0;
+    softfloat_fmaAddShiftInfo.sigProd[indexWord(4, 3)] = 0;
+    softfloat_fmaAddShiftInfo.sigC[indexWord(2, 0)] = 0;
+    softfloat_fmaAddShiftInfo.sigC[indexWord(2, 1)] = 0;
+    softfloat_fmaAddShiftInfo.signed_shift = 0;
+}
+
+void softfloat_getFMAAddShiftInfo(MP_fmaFullShiftInfo &info) {
+    info.signed_shift = softfloat_fmaAddShiftInfo.signed_shift;
+
+    info.sigC = softfloat_fmaAddShiftInfo.sigC[indexWord(2, 1)];
+    info.sigC <<= 64;
+    info.sigC |= softfloat_fmaAddShiftInfo.sigC[indexWord(2, 0)];
+
+    info.sigProd = softfloat_fmaAddShiftInfo.sigProd[indexWord(4, 3)];
+    info.sigProd <<= 64;
+    info.sigProd |= softfloat_fmaAddShiftInfo.sigProd[indexWord(4, 2)];
+    info.sigProd <<= 64;
+    info.sigProd |= softfloat_fmaAddShiftInfo.sigProd[indexWord(4, 1)];
+    info.sigProd <<= 64;
+    info.sigProd |= softfloat_fmaAddShiftInfo.sigProd[indexWord(4, 0)];
+
+    switch (softfloat_fmaAddShiftInfo.mode) {
+    case fmaFullShiftInfo_t::PROD_ADD_C:
+        info.mode = MP_fmaFullShiftInfo::Mode::PROD_ADD_C;
+        break;
+    case fmaFullShiftInfo_t::PROD_SUB_C:
+        info.mode = MP_fmaFullShiftInfo::Mode::PROD_SUB_C;
+        break;
+    case fmaFullShiftInfo_t::C_SUB_PROD:
+        info.mode = MP_fmaFullShiftInfo::Mode::C_SUB_PROD;
+        break;
+    default:
+        info.mode = MP_fmaFullShiftInfo::Mode::NONE;
+    }
+}
+
+int safe_msb(mp::cpp_int integer) {
+    if (integer == 0) {
+        return -1;
+    }
+    return mp::msb(integer);
 }
 
 /*
@@ -319,6 +375,14 @@ int reference_model(
     }
 
     case OP_DIV: {
+        /* We can extract more intermediate bits using mp::cpp_ints instead of what softfloat gives, look
+           at their fast approach to calculating single precision div for the motivation */
+
+        mp::cpp_int sigA, sigB;
+        bool a_subnorm = false;
+        bool b_subnorm = false;
+        int nf;
+        int softfloat_undershift = (resultFmt == FMT_QUAD) ? 16 : 2;
 
         switch (operandFmt) {
         case FMT_SINGLE: {
@@ -327,6 +391,14 @@ int reference_model(
             MP_TO_FLOAT32(bf, b);
             resultf = f32_div(af, bf);
             FLOAT32_TO_MP(result, resultf);
+
+            sigA = fracF32UI(a);
+            sigB = fracF32UI(b);
+            nf = 23;
+
+            a_subnorm = expF32UI(a) == 0;
+            b_subnorm = expF32UI(b) == 0;
+
             break;
         }
 
@@ -336,6 +408,14 @@ int reference_model(
             MP_TO_FLOAT64(bf, b);
             resultf = f64_div(af, bf);
             FLOAT64_TO_MP(result, resultf);
+
+            sigA = fracF64UI(a);
+            sigB = fracF64UI(b);
+            nf = 52;
+
+            a_subnorm = expF64UI(a) == 0;
+            b_subnorm = expF64UI(b) == 0;
+
             break;
         }
 
@@ -345,6 +425,18 @@ int reference_model(
             MP_TO_FLOAT128(bf, b);
             resultf = f128_div(af, bf);
             FLOAT128_TO_MP(result, resultf);
+
+            sigA = fracF128UI64(a >> 64);
+            sigA <<= 64;
+            sigA |= static_cast<uint64_t>(a);
+            sigB = fracF128UI64(b >> 64);
+            sigB <<= 64;
+            sigB |= static_cast<uint64_t>(b);
+            nf = 112;
+
+            a_subnorm = expF128UI64(a >> 64) == 0;
+            b_subnorm = expF128UI64(b >> 64) == 0;
+
             break;
         }
 
@@ -354,6 +446,14 @@ int reference_model(
             MP_TO_FLOAT16(bf, b);
             resultf = f16_div(af, bf);
             FLOAT16_TO_MP(result, resultf);
+
+            sigA = fracF16UI(a);
+            sigB = fracF16UI(b);
+            nf = 10;
+
+            a_subnorm = expF16UI(a) == 0;
+            b_subnorm = expF16UI(b) == 0;
+
             break;
         }
 
@@ -363,9 +463,133 @@ int reference_model(
             MP_TO_FLOAT16(bf, b);
             resultf = bf16_div(af, bf);
             FLOAT16_TO_MP(result, resultf);
+
+            sigA = fracBF16UI(a);
+            sigB = fracBF16UI(b);
+            nf = 7;
+
+            a_subnorm = expBF16UI(a) == 0;
+            b_subnorm = expBF16UI(b) == 0;
             break;
         }
+        default: {
+            fprintf(stderr, "Bad Operand Format for Div: %08x", operandFmt);
+            return EXIT_FAILURE;
         }
+        }
+
+        if (operandFmt == FMT_BF16) {
+            // Their approach gives more bits
+            break;
+        }
+
+        // If we have a trivial intermediate result
+        if (softfloat_intermediateResult.sig64 == 0 && softfloat_intermediateResult.sig0 == 0 &&
+            softfloat_intermediateResult.sigExtra64 == 0 && softfloat_intermediateResult.sigExtra0 == 0) {
+            break;
+        }
+
+        if (!a_subnorm) {
+            sigA |= (mp::cpp_int(1) << nf);
+        } else {
+            int align_shift = nf - safe_msb(sigA);
+            sigA <<= align_shift;
+        }
+        if (!b_subnorm) {
+            sigB |= (mp::cpp_int(1) << nf);
+        } else {
+            int align_shift = nf - safe_msb(sigB);
+            sigB <<= align_shift;
+        }
+
+        int extra_bits = nf + 3;
+        mp::cpp_int shifted_sigA = sigA << (nf + extra_bits);
+        mp::cpp_int pre_rounding = (shifted_sigA) / sigB;
+
+        // std::cout << std::hex << pre_rounding << std::dec << std::endl;
+
+        if (pre_rounding * sigB != shifted_sigA) {
+            pre_rounding |= 1;
+        }
+
+        // Now compare to the extracted bits
+        // msb is zero indexed, so this has the intended effect
+        int alignment_shift = 256 - mp::msb(pre_rounding) - softfloat_undershift;
+        if (alignment_shift > 0) {
+            pre_rounding <<= alignment_shift;
+        } else {
+            pre_rounding >>= -alignment_shift;
+        }
+
+        // Sanity Checks
+#ifdef TEST_DIV
+        mp::cpp_int softfloat_computed = 0;
+        softfloat_computed |= softfloat_intermediateResult.sig64;
+        softfloat_computed <<= 64;
+        softfloat_computed |= softfloat_intermediateResult.sig0;
+        softfloat_computed <<= 64;
+        softfloat_computed |= softfloat_intermediateResult.sigExtra64;
+        softfloat_computed <<= 64;
+        softfloat_computed |= softfloat_intermediateResult.sigExtra0;
+
+        // std::string pre_rounding_binary = pre_rounding.str(0, std::ios_base::binary);
+        // std::string softfloat_computed_binary = softfloat_computed.str(0, std::ios_base::binary);
+
+        bool only_zeros = true;
+        for (int i = 0; i < 256; i++) {
+            mp::cpp_int bit_mask = mp::cpp_int(1) << i;
+
+            bool softfloat_bit = (softfloat_computed & bit_mask) != 0;
+            bool pre_rounding_bit = (pre_rounding & bit_mask) != 0;
+
+            if (softfloat_bit != pre_rounding_bit) {
+                if (!only_zeros) {
+                    mp::cpp_int sig_mask = ((mp::cpp_int(1) << (nf + 1)) - 1);
+                    int align_shift = 256 - mp::msb(sig_mask) - softfloat_undershift;
+                    sig_mask <<= align_shift;
+
+                    mp::cpp_int guard_mask = mp::cpp_int(1) << (align_shift - 1);
+                    mp::cpp_int sticky_mask = sig_mask | guard_mask;
+
+                    bool dirty = ((pre_rounding & sig_mask) != (softfloat_computed & sig_mask)) ||
+                                 ((pre_rounding & guard_mask) != (softfloat_computed & guard_mask)) ||
+                                 (((pre_rounding & sticky_mask) != 0) ^ ((pre_rounding & sticky_mask) != 0));
+
+                    // Exact Sticky Bits are Wrong for Doubles, but overall correct (normally)
+                    if (!(operandFmt == FMT_DOUBLE || operandFmt == FMT_QUAD) || dirty) {
+                        std::cerr << "Division Prerounding Calculation Failed: Softfloat gave ";
+                        std::cerr << std::hex << std::setfill('0') << std::setw(48) << softfloat_computed;
+                        std::cerr << " We generated: " << std::setw(48) << pre_rounding << std::endl;
+                    }
+
+                    if ((pre_rounding & sig_mask) != (softfloat_computed & sig_mask)) {
+                        std::cerr << "Sigs Disagree" << std::endl;
+                    }
+                    if ((pre_rounding & guard_mask) != (softfloat_computed & guard_mask)) {
+                        std::cerr << "Guards Disagree" << std::endl;
+                    }
+                    if (((pre_rounding & sticky_mask) != 0) ^ ((pre_rounding & sticky_mask) != 0)) {
+                        std::cerr << "Stickies Disagree" << std::endl;
+                    }
+
+                    if (dirty) {
+                        return EXIT_FAILURE;
+                    }
+                }
+            }
+
+            if (only_zeros && softfloat_bit == 1) {
+                // Because of the way their sticky calculation works, we should let the last bit of
+                // softfloats sticky differ from ours
+                only_zeros = false;
+            }
+        }
+#endif
+
+        softfloat_intermediateResult.sig64 = static_cast<uint64_t>(pre_rounding >> 192);
+        softfloat_intermediateResult.sig0 = static_cast<uint64_t>(pre_rounding >> 128);
+        softfloat_intermediateResult.sigExtra64 = static_cast<uint64_t>(pre_rounding >> 64);
+        softfloat_intermediateResult.sigExtra0 = static_cast<uint64_t>(pre_rounding);
 
         break;
     }
@@ -1520,6 +1744,7 @@ int reference_model(
     }
 
     case OP_FMADD: {
+        softfloat_clearFMAAddShiftInfo();
 
         switch (operandFmt) {
         case FMT_SINGLE: {
@@ -1577,6 +1802,7 @@ int reference_model(
     }
 
     case OP_FMSUB: {
+        softfloat_clearFMAAddShiftInfo();
 
         switch (operandFmt) {
         case FMT_SINGLE: {
@@ -1639,6 +1865,7 @@ int reference_model(
     }
 
     case OP_FNMADD: {
+        softfloat_clearFMAAddShiftInfo();
 
         switch (operandFmt) {
         case FMT_SINGLE: {
@@ -1706,6 +1933,7 @@ int reference_model(
     }
 
     case OP_FNMSUB: {
+        softfloat_clearFMAAddShiftInfo();
 
         switch (operandFmt) {
         case FMT_SINGLE: {
@@ -1791,7 +2019,7 @@ int reference_model(
             if (exp != 0) {
                 sig |= BF16_IMPLICIT_ONE;
             }
-            intermResult.sig = mp::uint256_t(sig) << (INTERM_SIG_LENGTH - 2 - BF16_SIG_BITS);
+            intermResult.sig = mp::cpp_int(sig) << (INTERM_SIG_LENGTH - 2 - BF16_SIG_BITS);
 
             intermResult.exp = exp;
 
@@ -1807,7 +2035,7 @@ int reference_model(
                 sig |= (1 << 10);
             }
 
-            intermResult.sig = mp::uint256_t(sig) << (INTERM_SIG_LENGTH - 2 - 10);
+            intermResult.sig = mp::cpp_int(sig) << (INTERM_SIG_LENGTH - 2 - 10);
 
             intermResult.exp = exp;
 
@@ -1820,7 +2048,7 @@ int reference_model(
 
             if (exp != 0) {
                 sig |= (1 << 23);
-                intermResult.sig = mp::uint256_t(sig) << (INTERM_SIG_LENGTH - 2 - 23);
+                intermResult.sig = mp::cpp_int(sig) << (INTERM_SIG_LENGTH - 2 - 23);
             }
 
             intermResult.exp = exp;
@@ -1836,7 +2064,7 @@ int reference_model(
                 sig |= (1UL << 52);
             }
 
-            intermResult.sig = mp::uint256_t(sig) << (INTERM_SIG_LENGTH - 2 - 52);
+            intermResult.sig = mp::cpp_int(sig) << (INTERM_SIG_LENGTH - 2 - 52);
 
             intermResult.exp = exp;
 
@@ -1870,6 +2098,7 @@ int reference_model(
     }
 
     // If we took an fma operation, there is now an alignment shift that needs to take place
+    // AND we need to make a calculation on the full intermediate mantissa
     if ((op & ~(0xf)) == OP_FMA) {
         if (operandFmt == FMT_SINGLE) {
             intermResult.fma_pre_addition >>= 14;
@@ -1882,51 +2111,139 @@ int reference_model(
         } else if (operandFmt == FMT_BF16) {
             intermResult.fma_pre_addition >>= 38;
         }
+
+        MP_fmaFullShiftInfo info;
+        softfloat_getFMAAddShiftInfo(info);
+
+        // First thing to do is align the significands, then figure out where to go next
+        int prod_msb = safe_msb(info.sigProd);
+        info.sigProd <<= (INTERM_SIG_LENGTH + 1) - prod_msb;
+
+        int c_msb = safe_msb(info.sigC);
+        info.sigC <<= (INTERM_SIG_LENGTH + 1) - c_msb;
+
+        if (info.signed_shift > 0) {
+            mp::cpp_int lost_bits_mask = (mp::cpp_int(1) << std::min(info.signed_shift, INTERM_SIG_LENGTH + 2)) - 1;
+            bool jam = (info.sigC & lost_bits_mask) != 0;
+
+            info.sigC >>= info.signed_shift;
+            info.sigC |= jam;
+        } else if (info.signed_shift != 0) {
+            mp::cpp_int lost_bits_mask = (mp::cpp_int(1) << std::min(-info.signed_shift, INTERM_SIG_LENGTH + 2)) - 1;
+            bool jam = (info.sigProd & lost_bits_mask) != 0;
+
+            info.sigProd >>= -info.signed_shift;
+            info.sigProd |= jam;
+        }
+
+        mp::cpp_int Z = 0;
+        bool did_work = true;
+
+        switch (info.mode) {
+        case MP_fmaFullShiftInfo::Mode::PROD_ADD_C:
+            Z = info.sigProd + info.sigC;
+            break;
+        case MP_fmaFullShiftInfo::Mode::PROD_SUB_C:
+            Z = info.sigProd - info.sigC;
+            break;
+        case MP_fmaFullShiftInfo::Mode::C_SUB_PROD:
+            Z = info.sigC - info.sigProd;
+            break;
+        default:
+            did_work = false;
+            break;
+        }
+
+        if (did_work) {
+            // Otherwise, we just use the default handling
+
+            if (Z < 0) {
+                Z = -Z;
+            }
+
+#ifdef TEST_FMA
+            // Generically the bits should be exactly equal to intermResult.sig, until a point when intermResult.sig
+            // is going to be 1, then all zeros
+
+            mp::cpp_int softfloat_computed = intermResult.sig;
+            int softfloat_msb = safe_msb(softfloat_computed);
+            int our_msb = safe_msb(Z);
+
+            if (softfloat_msb > our_msb) {
+                int shift = softfloat_msb - our_msb;
+                mp::cpp_int lost_bits_mask = (mp::cpp_int(1) << std::min(shift, INTERM_SIG_LENGTH + 1)) - 1;
+                bool jam = (softfloat_computed & lost_bits_mask) != 0;
+
+                softfloat_computed >>= shift;
+                softfloat_computed |= jam;
+
+                if (jam) {
+                    std::cout << "FMA Interm Mantissa Reconstruction Lost Information Compared to Softfloat" << std::hex
+                              << " Softfloat: " << softfloat_computed << " Ours: " << Z << std::endl;
+
+                    return EXIT_FAILURE;
+                }
+            } else {
+                softfloat_computed <<= our_msb - softfloat_msb;
+            }
+
+            bool only_zeros = true;
+            for (int i = 0; i < safe_msb(Z); i++) {
+                mp::cpp_int bit_mask = mp::cpp_int(1) << i;
+                bool softfloat_bit = (softfloat_computed & bit_mask) != 0;
+                bool pre_rounding_bit = (Z & bit_mask) != 0;
+
+                if (softfloat_bit != pre_rounding_bit && !only_zeros) {
+                    std::cout << "FMA Interm Mantissa Reconstruction Lost Information Compared to Softfloat" << std::hex
+                              << " Softfloat: " << softfloat_computed << " Ours: " << Z << std::endl;
+
+                    return EXIT_FAILURE;
+                }
+
+                if (softfloat_bit == 1 && only_zeros) {
+                    only_zeros = false;
+                }
+            }
+
+#endif
+
+            intermResult.sig = Z;
+        }
     }
 
-    // Post-process the intermediate results:
-    // 1. Ensure that subnorms have everything in the right place
-    // 2. Then shift off the leading ones
+    // Post Process the Intermediate Results:
+    // 1. Align them with where they should be
+    // 2. Handle Subnormals to be Shifted into Correct Places
+    // 3. Mask off leading one
+    int shift_amount = 0;
+    if (intermResult.sig != 0) {
+        shift_amount = INTERM_SIG_LENGTH - safe_msb(intermResult.sig);
+    }
 
-    // 1
-    if (intermResult.exp <= 0) {
+    // 1. Alignment (float formats and int formats differ here)
+    bool int_format = false;
+    if (resultFmt == FMT_INT || resultFmt == FMT_UINT || resultFmt == FMT_LONG || resultFmt == FMT_ULONG) {
+        // Softfloat aligns them to 254 (sic) bits for us, so
+        shift_amount = INTERM_SIG_LENGTH - 254;
+        int_format = true;
+    }
+
+    if (shift_amount > 0) {
+        intermResult.sig <<= shift_amount;
+    } else if (shift_amount != 0) {
+        mp::cpp_int lost_bits_mask = (mp::cpp_int(1) << std::min(-shift_amount, INTERM_SIG_LENGTH + 1)) - 1;
+        bool jam = (intermResult.sig & lost_bits_mask) != 0;
+        intermResult.sig >>= -shift_amount;
+        intermResult.sig |= jam;
+    }
+
+    // 2. Subnormal Handling
+    if (intermResult.exp <= 0 && !int_format) {
         // See s_roundPackToF32.c for why we add 1. Our exp is +1 theirs
         int32_t shift_dist = -intermResult.exp + 1;
 
-        // Unfortunately, softfloat doesn't give us a 192-bit right shift jam
-        // but look at softfloat_shiftRightJam128() for reference
-
-        /*
-        if (shift_dist < 64) {
-            // Everything has a short shift here, most complex case, but look at reference from softfloat
-            intermResult->sigExtra = (intermResult->sigExtra >> shift_dist) |
-                                     (intermResult->sig0 << (64 - shift_dist)) |
-                                     ((intermResult->sigExtra << (64 - shift_dist)) != 0); // This is the jam
-            intermResult->sig0 = (intermResult->sig0 >> shift_dist) | (intermResult->sig64 << (64 - shift_dist));
-            intermResult->sig64 = intermResult->sig64 >> shift_dist;
-        } else if (shift_dist < 128) {
-            // These two cases are the same as above but simpler
-            intermResult->sigExtra =
-                (intermResult->sig0 >> (shift_dist - 64)) |
-                (((intermResult->sig0 << (128 - shift_dist)) | intermResult->sigExtra) != 0); // This is the jam
-            intermResult->sig0 = intermResult->sig64 >> (shift_dist - 64);
-            intermResult->sig64 = 0;
-        } else if (shift_dist < 192) {
-            intermResult->sigExtra = (intermResult->sig64 >> (shift_dist - 128)) |
-                                     (((intermResult->sig64 << (192 - shift_dist)) | intermResult->sigExtra |
-                                       intermResult->sig0) != 0); // This is the jam
-            intermResult->sig0 = 0;
-            intermResult->sig64 = 0;
-        } else {
-            // Only a jam here
-            intermResult->sigExtra = (intermResult->sig0 | intermResult->sig64 | intermResult->sigExtra) != 0;
-            intermResult->sig0 = 0;
-            intermResult->sig64 = 0;
-        }
-        */
-
         // Lets shift right jam ourselves now!
-        mp::uint256_t mask = (mp::uint256_t(1) << shift_dist) - 1;
+        mp::cpp_int mask = (mp::cpp_int(1) << shift_dist) - 1;
         int should_jam = 0;
         if (intermResult.sig & mask) {
             should_jam = 1;
@@ -1937,16 +2254,9 @@ int reference_model(
         intermResult.exp = 0;
     }
 
-    // 2
-    uint8_t shift_amount = (resultFmt == FMT_QUAD) ? 16 : 2;
-    // struct uint128 shifted_sig = softfloat_shortShiftLeft128(intermResult->sig64, intermResult->sig0, shift_amount);
-
-    // intermResult->sig64 = shifted_sig.v64;
-    // intermResult->sig0 =
-    //     shifted_sig.v0 | (intermResult->sigExtra >> (-shift_amount & 63)); // Look at shortShiftLeft source
-    // intermResult->sigExtra = intermResult->sigExtra << shift_amount;
-    intermResult.sig <<= shift_amount;
-    intermResult.sig &= ~mp::uint256_t(0);
+    // 3. Now remove the leading one
+    mp::cpp_int mask = (mp::cpp_int(1) << INTERM_SIG_LENGTH) - 1;
+    intermResult.sig &= mask;
 
     return EXIT_SUCCESS;
 }
@@ -2084,7 +2394,7 @@ std::string coverfloat_runtestvector(const std::string &input, bool suppress_err
     output << std::setw(2) << resFmt16 << '_' << std::setw(2) << static_cast<uint16_t>(newFlags) << '_';
     output << std::setw(1) << intermRes.sign << '_';
     output << std::setw(8) << intermRes.exp << '_';
-    output << std::setw(64) << intermRes.sig << '_';
+    output << std::setw(INTERM_SIG_LENGTH_HEX) << intermRes.sig << '_';
     output << std::setw(64) << intermRes.fma_pre_addition;
 
     output << "\n";
@@ -2120,11 +2430,11 @@ std::string coverfloat_runtestvector(const std::string &input, bool suppress_err
             // flags != newFlags) {                                            // flags   don't match
             output = std::stringstream();
             output << "Error: testvector output doesn't match expected value\nTestVector output: ";
-            output << std::hex << std::setw(32) << res;
+            output << std::hex << std::setfill('0') << std::setw(32) << res;
             output << "\nExpected output: ";
-            output << newRes;
-            output << std::setw(2) << "\nTestVector Flags: " << flags << "\nExpected Flags: " << newFlags
-                   << "\nOperation: " << op << "\n";
+            output << std::setw(32) << newRes;
+            output << "\nTestVector Flags: " << std::setw(2) << flags << "\nExpected Flags: " << std::setw(2)
+                   << static_cast<uint16_t>(newFlags) << "\nOperation: " << std::setw(8) << op << "\n";
             // snprintf(
             //     output,
             //     512,

@@ -12,14 +12,23 @@
 #include <string>
 
 #define TEST_VECTOR_WIDTH_BITS 576
-#define COVER_VECTOR_WIDTH_BITS 1124
+#define COVER_VECTOR_WIDTH_BITS 1208
 
 #define TEST_VECTOR_WIDTH_HEX 144
-#define COVER_VECTOR_WIDTH_HEX 281
+#define COVER_VECTOR_WIDTH_HEX 302
 
 #define COVER_VECTOR_WIDTH_HEX_WITH_SEPARATORS (COVER_VECTOR_WIDTH_HEX + 12)
 
-#define INTERM_SIG_LENGTH 256
+// #define INTERM_SIG_LENGTH 256
+static constexpr int INTERM_SIG_LENGTH = (3 * 112) + 4;
+constexpr int hex_length(int sig) {
+    int hex_length = sig / 4;
+    if (hex_length * 4 != sig) {
+        hex_length += 1;
+    }
+    return hex_length;
+}
+static constexpr int INTERM_SIG_LENGTH_HEX = hex_length(INTERM_SIG_LENGTH);
 
 // #define TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS (TEST_VECTOR_WIDTH_HEX + 8)
 // #define MAX_LINE_LEN (TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS + 10)
@@ -136,8 +145,21 @@ typedef struct {
 struct MPIntermResult {
     bool sign;
     int32_t exp;
-    boost::multiprecision::uint256_t sig;
+    boost::multiprecision::cpp_int sig;
     boost::multiprecision::uint256_t fma_pre_addition;
+};
+
+struct MP_fmaFullShiftInfo {
+    boost::multiprecision::cpp_int sigProd;
+    boost::multiprecision::cpp_int sigC;
+    int32_t signed_shift;
+
+    enum class Mode {
+        PROD_ADD_C,
+        PROD_SUB_C,
+        C_SUB_PROD,
+        NONE,
+    } mode;
 };
 
 inline uint32_t signed_to_unsigned(int32_t in) {

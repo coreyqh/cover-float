@@ -6,9 +6,9 @@ namespace py = pybind11;
 std::string run_test_vector(const std::string &test_vector, bool suppress_error_check = true) {
     std::string res = coverfloat_runtestvector(test_vector, suppress_error_check);
 
-    // if (res != EXIT_SUCCESS) {
-    //     throw py::value_error("Error running test vector: " + result);
-    // }
+    if (res.size() != COVER_VECTOR_WIDTH_HEX_WITH_SEPARATORS + 1) {
+        throw py::value_error("Error running test vector: " + test_vector + "\nModel Information: " + res);
+    }
 
     return res;
 }

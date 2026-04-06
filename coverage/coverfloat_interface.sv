@@ -18,7 +18,7 @@ interface coverfloat_interface; import coverfloat_pkg::*; // TODO: add params fo
 
     bit         intermS;
     bit [31:0]  intermX;
-    bit [255:0] intermM;
+    bit [339:0] intermM;
 
     bit [7:0]  exceptionBits;
 

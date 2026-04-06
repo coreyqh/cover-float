@@ -43,4 +43,3 @@
 // define macro for long int support (i.e. 64 bit DUT)
 
 `define COVER_LONG
-`define COVER_INT

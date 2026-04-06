@@ -58,27 +58,51 @@ def testgen() -> None:
     if args.models is None:
         tg.B1.main()
         auto_parse("B1", args.output_dir)
+        tg.B2.main()
+        auto_parse("B2", args.output_dir)
         tg.B3.main()
         auto_parse("B3", args.output_dir)
+        tg.B6.main()
+        auto_parse("B6", args.output_dir)
+        tg.B7.main()
+        auto_parse("B7", args.output_dir)
+        tg.B8.main()
+        auto_parse("B8", args.output_dir)
         tg.B9.main()
         auto_parse("B9", args.output_dir)
         tg.B10.main()
         auto_parse("B10", args.output_dir)
-        tg.B12.main()
-        auto_parse("B12", args.output_dir)
         tg.B11.main()
         auto_parse("B11", args.output_dir)
+        tg.B12.main()
+        auto_parse("B12", args.output_dir)
+        tg.B13.main()
+        auto_parse("B13", args.output_dir)
         tg.B14.main()
         auto_parse("B14", args.output_dir)
         tg.B15.main()
         auto_parse("B15", args.output_dir)
+        tg.B21.main()
+        auto_parse("B21", args.output_dir)
     else:
         if "B1" in args.models:
             tg.B1.main()
             auto_parse("B1", args.output_dir)
+        if "B2" in args.models:
+            tg.B2.main()
+            auto_parse("B2", args.output_dir)
         if "B3" in args.models:
             tg.B3.main()
             auto_parse("B3", args.output_dir)
+        if "B6" in args.models:
+            tg.B6.main()
+            auto_parse("B6", args.output_dir)
+        if "B7" in args.models:
+            tg.B7.main()
+            auto_parse("B7", args.output_dir)
+        if "B8" in args.models:
+            tg.B8.main()
+            auto_parse("B8", args.output_dir)
         if "B9" in args.models:
             tg.B9.main()
             auto_parse("B9", args.output_dir)
@@ -91,9 +115,15 @@ def testgen() -> None:
         if "B12" in args.models:
             tg.B12.main()
             auto_parse("B12", args.output_dir)
+        if "B13" in args.models:
+            tg.B13.main()
+            auto_parse("B13", args.output_dir)
         if "B14" in args.models:
             tg.B14.main()
             auto_parse("B14", args.output_dir)
         if "B15" in args.models:
             tg.B15.main()
             auto_parse("B15", args.output_dir)
+        if "B21" in args.models:
+            tg.B21.main()
+            auto_parse("B21", args.output_dir)

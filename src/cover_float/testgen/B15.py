@@ -7,7 +7,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, TextIO
 
 import cover_float.common.constants as constants
-from cover_float.common.util import generate_float, generate_test_vector, reproducible_hash
+from cover_float.common.util import (
+    bezout_inverse,
+    factors_to_bit_width,
+    generate_float,
+    generate_test_vector,
+    reproducible_hash,
+)
 from cover_float.reference import run_and_store_test_vector
 from cover_float.testgen.B9 import B9SignificandGenerator
 
@@ -75,34 +81,6 @@ class B15SignificandGenerator:
 
             self.sigs.append(B15Significand(bin(sig1)[3:], bin(sig2)[3:], res))
 
-    @staticmethod
-    def factors_to_bit_width(factors: dict[int, int], target: int, bit_width: int) -> tuple[int, int]:
-        usable_factors = [factor for factor, count in factors.items() for _ in range(count)]
-        usable_factors.sort(key=lambda x: -x)  # Sort Descending
-
-        def recurse(running_count: int, i: int) -> int:
-            last_factor = 0
-            for idx, factor in enumerate(usable_factors[i:], i):
-                if last_factor == factor:
-                    continue
-                last_factor = factor
-
-                guess = running_count * factor
-                if guess.bit_length() == bit_width and (target // guess).bit_length() == bit_width:
-                    return running_count * factor
-                elif guess.bit_length() < bit_width:
-                    attempt = recurse(guess, idx + 1)
-                    if attempt != 0:
-                        return attempt
-
-            return 0
-
-        res = recurse(1, 0)
-        if res == 0:
-            return (0, 0)
-
-        return (res, target // res)
-
     def leading_zeros(self, counts: Optional[list[int]] = None) -> None:
         random.seed(reproducible_hash(self.seed + " Leading Zeros"))
 
@@ -125,7 +103,7 @@ class B15SignificandGenerator:
             elif count == 2 * self.nf - 1:
                 target = int("1" + "0" * (self.nf * 2) + "1", 2)
                 factors = factorint(target)  # Possible up to quad, by sheer luck
-                f1, f2 = self.factors_to_bit_width(factors, target, self.nf)
+                f1, f2 = factors_to_bit_width(factors, target, self.nf)
                 if f1 == 0:
                     continue
 
@@ -145,37 +123,6 @@ class B15SignificandGenerator:
                 self.sigs.append(B15Significand(sig1, sig2, res))
 
     @staticmethod
-    def bezout_inverse(x: int, base: int) -> int:
-        # Find the inverse of an element using the Euclidean algorithm and applying Bezout's identity
-        # The euclidean algorithm says: gcd(x, y) = gcd(y, x % y) for x > y
-        # Bezout's identity says that there exists A, B in Z such that Ax + By = gcd(x, y)
-        # With proper book keeping, we can find these X and Y, and noticing that
-        # Ax + By = 1 when x, y are relatively prime (as x and base are assumed to be),
-        # Ax = 1 - By implies Ax = 1 (mod y) and thus A inverts X in base y
-
-        # Algorithm taken from https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
-        r = [base, x]
-        s = [1, 0]
-        t = [0, 1]
-
-        while r[-1] != 0:
-            q = r[-2] // r[-1]
-            r.append(r[-2] - q * r[-1])
-            s.append(s[-2] - q * s[-1])
-            t.append(t[-2] - q * t[-1])
-
-        gcd = r[-2]
-        _bezout_A = s[-2]
-        bezout_B = t[-2]
-
-        if gcd != 1:
-            return -1
-
-        # We have bezout_A(base) + bezout_B(x) = gcd
-        # So, as shown above, bezout_B inverts x
-        return bezout_B % base
-
-    @staticmethod
     def _trailing_ones_factoring(nf: int, ones: int) -> tuple[int, int]:
         # We want a significand with so many trailing ones
         if (1 << (2 * nf - ones)) <= (1 << 20):  # Around 1 Million
@@ -189,7 +136,7 @@ class B15SignificandGenerator:
             # Get something of the form 1(random)01111.1111
             num = (1 << (2 * nf)) | (lead << (ones + 1)) | pattern
             factors: dict[int, int] = factorint(num)
-            f1, f2 = B15SignificandGenerator.factors_to_bit_width(factors, num, nf + 1)
+            f1, f2 = factors_to_bit_width(factors, num, nf + 1)
             if f1 * f2 == num:
                 return f1, f2
 
@@ -215,7 +162,7 @@ class B15SignificandGenerator:
 
         for _ in range(10000000):
             sig1 = (1 << nf) + random.getrandbits(16) | 1  # Must be odd
-            sig2 = B15SignificandGenerator.bezout_inverse(sig1, 2**ones)
+            sig2 = bezout_inverse(sig1, 2**ones)
             sig2 = 2**ones - sig2
 
             if sig1.bit_length() != (nf + 1) or sig2.bit_length() != (nf + 1):
@@ -283,7 +230,7 @@ class B15SignificandGenerator:
             # Get something of the form 1111...111(random)
             num = (1 << (2 * nf)) | pattern | final
             factors: dict[int, int] = factorint(num)
-            f1, f2 = B15SignificandGenerator.factors_to_bit_width(factors, num, nf + 1)
+            f1, f2 = factors_to_bit_width(factors, num, nf + 1)
             if f1 * f2 == num:
                 return f1, f2
 
@@ -418,7 +365,7 @@ class B15SignificandGenerator:
             target |= 1 << position
 
             factors: dict[int, int] = factorint(target)
-            f1, f2 = self.factors_to_bit_width(factors, target, self.nf + 1)
+            f1, f2 = factors_to_bit_width(factors, target, self.nf + 1)
 
             sig1 = bin(f1)[3:]
             sig2 = bin(f2)[3:]
@@ -440,7 +387,7 @@ class B15SignificandGenerator:
                 target &= ~(1 << p2)
 
             factors: dict[int, int] = factorint(target)
-            f1, f2 = self.factors_to_bit_width(factors, target, self.nf + 1)
+            f1, f2 = factors_to_bit_width(factors, target, self.nf + 1)
 
             sig1 = bin(f1)[3:]
             sig2 = bin(f2)[3:]
@@ -555,7 +502,7 @@ class B15SignificandGenerator:
                         target <<= 1
 
                     factors: dict[int, int] = factorint(target)
-                    f1, f2 = self.factors_to_bit_width(factors, target, self.nf + 1)
+                    f1, f2 = factors_to_bit_width(factors, target, self.nf + 1)
                     if f1 * f2 == target:
                         sig1 = bin(f1)[3:]
                         sig2 = bin(f2)[3:]
@@ -607,7 +554,7 @@ class B15SignificandGenerator:
                 res = best[1] * best[2]
                 self.sigs.append(B15Significand(sig1, sig2, res))
 
-    def generate(self) -> list[tuple[str, str]]:
+    def generate(self, file: TextIO) -> list[tuple[str, str]]:
         print("\tChecker Boards")
         self.checkerboards()
         print("\tTrailing Zeros")
@@ -627,7 +574,13 @@ class B15SignificandGenerator:
         print("\tLong Runs of Zeros")
         self.long_run_zeros()
 
+        self.store_sigs(file)
+
         return [(sig.sig1, sig.sig2) for sig in self.sigs]
+
+    def store_sigs(self, file: TextIO) -> None:
+        for i, sig in enumerate(self.sigs):
+            file.write(f"bins bin_{i} = {{ 'b{sig.result:0{2 * self.nf + 2}b} }}; \n")
 
 
 def interesting_tests(
@@ -759,18 +712,24 @@ def main() -> None:
             hashval = reproducible_hash(fmt + "b15")
             random.seed(hashval)
 
-            print(f"Generating {fmt} Sigs & Shifts")
-            b9_sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
-            b9_sigs = [int(sig, 2) for sig in b9_sig_gen.generate()]
+            bins_path = Path("coverage", "covergroups", "bins_templates", "generated")
+            bins_path.mkdir(parents=True, exist_ok=True)
 
-            b15_sig_gen = B15SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
-            b15_sigs = [(int(sig1, 2), int(sig2, 2)) for sig1, sig2 in b15_sig_gen.generate()]
+            add_sigs_path = bins_path / f"B15_{constants.FMT_TO_STRING[fmt]}_special_sigs.svh"
+            mul_sigs_path = bins_path / f"B15_{constants.FMT_TO_STRING[fmt]}_prod_special_sigs.svh"
+            with add_sigs_path.open("w") as add_sigs_file, mul_sigs_path.open("w") as mul_sigs_file:
+                print(f"Generating {fmt} Sigs & Shifts")
+                b9_sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
+                b9_sigs = [int(sig, 2) for sig in b9_sig_gen.generate(add_sigs_file)]
 
-            interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+                b15_sig_gen = B15SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
+                b15_sigs = [(int(sig1, 2), int(sig2, 2)) for sig1, sig2 in b15_sig_gen.generate(mul_sigs_file)]
 
-            print(f"Generating {fmt} Tests")
-            interesting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)
-            uninteresting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)
+                interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+
+                print(f"Generating {fmt} Tests")
+                interesting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)
+                uninteresting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)
 
 
 if __name__ == "__main__":

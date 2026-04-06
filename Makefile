@@ -2,7 +2,7 @@
 
 RM_CMD ?= rm -rf
 
-.PHONY: build clean sim all B1 B3 B9 B10 B11 B12 B14 B15
+.PHONY: build clean sim all B1 B2 B3 B9 B10 B12 B13 B14 B15 B21
 
 # Notice that we pass --managed-python, we do this so that uv (scikit-build-core)
 # will have a python enviornment with Python.h to build with.
@@ -20,8 +20,20 @@ sim:
 B1:
 	uv run --managed-python cover-float-testgen --model B1
 
+B2:
+	uv run --managed-python cover-float-testgen --model B2
+
 B3:
 	uv run --managed-python cover-float-testgen --model B3
+
+B6:
+	uv run --managed-python cover-float-testgen --model B6
+
+B7:
+	uv run --managed-python cover-float-testgen --model B7
+
+B8:
+	uv run --managed-python cover-float-testgen --model B8
 
 B9:
 	uv run --managed-python cover-float-testgen --model B9
@@ -35,11 +47,17 @@ B11:
 B12:
 	uv run --managed-python cover-float-testgen --model B12
 
+B13:
+	uv run --managed-python cover-float-testgen --model B13
+
 B14:
 	uv run --managed-python cover-float-testgen --model B14
 
 B15:
 	uv run --managed-python cover-float-testgen --model B15
+
+B21:
+	uv run --managed-python cover-float-testgen --model B21
 
 # Clean target to remove build artifacts
 clean:

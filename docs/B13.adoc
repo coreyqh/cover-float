@@ -1,0 +1,123 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+
+== B13 Add: Cancellation and SubNorm Result
+
+Aharoni et al.
+
+=== Description
+
+This model tests all combinations of cancellation values as in model (B12), with all possible unbiased exponent values of subnormal results.
+
+That is, for two operands `a` and `b` with exponents `a_exp` and `b_exp` and a intermediate result exponent `exp`, we test all cases where `exp` - max(`a_exp`, `b_exp`) takes each value in [-p, +1], and each with all possible subnormal exponent values.
+
+*Number of tests generated:* 33076 (3E4)
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
+
+*Operations Supported:* Add, Subtract
+
+== Definitions
+
+`a`:: Operand 1
+`b`:: Operand 2
+`m`:: Mantissa. Number of bits in mantissa, excluding the hidden 1
+`p`:: Precision. Number of significant bits, including the hidden 1. p = m + 1
+`d`:: The difference between max(a_exp, b_exp) and exponent of the intermediate result. This is the interest of this model, where we test all d's in [-p, +1]
+`k`:: Magnitude of d. Defined as -d in the code since we deal with d = 1 separately
+`leading_zeros`:: The number of leading zeros we want in the result. This variable is introduced because we need to sweep all possible subnormal exponents. `leading_zeros` determine the subnormal exponent, and we test all possible values to test all possible unbiased exponent values of subnormal results
+`a_m`:: Mantissa of `a`
+`b_m`:: Mantissa of `b`
+`a_exp`:: Exponent of operand `a`, generally in `[min_exp, max_exp]`
+`b_exp`:: Exponent of operand `b`, generally in `[min_exp, max_exp]`
+`exp`:: Exponent of the result, generally in `[min_exp, max_exp]`
+`max_exp`:: Maximum exponent value based on precision
+`min_exp`:: Minimum exponent value based on precision
+
+== Background
+
+Subnormals are one of the hardest parts of FP hardware because the hardware can no longer keep the leading 1 in normalization, rounding behaves differently, and underflow logic is triggered.
+
+B13 model thus targets bugs in alignment logic, cancellation detection, normalization, subnormal generation, and rounding
+
+=== Design Choices & Impossible Case
+
+. Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
+. Mantissas for `d = -p, 0, 1` are not randomly generated but are selected based on obvious cases that produce that specific `d`. Again, since we're only interested in the exponents, we should not be concerned with generating all mantissas randomly.
+. Impossible cases include: `d = -1, 0, +1` with smallest possible subnormal exponent (`(m-1)` leading zeros).
+
+=== Notes
+
+All explanation in this document will be done with one instead of both operations because the only difference will be sign assignments. All exponents used in the examples are unbiased exponents.
+
+== General Procedure
+
+General idea:
+
+we want to cancel d bits,
+    with leading_zeros leading zeros.
+        Then, we know our results would be a 1 after leading_zero zeros, and P-126. So, our operands exponents would need to be
+        P -126 + (-d - leading_zeros). Then, we use the same B12 logic to cancel d bits.
+
+
+== Test Count Breakdown
+
+[cols="1,1,1,1,1,1,1",options="header"]
+|===
+| Precision | p | Case 1 (`d = -p`) | Case 2 (all other `d`'s) | Case 3 (`d = 0`) | Case 4 (`d = 1`) | Total
+
+| BF_16
+| 8
+| 7
+| 49
+| 6
+| 6
+| 68
+
+| FP_16
+| 11
+| 10
+| 100
+| 9
+| 9
+| 128
+
+| FP_32
+| 24
+| 23
+| 529
+| 22
+| 22
+| 596
+
+| FP_64
+| 53
+| 52
+| 2704
+| 51
+| 51
+| 2858
+
+| FP_128
+| 113
+| 112
+| 12544
+| 111
+| 111
+| 12878
+|===
+
+=== Overall Test Count
+
+[cols="1,1",options="header"]
+|===
+| Description | Value
+
+| Total cancellation tests
+| 16528
+
+| Accounting for Add and Subtract (×2)
+| 33056
+|===

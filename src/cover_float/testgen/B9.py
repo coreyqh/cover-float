@@ -147,21 +147,34 @@ class B9SignificandGenerator:
             zero_run_list = list(bin(random.getrandbits(self.nf))[2:].zfill(self.nf))
 
             # We want the run to be exact so we pad it
-            zero_run_list[start - 1] = "0"
-            zero_run_list[start + run_length] = "0"
+            zero_run_list[start - 1] = "1"
+            zero_run_list[start + run_length] = "1"
             for i in range(start, start + run_length):
-                zero_run_list[i] = "1"
+                zero_run_list[i] = "0"
             answer.append("".join(zero_run_list))
 
         return answer
 
-    def generate(self) -> list[str]:
-        return [
-            *self.generate_leading_and_trailing(),
-            *self.generate_sparse(),
-            *self.generate_checkerboards(),
-            *self.generate_long_runs(),
-        ]
+    def generate(self, file: TextIO) -> list[str]:
+        leading_trailing = self.generate_leading_and_trailing()
+        sparse = self.generate_sparse()
+        checkers = self.generate_checkerboards()
+        long_runs = self.generate_long_runs()
+
+        file.write("// Leading and Trailing Ones and Zeros\n")
+        self.write_significand_coverage_template(leading_trailing, 0, file)
+        file.write("// Sparse Ones and Zeros\n")
+        self.write_significand_coverage_template(sparse, len(leading_trailing), file)
+        file.write("// Checkerboard Patterns\n")
+        self.write_significand_coverage_template(checkers, len(leading_trailing) + len(sparse), file)
+        file.write("// Long Runs of Zeros and Ones\n")
+        self.write_significand_coverage_template(long_runs, len(leading_trailing) + len(sparse) + len(checkers), file)
+
+        return leading_trailing + sparse + checkers + long_runs
+
+    def write_significand_coverage_template(self, significands: list[str], initial: int, file: TextIO) -> None:
+        for i, sig in enumerate(significands, initial):
+            file.write(f"bins bin_{i:02d} = {{ 'b{sig.zfill(self.nf)} }}; \n")
 
 
 def B9_generator(sigs: list[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -199,6 +212,16 @@ def main() -> None:
     ):
         for fmt in constants.FLOAT_FMTS:
             generator = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b9")
-            sigs = generator.generate()
 
-            B9_generator(sigs, fmt, test_f, cover_f)
+            bins_path = Path(
+                "coverage",
+                "covergroups",
+                "bins_templates",
+                "generated",
+                f"B9_{constants.FMT_TO_STRING[fmt]}_special_sigs.svh",
+            )
+            bins_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with bins_path.open("w") as generated_coverage:
+                sigs = generator.generate(generated_coverage)
+                B9_generator(sigs, fmt, test_f, cover_f)

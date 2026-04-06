@@ -24,27 +24,27 @@ covergroup B15_cg (virtual coverfloat_interface CFI);
      *
      ************************************************************************/
 
-    F16_src_fmt: coverpoint (CFI.operandFmt == FMT_HALF) {
+    F16_result_fmt: coverpoint (CFI.resultFmt == FMT_HALF) {
         type_option.weight = 0;
         bins f16 = {1};
     }
 
-    BF16_src_fmt: coverpoint (CFI.operandFmt == FMT_BF16) {
+    BF16_result_fmt: coverpoint (CFI.resultFmt == FMT_BF16) {
         type_option.weight = 0;
         bins bf16 = {1};
     }
 
-    F32_src_fmt: coverpoint (CFI.operandFmt == FMT_SINGLE) {
+    F32_result_fmt: coverpoint (CFI.resultFmt == FMT_SINGLE) {
         type_option.weight = 0;
         bins f32 = {1};
     }
 
-    F64_src_fmt: coverpoint (CFI.operandFmt == FMT_DOUBLE) {
+    F64_result_fmt: coverpoint (CFI.resultFmt == FMT_DOUBLE) {
         type_option.weight = 0;
         bins f64 = {1};
     }
 
-    F128_src_fmt: coverpoint (CFI.operandFmt == FMT_QUAD) {
+    F128_result_fmt: coverpoint (CFI.resultFmt == FMT_QUAD) {
         type_option.weight = 0;
         bins f128 = {1};
     }
@@ -180,23 +180,23 @@ covergroup B15_cg (virtual coverfloat_interface CFI);
      ************************************************************************/
 
     `ifdef COVER_F16
-        B15_F16:  cross FP_addsub_ops, F16_exp_diff,  F16_prod_special_sigs,  F16_c_special_sigs,  F16_result_fmt;
+        B15_F16:  cross FP_madd_ops, F16_madd_shift,  F16_prod_special_sigs,  F16_c_special_sigs,  F16_result_fmt;
     `endif // COVER_F16
 
     `ifdef COVER_BF16
-        B15_BF16: cross FP_addsub_ops, BF16_exp_diff, BF16_prod_special_sigs, BF16_c_special_sigs, BF16_result_fmt;
+        B15_BF16: cross FP_madd_ops, BF16_madd_shift, BF16_prod_special_sigs, BF16_c_special_sigs, BF16_result_fmt;
     `endif // COVER_BF16
 
     `ifdef COVER_F32
-        B15_F32:  cross FP_addsub_ops, F32_exp_diff,  F32_prod_special_sigs,  F32_c_special_sigs,  F32_result_fmt;
+        B15_F32:  cross FP_madd_ops, F32_madd_shift,  F32_prod_special_sigs,  F32_c_special_sigs,  F32_result_fmt;
     `endif // COVER_F32
 
     `ifdef COVER_F64
-        B15_F64:  cross FP_addsub_ops, F64_exp_diff,  F64_prod_special_sigs,  F64_c_special_sigs,  F64_result_fmt;
+        B15_F64:  cross FP_madd_ops, F64_madd_shift,  F64_prod_special_sigs,  F64_c_special_sigs,  F64_result_fmt;
     `endif // COVER_F64
 
     `ifdef COVER_F128
-        B15_F128: cross FP_addsub_ops, F128_exp_diff, F128_prod_special_sigs, F128_c_special_sigs, F128_result_fmt;
+        B15_F128: cross FP_madd_ops, F128_madd_shift, F128_prod_special_sigs, F128_c_special_sigs, F128_result_fmt;
     `endif // COVER_F128
 
 

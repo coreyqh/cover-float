@@ -378,6 +378,7 @@ package coverfloat_pkg;
 
         int E_a;
         int E_b;
+        int bias;
 
         case (fmt)
 
@@ -396,6 +397,8 @@ package coverfloat_pkg;
                 E_b = (exp_b == 0) ?
                         (1 - F16_EXP_BIAS) :
                         (int'(exp_b) - F16_EXP_BIAS);
+
+                bias = F16_EXP_BIAS;
             end
 
             // --------------------------------------------------
@@ -413,6 +416,8 @@ package coverfloat_pkg;
                 E_b = (exp_b == 0) ?
                         (1 - BF16_EXP_BIAS) :
                         (int'(exp_b) - BF16_EXP_BIAS);
+
+                bias = BF16_EXP_BIAS;
             end
 
             // --------------------------------------------------
@@ -430,6 +435,8 @@ package coverfloat_pkg;
                 E_b = (exp_b == 0) ?
                         (1 - F32_EXP_BIAS) :
                         (int'(exp_b) - F32_EXP_BIAS);
+
+                bias = F32_EXP_BIAS;
             end
 
             // --------------------------------------------------
@@ -447,6 +454,8 @@ package coverfloat_pkg;
                 E_b = (exp_b == 0) ?
                         (1 - F64_EXP_BIAS) :
                         (int'(exp_b) - F64_EXP_BIAS);
+
+                bias = F64_EXP_BIAS;
             end
 
             // --------------------------------------------------
@@ -465,6 +474,8 @@ package coverfloat_pkg;
                         (1 - F128_EXP_BIAS) :
                         (int'(exp_b) - F128_EXP_BIAS);
 
+                bias = F128_EXP_BIAS;
+
             end
 
             default: begin
@@ -473,7 +484,7 @@ package coverfloat_pkg;
 
         endcase
 
-        return (E_a + E_b);
+        return (E_a + E_b) + bias;
 
     endfunction
 

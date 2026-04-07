@@ -46,7 +46,6 @@ This model checks various possible differences between two inputs. A test-case w
 
 *Operations supported:* OP_FEQ, OP_FLT, OP_FLE, OP_MIN, OP_MAX
 
----
 
 == Implementation
 
@@ -55,82 +54,47 @@ This model checks various possible differences between two inputs. A test-case w
 [source]
 ----
 bias          = (2 ^ (exp_bits - 1)) - 1
-max_bexp      = (2 ^ exp_bits) - 1        (all-ones; encodes NaN/Inf — not a valid normal)
+max_bexp      = (2 ^ exp_bits) - 1    (all-ones; encodes NaN/Inf are not a valid normal)
 min_norm_bexp = 1                          (smallest valid normal biased exponent)
 max_norm_bexp = max_bexp - 1              (largest valid normal biased exponent)
 frac_bits     = sig_bits - 1              (stored mantissa width, excludes implicit leading 1)
-frac_max      = (2 ^ frac_bits) - 1      (all-ones frac = "1s padding")
+frac_max      = (2 ^ frac_bits) - 1
 
-0s padding    = frac field of all zeros   (the frac of MinNorm)
-1s padding    = frac field of all ones    (the frac of MaxNorm)
-00..001       = frac = 1                  (the frac of MinSubNorm)
-10000..000    = frac with only the MSB set
-any frac      = representative mid-range frac (0x5A tiled pattern, always > 1)
-any exp       = one of 4 representative normal biased-exponent anchors (see below)
-00000         = biased exponent field of 0 (subnormal / zero encoding)
-11110         = max_norm_bexp in 5-bit FP16 notation; generalises to max_norm_bexp
-00001         = min_norm_bexp = 1
+all zeros   = fraction with all zeros   (the frac of MinNorm)
+all ones   = fraction with all ones    (the frac of MaxNorm)
+00..001       = fraction where the LSB is one = 1                  (the frac of MinSubNorm)
+10000..000    = fraction with only the MSB set to 1
+any frac      = a randomized value in the fraction field, representative mid-range fraction (all zeros < any frac < all ones)
+any exp       = a randomized exponent value, representative of mid-range exponents (min_norm_bexp < any exp < max_norm_bexp)
+significand = mantissa = fraction (interchangable terms)
 ----
 
 ==== Exponent interpretation for subnormals
 
 A subnormal number has a fixed biased exponent field of 0, but its _effective exponent_ — the exponent of its leading significant bit — depends on the position of the leading 1 in the frac field:
 
+Let stem:[L_z] be the number of leading zeros in the fraction field before the first 1. The effective exponent can be calculated as:
+
 [source]
 ----
-eff_exp(frac) = bit_position_of_leading_1(frac) + (1 - bias - frac_bits)
+eff_exp(frac) = -bias - L
 ----
+For example, suppose we are given two FP16 subnormal numbers (where stem:[\text{bias} = 15] and stem:[\text{frac_bits} = 10]):
 
-This means two subnormals can have exp >, =, or < relationships based on their frac fields. A subnormal with a higher leading-1 position has both a larger effective exponent AND a larger frac value, so exp > always implies sig > and exp < always implies sig <. Only exp = leaves sig free.
+* `0 00000 0100100000` <- Has 1 leading zero in the fraction (stem:[L_z = 1]). Its effective exponent is stem:[-\text{bias} - 1 = -16].
+* `0 00000 0000010100` <- Has 5 leading zeros in the fraction (stem:[L_z = 5]). Its effective exponent is stem:[-\text{bias} - 5 = -20].
 
-==== 'any exp' anchor values
+This means two subnormals can have exp >, =, or < relationships based on their fraction fields. A subnormal with a higher leading-1 position has both a larger effective exponent AND a larger fraction value, so exp > always implies significands > and exponents < always implies significands <. Only exponents = leaves significands free.
 
-For each format, 4 evenly-spaced representative normal biased-exponent values are used:
-
-[cols="2,3,3,3",options="header"]
-|===
-| Format | Full anchors (any exp) | Anchors < max (exp> rows) | Anchors > min (exp< rows)
-
-| BF16
-| 1, 85, 169, 254
-| 1, 85, 169, 253
-| 2, 86, 170, 254
-
-| FP16
-| 1, 10, 19, 30
-| 1, 10, 19, 29
-| 2, 11, 20, 30
-
-| FP32
-| 1, 85, 169, 254
-| 1, 85, 169, 253
-| 2, 86, 170, 254
-
-| FP64
-| 1, 682, 1363, 2046
-| 1, 682, 1363, 2045
-| 2, 683, 1364, 2046
-
-| FP128
-| 1, 10922, 21843, 32766
-| 1, 10922, 21843, 32765
-| 2, 10923, 21844, 32766
-|===
-
-For exp> rows, anchors are restricted to be strictly less than max_norm_bexp so that bexp1 = max_norm_bexp > bexp2 is always satisfied. Similarly for exp< rows, anchors are strictly greater than min_norm_bexp.
-
----
 
 === General Procedure
 
 For each (format, operation, case), the generator iterates over the achievable (exp_rel, sig_rel) cells. For each cell it enumerates:
 
-* All 4 sign combinations: (+/+), (+/−), (−/+), (−/−)
-* All 4 'any exp' anchors (where applicable)
+* All 4 sign combinations: (+/+), (+/-), (-/+), (-/-)
 
-The frac field values are deterministic constants derived from the format (0s, 1s, 00..001, 10000..000, any_frac). The 'any exp' biased-exponent anchors are also deterministic. A seeded random is used only for the bits of 'any frac' where randomisation is appropriate (see implementation).
+The frac field values are deterministic constants derived from the format (all zeros, all ones, 00..001, 10000..000, any_frac). A seeded random is used only for the bits of 'any frac' and 'any exp' where randomisation is appropriate (see implementation).
 
----
 
 == Test Case Analysis
 
@@ -143,72 +107,68 @@ The frac field values are deterministic constants derived from the format (0s, 1
 | >
 | >
 | max_norm_bexp
-| any exp (< max)
+| any exp
 | any frac
-| 0s padding
+| all zeros
 
 | >
 | <
 | max_norm_bexp
-| any exp (< max)
-| 0s padding
+| any exp
+| all zeros
 | any frac
 
 | >
 | =
 | max_norm_bexp
-| any exp (< max)
-| 0s padding
-| 0s padding
+| any exp
+| all zeros
+| all zeros
 
 | <
 | >
 | min_norm_bexp
-| any exp (> min)
-| 1s padding
+| any exp
+| all ones
 | any frac
 
 | <
 | <
 | min_norm_bexp
-| any exp (> min)
+| any exp
 | any frac
-| 1s padding
+| all ones
 
 | <
 | =
 | min_norm_bexp
-| any exp (> min)
-| 1s padding
-| 1s padding
+| any exp
+| all ones
+| all ones
 
 | =
 | >
 | any exp
 | any exp (same)
-| 1s padding
-| 0s padding
+| all ones
+| all zeros
 
 | =
 | <
 | any exp
 | any exp (same)
-| 0s padding
-| 1s padding
+| all zeros
+| all ones
 
 | =
 | =
 | any exp
 | any exp (same)
-| 0s padding
-| 0s padding
+| all zeros
+| all zeros
 |===
 
-*Total per precision:* 9 cells × 4 exp anchors × 4 sign combos = **144**
-
-==== Impossibility reasoning
-
-All 9 combinations are achievable. Normal numbers have a freely adjustable biased exponent in [1, max_norm_bexp] and a freely adjustable frac in [0, frac_max], so all three exp relations and all three sig relations can be independently constructed.
+*Total per precision:* 9 cells × 4 sign combos = **36**
 
 ---
 
@@ -221,21 +181,21 @@ All 9 combinations are achievable. Normal numbers have a freely adjustable biase
 | >
 | >
 | any exp
-| 00000
+| 0s
 | any frac
 | 00..001
 
 | >
 | <
 | any exp
-| 00000
-| 0s padding
+| 0s
+| all zeros
 | 00..001
 
 | >
 | =
 | any exp
-| 00000
+| 0s
 | any frac
 | any frac
 
@@ -282,13 +242,11 @@ All 9 combinations are achievable. Normal numbers have a freely adjustable biase
 |
 |===
 
-*Total per precision:* 3 cells × 4 exp anchors × 4 sign combos = **48**
+*Total per precision:* 3 cells × 4 sign combos = **12**
 
 ==== Impossibility reasoning
 
-A normal number has biased exponent ≥ 1, while a subnormal has biased exponent = 0. The normal's effective exponent ranges from (1 − bias) to bias, while the subnormal's effective exponent ranges from (1 − bias − frac_bits) to (−bias). Since (−bias) < (1 − bias), the subnormal's effective exponent is always strictly less than the normal's. Therefore exp < (normal < subnormal) and exp = are structurally impossible — *only exp > is achievable*.
-
-For the sig relation: F_input_2 is fixed at 00..001 (= 1, the smallest valid subnormal frac). F_input_1 = any_frac > 1 gives sig >. F_input_1 = 0s (= 0) < 1 gives sig <. F_input_1 = any_frac with F_input_2 = any_frac (same value) gives sig =.
+A normal number has biased exponent ≥ 1, while a subnormal has biased exponent = 0. Therefore exp < (normal < subnormal) and exp = are structurally impossible — *only exp > is achievable*.
 
 ---
 
@@ -321,21 +279,21 @@ For the sig relation: F_input_2 is fixed at 00..001 (= 1, the smallest valid sub
 
 | <
 | >
-| 00000
+| 0s
 | any exp
-| 1s padding
-| 0s padding
+| all ones
+| all zeros
 
 | <
 | <
-| 00000
+| 0s
 | any exp
 | any frac
-| 1s padding
+| all ones
 
 | <
 | =
-| 00000
+| 0s
 | any exp
 | any frac
 | any frac
@@ -362,13 +320,11 @@ For the sig relation: F_input_2 is fixed at 00..001 (= 1, the smallest valid sub
 |
 |===
 
-*Total per precision:* 3 cells × 4 exp anchors × 4 sign combos = **48**
+*Total per precision:* 3 cells × 4 sign combos = **12**
 
 ==== Impossibility reasoning
 
 Symmetric to Case 2. The subnormal's effective exponent is always strictly less than the normal's, so exp > (subnormal > normal) and exp = are structurally impossible — *only exp < is achievable*.
-
-For the sig relation: F_input_2 = 0s (= 0) gives frac2 < frac1 = 1s, yielding sig >. F_input_2 = 1s (= frac_max) with F_input_1 = any_frac < frac_max gives sig <. F_input_1 = any_frac = F_input_2 = any_frac gives sig =.
 
 ---
 
@@ -424,7 +380,7 @@ For the sig relation: F_input_2 = 0s (= 0) gives frac2 < frac1 = 1s, yielding si
 | >
 | 0s
 | 0s
-| 1s padding
+| all ones
 | 10000..000
 
 | =
@@ -432,7 +388,7 @@ For the sig relation: F_input_2 = 0s (= 0) gives frac2 < frac1 = 1s, yielding si
 | 0s
 | 0s
 | 10000..000
-| 1s padding
+| all ones
 
 | =
 | =
@@ -442,7 +398,7 @@ For the sig relation: F_input_2 = 0s (= 0) gives frac2 < frac1 = 1s, yielding si
 | any frac
 |===
 
-*Total per precision:* 5 cells × 4 sign combos = **20** (no exp anchor axis — both bexp fields are always 0)
+*Total per precision:* 5 cells × 4 sign combos = **20** (no exp axis — both bexp fields are always 0)
 
 ==== Impossibility reasoning
 
@@ -450,7 +406,7 @@ Both subnormals have a stored biased exponent field of 0. Their _effective_ expo
 
 * *exp > forces sig >*: if eff_exp1 > eff_exp2, then the leading-1 of frac1 is at a higher bit position than the leading-1 of frac2, which means frac1 > frac2 necessarily. Therefore exp > sig < and exp > sig = are impossible.
 * *exp < forces sig <*: symmetric reasoning. exp < sig > and exp < sig = are impossible.
-* *exp = leaves sig free*: if both fracs have their leading-1 at the same bit position, eff_exp1 = eff_exp2. The lower bits then determine sig freely: 1s padding (1111..1) > 10000..000 (1000..0) for sig >, reversed for sig <, and identical fracs for sig =.
+* *exp = leaves sig free*: if both fracs have their leading-1 at the same bit position, eff_exp1 = eff_exp2. The lower bits then determine sig freely: all ones (1111..1) > 10000..000 (1000..0) for sig >, reversed for sig <, and identical fracs for sig =.
 
 The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows shown.
 
@@ -494,15 +450,15 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 | <
 | 0s
 | any exp
-| 0s
+| all zeros
 | any frac
 
 | <
 | =
 | 0s
 | any exp
-| 0s
-| 0s
+| all zeros
+| all zeros
 
 | =
 | >
@@ -526,7 +482,7 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 |
 |===
 
-*Total per precision:* 2 cells × 4 exp anchors × 4 sign combos = **32**
+*Total per precision:* 2 cells × 4 sign combos = **8**
 
 ==== Impossibility reasoning
 
@@ -534,7 +490,7 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 
 * *exp < sig > impossible:* Zero's frac is fixed at 0. For sig > we would need frac1 (= 0) > frac2. Since frac2 ≥ 0 always, this is impossible — 0 cannot be greater than anything.
 
-* *exp < sig < and exp < sig = are achievable:* frac2 = any_frac > 0 gives sig <; frac2 = 0s gives frac1 = frac2 = 0 giving sig =.
+* *exp < sig < and exp < sig = are achievable:* frac2 = any_frac > 0 gives sig <; frac2 = all zeros gives frac1 = frac2 = 0 giving sig =.
 
 ---
 
@@ -549,7 +505,7 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 | any exp
 | 0s
 | any frac
-| 0s
+| all zeros
 
 | >
 | <
@@ -562,8 +518,8 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 | =
 | any exp
 | 0s
-| 0s padding
-| 0s
+| all zeros
+| all zeros
 
 | <
 | >
@@ -608,7 +564,7 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 |
 |===
 
-*Total per precision:* 2 cells × 4 exp anchors × 4 sign combos = **32**
+*Total per precision:* 2 cells × 4 sign combos = **8**
 
 ==== Impossibility reasoning
 
@@ -618,7 +574,7 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 
 * *exp > sig > achievable:* F_input_1 = any_frac > 0 = F_input_2. Correct.
 
-* *exp > sig = achievable:* Both fracs must be equal. Since frac2 = 0 (zero's frac is fixed), frac1 must also be 0. So F_input_1 = 0s padding, not any_frac. Both are 0, giving sig =.
+* *exp > sig = achievable:* Both fracs must be equal. Since frac2 = 0 (zero's frac is fixed), frac1 must also be 0. So F_input_1 = all zeros, not any_frac. Both are 0, giving sig =.
 
 ---
 
@@ -688,8 +644,8 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 | =
 | 0s
 | 0s
-| 0s
-| 0s
+| all zeros
+| all zeros
 |===
 
 *Total per precision:* 1 cell × 4 sign combos = **4**
@@ -704,35 +660,31 @@ The 4 vectors come from the 4 sign combinations: (+0,+0), (+0,−0), (−0,+0), 
 
 == Test Count Breakdown
 
-[cols="1,2,2,1,1,1",options="header"]
+[cols="1,2,2,1,1",options="header"]
 |===
-| Case | Category pair | Achievable cells | Anchor axis | Sign axis | Per (fmt, op)
+| Case | Category pair | Achievable cells | Sign axis | Per (fmt, op)
 
 | 1
 | Normal × Normal
 | 9
 | × 4
-| × 4
-| 144
+| 36
 
 | 2
 | Normal × SubNormal
 | 3
 | × 4
-| × 4
-| 48
+| 12
 
 | 3
 | SubNormal × Normal
 | 3
 | × 4
-| × 4
-| 48
+| 12
 
 | 4
 | SubNormal × SubNormal
 | 5
-| × 1
 | × 4
 | 20
 
@@ -740,29 +692,25 @@ The 4 vectors come from the 4 sign combinations: (+0,+0), (+0,−0), (−0,+0), 
 | Zero × Normal
 | 2
 | × 4
-| × 4
-| 32
+| 8
 
 | 7
 | Normal × Zero
 | 2
 | × 4
-| × 4
-| 32
+| 8
 
 | 9
 | Zero × Zero
 | 1
-| × 1
 | × 4
 | 4
 
 |
 |
 |
-|
 | *Total per (fmt, op):*
-| *328*
+| *100*
 |===
 
 === Grand Total Breakdown
@@ -772,22 +720,22 @@ The 4 vectors come from the 4 sign combinations: (+0,+0), (+0,−0), (−0,+0), 
 | Format | Total vectors
 
 | BF_16
-| 328 per op × 5 ops = 1640
+| 100 per op × 5 ops = 500
 
 | FP_16
-| 328 per op × 5 ops = 1640
+| 100 per op × 5 ops = 500
 
 | FP_32
-| 328 per op × 5 ops = 1640
+| 100 per op × 5 ops = 500
 
 | FP_64
-| 328 per op × 5 ops = 1640
+| 100 per op × 5 ops = 500
 
 | FP_128
-| 328 per op × 5 ops = 1640
+| 100 per op × 5 ops = 500
 
 |
-| *Grand Total: 8200*
+| *Grand Total: 2500*
 |===
 
-*Note:* Differs from Aharoni test count. Aharoni reports ~9 E 2 total; our count is higher because we enumerate all 4 sign combinations and 4 representative exponent anchors explicitly, and implement 5 operations separately.
+*Note:* Differs from Aharoni test count. Aharoni reports ~9 E 2 total; our count is higher because we enumerate all 4 sign combinations explicitly and implement 5 operations separately.

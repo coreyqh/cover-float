@@ -494,37 +494,6 @@ package coverfloat_pkg;
 
     endfunction
 
-    function automatic int get_sign(
-        input logic [127:0] input_val,
-        input logic [7:0]   fmt);
-
-        int input_sign;
-
-        case (fmt)
-            FMT_HALF: begin
-                input_sign = input_val[15];
-            end
-            FMT_BF16: begin
-                input_sign = input_val[15];
-            end
-            FMT_SINGLE: begin
-                input_sign = input_val[31];
-            end
-            FMT_DOUBLE: begin
-                input_sign = input_val[63];
-            end
-            FMT_QUAD: begin
-                input_sign = input_val[127];
-            end
-
-            default: begin
-                return 0;
-            end
-        endcase
-
-        return input_sign;
-    endfunction
-
     function automatic int get_unbiased_exponent(
         input logic [127:0] input_val,
         input logic [7:0] fmt

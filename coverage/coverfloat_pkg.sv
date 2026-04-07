@@ -103,6 +103,12 @@ package coverfloat_pkg;
     parameter int F128_E_UPPER = 126;
     parameter int F128_E_LOWER = 112;
 
+    parameter int F16_SIGN_BIT = 15;
+    parameter int BF16_SIGN_BIT = 15;
+    parameter int F32_SIGN_BIT = 31;
+    parameter int F64_SIGN_BIT = 63;
+    parameter int F128_SIGN_BIT = 127;
+
     parameter int F16_M_UPPER  = F16_M_BITS - 1;
     parameter int BF16_M_UPPER = BF16_M_BITS - 1;
     parameter int F32_M_UPPER  = F32_M_BITS - 1;

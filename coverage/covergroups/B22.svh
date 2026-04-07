@@ -84,16 +84,16 @@ covergroup B22_cg (virtual coverfloat_interface CFI);
         type_option.weight = 0;
 
         bins less_than_neg_3 = {[$:-2]};
-        bins between_neg_3_and_int_width_plus_3[] = {[-3:35]};
-        bins greater_than_int_width_plus_3 = {[36:$]};
+        bins between_neg_3_and_int_width_plus_3[] = {[-3:SIZEOF_INT + 3]};
+        bins greater_than_int_width_plus_3 = {[SIZEOF_INT + 4:$]};
     }
 
     exponent_dif_long64: coverpoint $signed(get_unbiased_exponent(CFI.a, CFI.operandFmt)){
         type_option.weight = 0;
 
         bins less_than_neg_3 = {[$:-2]};
-        bins between_neg_3_and_int_width_plus_3[] = {[-3:67]};
-        bins greater_than_int_width_plus_3 = {[68:$]};
+        bins between_neg_3_and_int_width_plus_3[] = {[-3:SIZEOF_LONG + 3]};
+        bins greater_than_int_width_plus_3 = {[SIZEOF_LONG + 4:$]};
     }
 
     //Crosses

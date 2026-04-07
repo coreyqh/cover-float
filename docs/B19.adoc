@@ -739,4 +739,3 @@ The 4 vectors come from the 4 sign combinations: (+0,+0), (+0,−0), (−0,+0), 
 |===
 
 *Note:* Differs from Aharoni test count. Aharoni reports ~9 E 2 total; our count is higher because we enumerate all 4 sign combinations explicitly and implement 5 operations separately.
-

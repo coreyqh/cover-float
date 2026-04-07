@@ -79,6 +79,15 @@ covergroup B22_cg (virtual coverfloat_interface CFI);
         bins uint64 = {FMT_ULONG};
     }
 
+    //F16's max unbiased exponent is 16, below the limit for both int and long bit width
+    //This will be able to satisfy both the int and long possible cases for half precision
+    f16_exponent_dif: coverpoint $signed(get_unbiased_exponent(CFI.a, CFI.operandFmt)){
+        type_option.weight = 0;
+
+        bins less_than_neg_3 = {[$:-2]};
+        bins between_neg_3_and_16[] = {[-3:16]};
+    }
+
     //Input Exponent Coverpoint, only need 2 because unsigned/signed ints/longs have same width
     exponent_dif_int32: coverpoint $signed(get_unbiased_exponent(CFI.a, CFI.operandFmt)){
         type_option.weight = 0;
@@ -99,9 +108,9 @@ covergroup B22_cg (virtual coverfloat_interface CFI);
     //Crosses
     //FMT_HALF
     `ifdef COVER_F16
-        B22_F16_INT: cross F16_input_fmt, F16_sign, FP2INT_op, result_int32_fmt, exponent_dif_int32;
+        B22_F16_INT: cross F16_input_fmt, F16_sign, FP2INT_op, result_int32_fmt, f16_exponent_dif;
         `ifdef COVER_LONG
-            B22_F16_LONG: cross F16_input_fmt, F16_sign, FP2INT_op, result_long64_fmt, exponent_dif_long64;
+            B22_F16_LONG: cross F16_input_fmt, F16_sign, FP2INT_op, result_long64_fmt, f16_exponent_dif;
         `endif
     `endif
 

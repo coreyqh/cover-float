@@ -2009,10 +2009,14 @@ int reference_model(
             float32_t rounded_to_int_f32 = f32_roundToInt(as_f32, softfloat_round_odd, true);
             resultf = f32_to_bf16(rounded_to_int_f32);
 
-            sig = fracBF16UI(a) | BF16_IMPLICIT_ONE;
+            sig = fracBF16UI(a);
             shift_amount = expBF16UI(a) - BF16_EXP_BIAS;
             intermResult.exp = expBF16UI(a);
             intermResult.sign = signBF16UI(a);
+
+            if (intermResult.exp) {
+                sig |= BF16_IMPLICIT_ONE;
+            }
 
             FLOAT16_TO_MP(result, resultf);
             break;
@@ -2023,10 +2027,14 @@ int reference_model(
             resultf = f16_roundToInt(af, rm, true);
             FLOAT16_TO_MP(result, resultf);
 
-            sig = fracF16UI(a) | 1 << 10;
+            sig = fracF16UI(a);
             shift_amount = expF16UI(a) - 15;
             intermResult.exp = expF16UI(a);
             intermResult.sign = signF16UI(a);
+
+            if (intermResult.exp) {
+                sig |= mp::cpp_int(1) << 10;
+            }
 
             break;
         }
@@ -2036,10 +2044,14 @@ int reference_model(
             resultf = f32_roundToInt(af, rm, true);
             FLOAT32_TO_MP(result, resultf);
 
-            sig = fracF32UI(a) | 1 << 23;
+            sig = fracF32UI(a);
             shift_amount = expF32UI(a) - F32_EXP_BIAS;
             intermResult.exp = expF32UI(a);
             intermResult.sign = signF32UI(a);
+
+            if (intermResult.exp) {
+                sig |= mp::cpp_int(1) << 23;
+            }
 
             break;
         }
@@ -2049,10 +2061,14 @@ int reference_model(
             resultf = f64_roundToInt(af, rm, true);
             FLOAT64_TO_MP(result, resultf);
 
-            sig = fracF64UI(a) | mp::cpp_int(1) << 52;
+            sig = fracF64UI(a);
             shift_amount = expF64UI(a) - 1023;
             intermResult.exp = expF64UI(a);
             intermResult.sign = signF64UI(a);
+
+            if (intermResult.exp) {
+                sig |= mp::cpp_int(1) << 52;
+            }
 
             break;
         }
@@ -2062,11 +2078,14 @@ int reference_model(
             resultf = f128_roundToInt(af, rm, true);
             FLOAT128_TO_MP(result, resultf);
 
-            sig = mp::cpp_int(fracF128UI64(static_cast<uint64_t>(a >> 64))) << 64 | static_cast<uint64_t>(a) |
-                  (mp::cpp_int)1 << 112;
+            sig = mp::cpp_int(fracF128UI64(static_cast<uint64_t>(a >> 64))) << 64 | static_cast<uint64_t>(a);
             shift_amount = expF128UI64(static_cast<uint64_t>(a >> 64)) - 16383;
             intermResult.exp = expF128UI64(static_cast<uint64_t>(a >> 64));
             intermResult.sign = signF128UI64(static_cast<uint64_t>(a >> 64));
+
+            if (intermResult.exp) {
+                sig |= mp::cpp_int(1) << 112;
+            }
 
             break;
         }

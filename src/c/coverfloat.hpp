@@ -29,6 +29,7 @@ constexpr int hex_length(int sig) {
     return hex_length;
 }
 static constexpr int INTERM_SIG_LENGTH_HEX = hex_length(INTERM_SIG_LENGTH);
+static constexpr int RFI_DECIMAL_POINT = INTERM_SIG_LENGTH / 2;
 
 // #define TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS (TEST_VECTOR_WIDTH_HEX + 8)
 // #define MAX_LINE_LEN (TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS + 10)
@@ -71,6 +72,7 @@ static constexpr int INTERM_SIG_LENGTH_HEX = hex_length(INTERM_SIG_LENGTH);
 #define OP_FSGNJ 0x101
 #define OP_FSGNJN 0x102
 #define OP_FSGNJX 0x103
+#define OP_RFI 0x110
 
 // format encodings
 //  {(int = 1, float = 0), (unsigned int), others => format encoding}

@@ -27,7 +27,7 @@ The sticky bit of the intermediate result should always be 0.
 
 *Number of tests:* 315
 
-*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`, `INT32`, `UINT32`, `INT64`, `UINT64`
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
 
 *Operations Supported*: `DIV`, `SQRT`
 

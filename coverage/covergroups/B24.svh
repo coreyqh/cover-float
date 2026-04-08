@@ -33,7 +33,8 @@ covergroup B24_cg (virtual coverfloat_interface CFI);
         bins f128 = {1};
     }
 
-    // Sign coverpoint
+    // Sign coverpoints
+
     operand_sign: coverpoint $signed(get_sign(CFI.a, CFI.operandFmt)){
         type_option.weight = 0;
         bins pos = {0};
@@ -71,76 +72,41 @@ covergroup B24_cg (virtual coverfloat_interface CFI);
     //Crosses
     //FMT_HALF
     `ifdef COVER_F16
-        `ifdef COVER_INT
-            B22_F16_INT:
-                cross rounding_modes, F16_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
-        `endif
-    `endif
-
-    `ifdef COVER_F16
-        `ifdef COVER_INT
-            B22_F16_LONG:
-                cross rounding_modes, F16_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
+        B22_F16_INT: cross rounding_modes, F16_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
+        `ifdef COVER_LONG
+            B22_F16_LONG: cross rounding_modes, F16_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
         `endif
     `endif
 
     //FMT_BF16
     `ifdef COVER_BF16
-        `ifdef COVER_INT
-            B22_BF16_INT:
-                cross rounding_modes, BF16_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
-        `endif
-    `endif
-
-    `ifdef COVER_BF16
-        `ifdef COVER_INT
-            B22_BF16_LONG:
-                cross rounding_modes, BF16_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
+        B22_BF16_INT: cross rounding_modes, BF16_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
+        `ifdef COVER_LONG
+            B22_BF16_LONG: cross rounding_modes, BF16_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
         `endif
     `endif
 
     //FMT_SINGLE
     `ifdef COVER_F32
-        `ifdef COVER_INT
-            B22_F32_INT:
-                cross rounding_modes, F32_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
-        `endif
-    `endif
-
-    `ifdef COVER_F32
+        B22_F32_INT: cross rounding_modes, F32_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
         `ifdef COVER_LONG
-            B22_F32_LONG:
-                cross rounding_modes, F32_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
+            B22_F32_LONG: cross rounding_modes, F32_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
         `endif
     `endif
 
     //FMT_DOUBLE
     `ifdef COVER_F64
-        `ifdef COVER_INT
-            B22_F64_INT:
-                cross rounding_modes, F64_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
-        `endif
-    `endif
-
-    `ifdef COVER_F64
+        B22_F64_INT: cross rounding_modes, F64_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
         `ifdef COVER_LONG
-            B22_F64_LONG:
-                cross rounding_modes, F64_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
+            B22_F64_LONG: cross rounding_modes, F64_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
         `endif
     `endif
 
     //FMT_QUAD
     `ifdef COVER_F128
-        `ifdef COVER_INT
-            B22_F128_INT:
-                cross rounding_modes, F128_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
-        `endif
-    `endif
-
-    `ifdef COVER_F128
+        B22_F128_INT: cross rounding_modes, F128_input_fmt, operand_sign, proximity_to_zero, result_int32_fmt;
         `ifdef COVER_LONG
-            B22_F128_LONG:
-                cross rounding_modes, F128_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
+            B22_F128_LONG: cross rounding_modes, F128_input_fmt, operand_sign, proximity_to_zero, result_long64_fmt;
         `endif
     `endif
 

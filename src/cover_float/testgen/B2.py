@@ -1,3 +1,10 @@
+"""
+Angela Zheng (angela20061015@gmail.com)
+
+Created:         April 8, 2026
+Last Edited:     April 8, 2026
+"""
+
 import random
 from pathlib import Path
 from random import seed

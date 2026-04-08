@@ -17,7 +17,7 @@ small deviations by flipping one bit of the significand at a time.
 DEFINITION
 Base Values: Zero, One, MinSubNorm, MaxSubNorm, MinNorm, MaxNorm
 Operations: add, sub, multiply, fmadd, fmsub, fnmadd, fnmsub, sqrt
-Total test vectors generated: 19788
+Total test vectors generated: 19798. 19788 + 10 for -0 cases
 
 For 32 b fp,
 Zero        0.000000 P-126

@@ -1,0 +1,39 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+== B29: RFI: Rounding
+
+Aharoni et al.
+
+=== Description
+
+This model checks different cases of rounding of the floating point number. A test will be created for each possible combination of the Sign, LSB, Guard bit and the Sticky bit (16 cases for each operation).
+
+*Number of tests:* 400
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
+
+*Operations Supported*: `RFI`
+
+*Rounding Mode*: Round Nearest to Even, Round Min Magnitude, Round Min, Round Max, Round Near to Max Magnitude
+
+== Implementation
+
+`LSB`:: Least significant bit of the input float according to where the division between integral and fractional bits.
+`Guard Bit`:: The first bit after lsb in the input float's significand
+`Sticky Bit`:: Bitwise or of the remaining bits after the guard bit
+
+== Background
+
+`RFI` rounds a floating point value to the nearest integral value and returns a float. In this covergroup, we test all possible cases for this rounding in all rounding modes.
+
+== Test Procedure
+
+For each possible rounding case, we randomly generate an exponent that will correspond to a floating point number with both integral and fractional bits. Outside of the LSB, all integer bits are randomized, then the lsb and guard bits are set. If the target corresponds to a sticky = 1 case, then the sticky bit is also randomized, otherwise all bits contributing to the sticky are zero.
+
+== Test Count Breakdown
+
+For each precision and rounding mode, there are 16 possible cases. With 5 precisions and 5 rounding modes, we have a total of 400 cases.

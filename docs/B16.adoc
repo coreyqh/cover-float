@@ -1,0 +1,113 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+
+== B12 Add: Cancellation
+
+Aharoni et al.
+
+=== Description
+
+This model tests every possible value for cancellation. For the difference between the exponent of the intermediate result and the maximum between the exponent of the intermediate result and the maximum between the exponents of the inputs, test all values in the range: [-p, +1].
+
+That is, for two operands `a` and `b` with exponents `a_exp` and `b_exp` and a intermediate result exponent `exp`, we test all cases where `exp` - max(`a_exp`, `b_exp`) takes each value in [-p, +1].
+
+*Number of tests generated:* 438 (4E2)
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
+
+*Operations Supported:* Fmadd, fmsub, fnmadd, fnmsub
+
+== Definitions
+
+`a`:: Operand 1
+`b`:: Operand 2
+`m`:: Mantissa. Number of bits in mantissa, excluding the hidden 1
+`p`:: Precision. Number of significant bits, including the hidden 1. p = m + 1
+`d`:: The difference between max(a_exp, b_exp) and exponent of the intermediate result. This is the interest of this model, where we test all d's in [-p, +1]
+`k`:: Magnitude of d. Defined as -d in the code since we deal with d = 1 separately
+`a_m`:: Mantissa of `a`
+`b_m`:: Mantissa of `b`
+`a_exp`:: Exponent of operand `a`, generally in `[min_exp, max_exp]`
+`b_exp`:: Exponent of operand `b`, generally in `[min_exp, max_exp]`
+`exp`:: Exponent of the result, generally in `[min_exp, max_exp]`
+`max_exp`:: Maximum exponent value based on precision
+`min_exp`:: Minimum exponent value based on precision
+
+== Background
+
+Cancellation occurs when the most significant digits of two operands subtract to zero, triggering a massive normalization effort as the hardware shifts out the many leading zeros. In high-performing floating point processors, a Leading Zero Anticipator (LZA) is used to predict the location of the most significant bit of the result to perform normalization. Generating operands that force specific cancellation depths thus tests the accuracy of the LZA, especially for the most difficult edge cases where the depth of cancellation is close to the precision.
+
+=== Design Choices
+
+. Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
+. Mantissas for `d = -p, 0, 1` are not randomly generated but are selected based on obvious cases that produce that specific `d`. Again, since we're only interested in the exponents, we should not be concerned with generating all mantissas randomly.
+
+=== Notes
+
+All explanation in this document will be done with one instead of both operations because the only difference will be sign assignments. All exponents used in the examples are unbiased exponents.
+
+== General Procedure
+
+d = -2(p+1)
+
+== Test Count Breakdown
+
+[cols="1,1,1,1,1,1,1",options="header"]
+|===
+| Precision | p | Case 1 (`d = -p`) | Case 2 (all other `d`'s) | Case 3 (`d = 0`) | Case 4 (`d = 1`) | Total
+
+| BF_16
+| 8
+| 1
+| 7
+| 1
+| 1
+| 10
+
+| FP_16
+| 11
+| 1
+| 10
+| 1
+| 1
+| 13
+
+| FP_32
+| 24
+| 1
+| 23
+| 1
+| 1
+| 26
+
+| FP_64
+| 53
+| 1
+| 52
+| 1
+| 1
+| 55
+
+| FP_128
+| 113
+| 1
+| 112
+| 1
+| 1
+| 115
+|===
+
+=== Overall Test Count
+
+[cols="1,1",options="header"]
+|===
+| Description | Value
+
+| Total cancellation tests
+| 219
+
+| Accounting for Add and Subtract (×2)
+| 438
+|===

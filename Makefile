@@ -2,7 +2,7 @@
 
 RM_CMD ?= rm -rf
 
-.PHONY: build clean sim all B1 B2 B3 B9 B10 B12 B13 B14 B15 B21
+.PHONY: build clean sim all B1 B2 B3 B9 B10 B12 B13 B14 B15 B16 B21
 
 # Notice that we pass --managed-python, we do this so that uv (scikit-build-core)
 # will have a python enviornment with Python.h to build with.

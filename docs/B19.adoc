@@ -189,15 +189,15 @@ The frac field values are deterministic constants derived from the format (all z
 | <
 | any exp
 | 0s
-| all zeros
 | 00..001
+| any frac
 
 | >
 | =
 | any exp
 | 0s
-| any frac
-| any frac
+| all zeros
+| 10...000
 
 | <
 | >
@@ -295,8 +295,8 @@ A normal number has biased exponent ≥ 1, while a subnormal has biased exponent
 | =
 | 0s
 | any exp
-| any frac
-| any frac
+| 10...000
+| all zeros
 
 | =
 | >
@@ -600,10 +600,10 @@ The cells (>, <), (>, =), (<, >), (<, =) are impossible except the five rows sho
 
 | >
 | =
-| impossible
-|
-|
-|
+| 0s
+| 0s
+| all zeros
+| 10...000
 
 | <
 | >
@@ -698,10 +698,10 @@ Subnormal numbers have effective exponents that are strictly negative, while zer
 
 | <
 | =
-| impossible
-|
-|
-|
+| 0s
+| 0s
+| 10...000
+| all zeros
 
 | =
 | >

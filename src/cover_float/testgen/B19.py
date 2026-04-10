@@ -17,7 +17,6 @@ from cover_float.reference import run_and_store_test_vector
 
 OPS = [const.OP_FEQ, const.OP_FLT, const.OP_FLE, const.OP_MIN, const.OP_MAX]
 
-
 # ---------------------------------------------------------------------------
 # Format helpers
 # ---------------------------------------------------------------------------
@@ -52,7 +51,16 @@ def _build(fmt: str, sign: int, bexp: int, frac: int) -> str:
 
 
 def _emit(
-    fmt: str, op: str, test_f: TextIO, cover_f: TextIO, s1: int, bexp1: int, frac1: int, s2: int, bexp2: int, frac2: int
+    fmt: str,
+    op: str,
+    test_f: TextIO,
+    cover_f: TextIO,
+    s1: int,
+    bexp1: int,
+    frac1: int,
+    s2: int,
+    bexp2: int,
+    frac2: int,
 ) -> None:
     hex1 = _build(fmt, s1, bexp1, frac1)
     hex2 = _build(fmt, s2, bexp2, frac2)
@@ -120,11 +128,12 @@ def _case_2_normal_x_subnormal(fmt: str, op: str, test_f: TextIO, cover_f: TextI
     bexp1 = _any_exp(fmt)
     lsb = 1  # 00..001
     count = 0
+    msb = 1 << (const.MANTISSA_BITS[fmt] - 1)  # 10000..000
 
     for frac1, frac2 in [
         (af, lsb),  # sig >
-        (0, lsb),  # sig <  (all zeros vs 00..001)
-        (af, af),  # sig =  (same any_frac for both fields)
+        (lsb, af),  # sig <  (all zeros vs 00..001)
+        (0, msb),  # sig =  (same any_frac for both fields)
     ]:
         for s1 in (0, 1):
             for s2 in (0, 1):
@@ -140,12 +149,13 @@ def _case_3_subnormal_x_normal(fmt: str, op: str, test_f: TextIO, cover_f: TextI
     af = _any_frac(fmt)
     bexp2 = _any_exp(fmt)
     ALL_ONES = frac_max  # all ones
+    msb = 1 << (const.MANTISSA_BITS[fmt] - 1)  # 10000..000
     count = 0
 
     for frac1, frac2 in [
         (ALL_ONES, 0),  # sig >  (all ones vs all zeros)
         (af, ALL_ONES),  # sig <
-        (af, af),  # sig =  (same any_frac for both fields)
+        (msb, 0),  # sig =  (same any_frac for both fields)
     ]:
         for s1 in (0, 1):
             for s2 in (0, 1):
@@ -219,9 +229,11 @@ def _case_7_zero_x_subnormal(fmt: str, op: str, test_f: TextIO, cover_f: TextIO)
     """Case 7: +/-Zero x +/-Subnormal.  1 cell x 4 sign combos = 4."""
     af = _any_frac(fmt)
     count = 0
+    msb = 1 << (const.MANTISSA_BITS[fmt] - 1)  # 10000..000
 
     for frac2 in [
         af,  # sig <  (zero frac=0 < any_frac)
+        msb,
     ]:
         for s1 in (0, 1):
             for s2 in (0, 1):
@@ -235,9 +247,11 @@ def _case_8_subnormal_x_zero(fmt: str, op: str, test_f: TextIO, cover_f: TextIO)
     """Case 8: +/-Subnormal x +/-Zero.  1 cell x 4 sign combos = 4."""
     af = _any_frac(fmt)
     count = 0
+    msb = 1 << (const.MANTISSA_BITS[fmt] - 1)  # 10000..000
 
     for frac1 in [
         af,  # sig >  (any_frac > zero frac=0)
+        msb,
     ]:
         for s1 in (0, 1):
             for s2 in (0, 1):

@@ -1,11 +1,18 @@
 from dataclasses import dataclass
 
 import cover_float.common.constants as constants
+import cover_float.reference as reference
+
+ZERO = "0" * 32
+
+
+def decimal_components_to_hex(fmt: str, sign: int, exp: int, mant: int) -> str:
+    bits = f"{sign:1b}" + f"{exp:0{constants.EXPONENT_BITS[fmt]}b}" + f"{mant:0{constants.MANTISSA_BITS[fmt]}b}"
+    return f"{int(bits, 2):032X}"
 
 
 def generate_test_vector(op: str, in1: int, in2: int, in3: int, fmt1: str, fmt2: str, rnd_mode: str = "00") -> str:
-    zero_padding = "0" * 32
-    return f"{op}_{rnd_mode}_{in1:032x}_{in2:032x}_{in3:032x}_{fmt1}_{zero_padding}_{fmt2}_00\n"
+    return f"{op}_{rnd_mode}_{in1:032x}_{in2:032x}_{in3:032x}_{fmt1}_{ZERO}_{fmt2}_00\n"
 
 
 def generate_float(sign: int, exponent: int, mantissa: int, fmt: str) -> int:
@@ -15,6 +22,11 @@ def generate_float(sign: int, exponent: int, mantissa: int, fmt: str) -> int:
         | (exponent << constants.MANTISSA_BITS[fmt])
         | mantissa
     )
+
+
+def get_result_from_ref(op: str, a: str, b: str, c: str, fmt: str) -> str:
+    vec = f"{op}_{constants.ROUND_NEAR_EVEN}_{a}_{b}_{c}_{fmt}_{ZERO}_{fmt}_00"
+    return reference.run_test_vector(vec).split("_")[6]
 
 
 def reproducible_hash(s: str) -> int:

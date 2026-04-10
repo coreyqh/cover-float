@@ -1,0 +1,48 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+== B27. CvtFP2FP: NaNs (for wide to narrow conversion)
+
+Aharoni et al.
+
+=== Description
+
+This model tests the conversion of NaNs from a wider format to a narrow one.
+Each combination from the following table will create one test case (N
+represents the number of bits in the significand of the destination's format):
+
+|===
+
+|Value of the operand | The N-1 MSB bits of the significand (excluding the first) | The rest of the bits
+| QNaN | All 0 | All 0
+| SNaN | Not all 0 | Not all 0
+|===
+
+*Number of tests:* 60
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
+
+*Operations Supported*: `CFF`
+
+*Rounding Mode*: Random
+
+== Background
+
+These tests ensure that NaN values are correctly propagated through narrowing conversion operations. We want to ensure that information in a NaN payload is correctly handled in these conversions.
+
+== Notes
+
+The difference between a qNaN and an sNaN is the value in the most significant bit of the fraction field. This is one for a qNaN and zero for an sNaN. This means that there must be something in the other bits of the fraction field of an sNaN to distinguish it from infinity. This makes one of the cases in the cross impossible.
+
+We also interpret the rest of the bits column to refer to the sign bit, because that is the only remaining bit without an assigned value.
+
+== Test Procedure
+
+We look at all combinations of the bit distinguishing qNaN, the other fractional bits, and the sign bit. The other fractional bits are set to a random integer of the appropriate length.
+
+== Test Count Breakdown
+
+For each conversion, there are 8 cases in the cross and 2 invalid cases. This gives a total of 6 per conversion. With 5 floating point types, there are 10 possible narrowing conversions, so we have a total of 60 tests.

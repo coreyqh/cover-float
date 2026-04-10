@@ -65,6 +65,9 @@ B21:
 B25:
 	uv run --managed-python cover-float-testgen --model B25
 
+B26:
+	uv run --managed-python cover-float-testgen --model B26
+
 B29:
 	uv run --managed-python cover-float-testgen --model B29
 

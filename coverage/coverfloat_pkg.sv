@@ -103,6 +103,12 @@ package coverfloat_pkg;
     parameter int F128_E_UPPER = 126;
     parameter int F128_E_LOWER = 112;
 
+    parameter int F16_SIGN_BIT = 15;
+    parameter int BF16_SIGN_BIT = 15;
+    parameter int F32_SIGN_BIT = 31;
+    parameter int F64_SIGN_BIT = 63;
+    parameter int F128_SIGN_BIT = 127;
+
     parameter int F16_M_UPPER  = F16_M_BITS - 1;
     parameter int BF16_M_UPPER = BF16_M_BITS - 1;
     parameter int F32_M_UPPER  = F32_M_BITS - 1;
@@ -488,7 +494,216 @@ package coverfloat_pkg;
 
     endfunction
 
+    function automatic int get_unbiased_exponent(
+        input logic [127:0] input_val,
+        input logic [7:0] fmt
+    );
 
+    int unbiased_exp;
+
+    case (fmt)
+            FMT_HALF: begin
+                logic [F16_E_BITS-1:0] biased_exp = input_val[F16_E_UPPER:F16_E_LOWER];
+                unbiased_exp = int'(biased_exp) - F16_EXP_BIAS;
+            end
+            FMT_BF16: begin
+                logic [BF16_E_BITS-1:0] biased_exp = input_val[BF16_E_UPPER:BF16_E_LOWER];
+                unbiased_exp = int'(biased_exp) - BF16_EXP_BIAS;
+            end
+            FMT_SINGLE: begin
+                logic [F32_E_BITS-1:0] biased_exp = input_val[F32_E_UPPER:F32_E_LOWER];
+                unbiased_exp = int'(biased_exp) - F32_EXP_BIAS;
+            end
+            FMT_DOUBLE: begin
+                logic [F64_E_BITS-1:0] biased_exp = input_val[F64_E_UPPER:F64_E_LOWER];
+                unbiased_exp = int'(biased_exp) - F64_EXP_BIAS;
+            end
+            FMT_QUAD: begin
+                logic [F128_E_BITS-1:0] biased_exp = input_val[F128_E_UPPER:F128_E_LOWER];
+                unbiased_exp = int'(biased_exp) - F128_EXP_BIAS;
+            end
+
+            default: begin
+                return 0;
+            end
+    endcase
+        return unbiased_exp;
+    endfunction
+
+function automatic int effective_exponent (
+    input logic [255:0] val,
+    input logic [7:0]   fmt
+);
+
+    int exp_field;
+    logic [255:0] frac_field;
+
+    int bias;
+    int min_norm_exp;
+    int frac_bits;
+
+    int shift;
+
+    // ----------------------------------------
+    // Decode format + extract fields (CONST!)
+    // ----------------------------------------
+    case (fmt)
+
+        FMT_HALF: begin
+            exp_field    = val[F16_E_UPPER:F16_E_LOWER];
+            frac_field   = val[F16_M_UPPER:0];
+            bias         = F16_EXP_BIAS;
+            min_norm_exp = F16_MIN_NORM_EXP;
+            frac_bits    = F16_M_BITS;
+        end
+
+        FMT_BF16: begin
+            exp_field    = val[BF16_E_UPPER:BF16_E_LOWER];
+            frac_field   = val[BF16_M_UPPER:0];
+            bias         = BF16_EXP_BIAS;
+            min_norm_exp = BF16_MIN_NORM_EXP;
+            frac_bits    = BF16_M_BITS;
+        end
+
+        FMT_SINGLE: begin
+            exp_field    = val[F32_E_UPPER:F32_E_LOWER];
+            frac_field   = val[F32_M_UPPER:0];
+            bias         = F32_EXP_BIAS;
+            min_norm_exp = F32_MIN_NORM_EXP;
+            frac_bits    = F32_M_BITS;
+        end
+
+        FMT_DOUBLE: begin
+            exp_field    = val[F64_E_UPPER:F64_E_LOWER];
+            frac_field   = val[F64_M_UPPER:0];
+            bias         = F64_EXP_BIAS;
+            min_norm_exp = F64_MIN_NORM_EXP;
+            frac_bits    = F64_M_BITS;
+        end
+
+        FMT_QUAD: begin
+            exp_field    = val[F128_E_UPPER:F128_E_LOWER];
+            frac_field   = val[F128_M_UPPER:0];
+            bias         = F128_EXP_BIAS;
+            min_norm_exp = F128_MIN_NORM_EXP;
+            frac_bits    = F128_M_BITS;
+        end
+
+        default: begin
+            return 0;
+        end
+
+    endcase
+
+    // ----------------------------------------
+    // Normal numbers
+    // ----------------------------------------
+    if (exp_field != 0) begin
+        return exp_field - bias;
+    end
+
+  // ----------------------------------------
+  // Zero
+  // ----------------------------------------
+  if (frac_field == 0) begin
+      return min_norm_exp - frac_bits; // MIN_SUBNORM_EXP
+  end
+
+  // ----------------------------------------
+  // Subnormal
+  // ----------------------------------------
+  shift = 0;
+  for (int i = frac_bits-1; i >= 0; i--) begin
+      if (frac_field[i] == 1'b0)
+          shift++;
+      else
+          break;
+  end
+
+  return min_norm_exp - shift - 1;
+
+endfunction
+
+function automatic logic [127:0] effective_fraction (
+    input logic [255:0] val,
+    input logic [7:0]   fmt
+);
+    int frac_bits;
+    int e_lower;
+    int min_norm_exp;
+    logic [127:0] frac_field;
+    logic [127:0] mask;
+    int exp_field;
+    int shift = 0;
+
+    // ---------------------------------------------
+    // select format
+    // ---------------------------------------------
+    case (fmt)
+        FMT_HALF: begin
+            frac_bits    = F16_M_BITS;
+            e_lower      = F16_E_LOWER;
+            min_norm_exp = F16_MIN_NORM_EXP;
+        end
+        FMT_BF16: begin
+            frac_bits    = BF16_M_BITS;
+            e_lower      = BF16_E_LOWER;
+            min_norm_exp = BF16_MIN_NORM_EXP;
+        end
+        FMT_SINGLE: begin
+            frac_bits    = F32_M_BITS;
+            e_lower      = F32_E_LOWER;
+            min_norm_exp = F32_MIN_NORM_EXP;
+        end
+        FMT_DOUBLE: begin
+            frac_bits    = F64_M_BITS;
+            e_lower      = F64_E_LOWER;
+            min_norm_exp = F64_MIN_NORM_EXP;
+        end
+        FMT_QUAD: begin
+            frac_bits    = F128_M_BITS;
+            e_lower      = F128_E_LOWER;
+            min_norm_exp = F128_MIN_NORM_EXP;
+        end
+        default: begin
+            frac_bits    = F32_M_BITS;
+            e_lower      = F32_E_LOWER;
+            min_norm_exp = F32_MIN_NORM_EXP;
+        end
+    endcase
+
+    // ---------------------------------------------
+    // mask fraction bits
+    // ---------------------------------------------
+    mask = (128'b1 << frac_bits) - 1;
+    frac_field = val & mask;
+
+    // ---------------------------------------------
+    // extract exponent
+    // ---------------------------------------------
+    exp_field = (val >> e_lower) & ((1 << (frac_bits + 1)) - 1); // any exponent width
+
+    // ---------------------------------------------
+    // normal number → return fraction as-is
+    // ---------------------------------------------
+    if (exp_field != 0)
+        return frac_field;
+
+    // ---------------------------------------------
+    // subnormal → shift fraction left until MSB=1
+    // mask off any bits that shift past width
+    // ---------------------------------------------
+    for (int i = frac_bits-1; i >= 0; i--) begin
+        if (frac_field[i] == 0)
+            shift++;
+        else
+            break;
+    end
+    shift++; // shift out leading 1 from fraction
+
+    // shift, then mask to ensure it stays within frac_bits
+    return (frac_field << shift) & mask;
+endfunction
 
 
 endpackage

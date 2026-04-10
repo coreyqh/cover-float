@@ -11,7 +11,9 @@ import cover_float.testgen.B12 as B12
 import cover_float.testgen.B13 as B13
 import cover_float.testgen.B14 as B14
 import cover_float.testgen.B15 as B15
+import cover_float.testgen.B20 as B20
 import cover_float.testgen.B21 as B21
+import cover_float.testgen.B29 as B29
 
 __all__ = [
     "B1",
@@ -27,5 +29,7 @@ __all__ = [
     "B13",
     "B14",
     "B15",
+    "B20",
     "B21",
+    "B29",
 ]

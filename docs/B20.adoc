@@ -1,0 +1,96 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+== B20: Divide: Trailing Zeros
+
+Aharoni et al.
+
+=== Description
+
+This model will create test-cases such that the significand of the intermediate results will cover each of the following patterns:
+
+Mask on the intermediate result significand (excluding the leading "1")
+
+- xxx…xxx10
+- xxx…xx100
+- xxx…x1000
+- …
+- xx1…00000
+- x10…00000
+- 100…00000
+- 000…00000
+
+The sticky bit of the intermediate result should always be 0.
+
+*Number of tests:* 315
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
+
+*Operations Supported*: `DIV`, `SQRT`
+
+*Unsupported Operations*: `REM`
+
+*Rounding Mode*: Random
+
+== Implementation
+
+=== Definitions
+
+`Intermediate Result`:: The result of the given operation evaluated to full (theoretically infinite) precision before it is rounded
+`LSB`:: Least significant bit of the intermediate result according to the mantissa length
+`Guard Bit`:: The first bit after lsb in an intermediate result
+`Sticky Bit`:: Bitwise or of the remaining bit after the guard bit
+`nf`:: The number of mantissa bits in a floating point format (e.g. 23 for single-precision floats)
+
+== Background
+
+When an answer is determined to be exact in square root and division hardware, the hardware can take an early exit from the algorithm, as all values past it will be zero. These tests generate cases that hit an early exit from the fsqrtdiv algorithm at every potential point.
+
+== Test Procedure
+
+=== General Procedure
+
+The major constraint on these tests is the result. By generating the result that we want, then working backwards to two significands, we can get reasonable randomness in the tests, and I do not believe it is possible to make "more random," meaning an approach that works for random inputs rather than builds inputs to reach a random output.
+
+=== Division
+
+Division has an exact answer when the fraction represented by the significands of each input has only factors of 2 in the denominator when it is put into lowest terms. All other fractions are have repeating expansions when put into a binary expansion. This means that if we have an answer that we want to get, that is
+[stem]
+++++
+\frac{s_1}{s_2} = \frac{ans'}{2^k}
+++++
+where stem:[ans'] is the desired answer without trailing zeros. It must have come from a cancellation of some factor stem:[f \ge 1]  on the top and bottom. Thus, stem:[s_1 = \mathit{ans}\cdot f] and stem:[s_2 = 2^k \cdot f]. stem:[k] can be chosen as the number that gives stem:[s_2] the appropriate bit length.
+
+We can then choose values of stem:[ans] that fit the desired patterns set out in the Aharoni et al., and random values of stem:[f]. From here, all exponents are randomized, but keep answers within numbers representable by normalized floating point values.
+
+=== Square Root
+
+Here, we start with a desired float too. As we are looking for exact square roots, we need to choose values with exactly represented squares. For a fixed point number of the form U1.nf, its square has the form U2.2nf. If this number is to be representable, either the last nf bits need to be zeros or the last nf + 1 bits need to be zeros, depending on if the leading bit is in the first or second integral bit of the square. If we have an answer with exactly stem:[k] trailing zeros, then its product will have exactly stem:[2k] trailing zeros. This provides the constraint that any possible exact answer to a square root has at least stem:[nf/2] trailing zeros. Then, we can simply generate a float with a random exponent, calculate its square, and use the result as the input for our test.
+
+In the case that we are generating a float with exactly stem:[nf/2] trailing zeros, we have to take some care to avoid a multiplication result using the full 2.2nf bits. This is because we only guarantee that the trailing nf bits are zeros, which could place a 1 into the guard bit of our multiplication result, rendering our square inexact.
+
+== Test Count Breakdown
+
+The divide tests generate cases with any number of zeros from the guard bit to the leading one. This is stem:[nf + 1] total cases. The square root tests generate cases from stem:[\left\lceil \frac{nf}{2}\right\rceil] to the leading one, leading to stem:[nf - \left\lceil \frac{nf}{2}\right\rceil] total cases.
+
+|===
+| Precision | Divide Tests | Square Root Tests
+
+| BF16 | 8 | 4
+
+| F16 | 11 | 6
+
+| F32 | 24 | 12
+
+| F64 | 53 | 27
+
+| F128 | 113 | 56
+
+| Total | 209 | 106
+
+|===
+
+This gives a grand total of 315 tests.

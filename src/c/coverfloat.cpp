@@ -1995,6 +1995,126 @@ int reference_model(
         break;
     }
 
+    case OP_RFI: {
+        // Place the decimal place in bit 128 (for rounding reporting)
+        mp::cpp_int sig = 0;
+        int shift_amount = 0;
+
+        switch (operandFmt) {
+        case FMT_BF16: {
+            bfloat16_t af, resultf;
+            MP_TO_FLOAT16(af, a);
+
+            float32_t as_f32 = bf16_to_f32(af);
+            float32_t rounded_to_int_f32 = f32_roundToInt(as_f32, softfloat_round_odd, true);
+            resultf = f32_to_bf16(rounded_to_int_f32);
+
+            sig = fracBF16UI(a);
+            shift_amount = expBF16UI(a) - BF16_EXP_BIAS;
+            intermResult.exp = expBF16UI(a);
+            intermResult.sign = signBF16UI(a);
+
+            if (intermResult.exp) {
+                sig |= BF16_IMPLICIT_ONE;
+            }
+
+            FLOAT16_TO_MP(result, resultf);
+            break;
+        }
+        case FMT_HALF: {
+            float16_t af, resultf;
+            MP_TO_FLOAT16(af, a);
+            resultf = f16_roundToInt(af, rm, true);
+            FLOAT16_TO_MP(result, resultf);
+
+            sig = fracF16UI(a);
+            shift_amount = expF16UI(a) - 15;
+            intermResult.exp = expF16UI(a);
+            intermResult.sign = signF16UI(a);
+
+            if (intermResult.exp) {
+                sig |= mp::cpp_int(1) << 10;
+            }
+
+            break;
+        }
+        case FMT_SINGLE: {
+            float32_t af, resultf;
+            MP_TO_FLOAT32(af, a);
+            resultf = f32_roundToInt(af, rm, true);
+            FLOAT32_TO_MP(result, resultf);
+
+            sig = fracF32UI(a);
+            shift_amount = expF32UI(a) - F32_EXP_BIAS;
+            intermResult.exp = expF32UI(a);
+            intermResult.sign = signF32UI(a);
+
+            if (intermResult.exp) {
+                sig |= mp::cpp_int(1) << 23;
+            }
+
+            break;
+        }
+        case FMT_DOUBLE: {
+            float64_t af, resultf;
+            MP_TO_FLOAT64(af, a);
+            resultf = f64_roundToInt(af, rm, true);
+            FLOAT64_TO_MP(result, resultf);
+
+            sig = fracF64UI(a);
+            shift_amount = expF64UI(a) - 1023;
+            intermResult.exp = expF64UI(a);
+            intermResult.sign = signF64UI(a);
+
+            if (intermResult.exp) {
+                sig |= mp::cpp_int(1) << 52;
+            }
+
+            break;
+        }
+        case FMT_QUAD: {
+            float128_t af, resultf;
+            MP_TO_FLOAT128(af, a);
+            resultf = f128_roundToInt(af, rm, true);
+            FLOAT128_TO_MP(result, resultf);
+
+            sig = mp::cpp_int(fracF128UI64(static_cast<uint64_t>(a >> 64))) << 64 | static_cast<uint64_t>(a);
+            shift_amount = expF128UI64(static_cast<uint64_t>(a >> 64)) - 16383;
+            intermResult.exp = expF128UI64(static_cast<uint64_t>(a >> 64));
+            intermResult.sign = signF128UI64(static_cast<uint64_t>(a >> 64));
+
+            if (intermResult.exp) {
+                sig |= mp::cpp_int(1) << 112;
+            }
+
+            break;
+        }
+        }
+
+        if (sig != 0) {
+            int sig_msb = mp::msb(sig);
+            sig <<= RFI_DECIMAL_POINT - sig_msb;
+
+            if (shift_amount > 0) {
+                sig <<= std::min(shift_amount, INTERM_SIG_LENGTH);
+            } else {
+                mp::cpp_int mask = (mp::cpp_int(1) << -shift_amount) - 1;
+                bool jam = (sig & mask) != 0;
+                sig >>= std::min(-shift_amount, RFI_DECIMAL_POINT + 1);
+                sig |= jam;
+            }
+
+            intermResult.fma_pre_addition = 0;
+            intermResult.sig = sig;
+        }
+
+        mp::cpp_int mask = (mp::cpp_int(1) << INTERM_SIG_LENGTH) - 1;
+        intermResult.sig &= mask;
+
+        // DO NOT FALL THROUGH TO THE NORMAL POST-PROCESSING!
+        return EXIT_SUCCESS;
+    }
+
     default: {
         fprintf(stderr, "Unsupported Operation Called, OP: %x\n", op);
         return EXIT_FAILURE;

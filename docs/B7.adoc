@@ -10,7 +10,7 @@ Aharoni et al.
 
 === Description
 
-This model checks that the sticky bit is calculated correctly in each of the following cases (for every possible combination in the table). The Guard bit should be always 0, and the sign positive, so that miscalculation of the sticky bit will alter the final result.  This model tests every possible value for a shift between the input operands.
+This model checks that the sticky bit is calculated correctly in each of the following cases (for every possible combination in the table). The Guard bit should be always 0, and the sign positive, so that miscalculation of the sticky bit will alter the final result.
 
 [cols="1",options="header"]
 |===
@@ -31,7 +31,7 @@ This model checks that the sticky bit is calculated correctly in each of the fol
 |===
 
 
-*Number of tests:* 1E6
+*Number of tests:* 5728
 
 *Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
 
@@ -44,7 +44,7 @@ This model checks that the sticky bit is calculated correctly in each of the fol
 === Definitions
 
 `nf`:: The number of bits in a float's mantissa
-`extra bits`:: Every bit past the LSB of a float in an intermediate result
+`Extra Bits`:: Every bit past the LSB of a float in an intermediate result
 
 == Background
 
@@ -93,9 +93,9 @@ a * b \equiv target\_extra\_bits \pmod{2^{nf + shift\_amount + 2}}
 
 However, if we take advantage of the fact that the structure of any target extra bits in effective addition and effective subtraction cases has trailing zeros, we can greatly reduce the base by reducing the target to something odd and subtracting the extraneous zeros from the exponent of the modulus. In most cases, this approach generates a working pair of multiplicands.
 
-If this approach does not work, for doubles and below, we can generate random numbers with the desired structure and see if they factor. This allows us to complete any remaining (double) cases. This also gives a verification of the computational infeasibility of some of the F16 and BF16 cases as with a small sample space this search is exhaustive.
+If this approach does not work, for doubles and below, we can generate random numbers with the desired structure and see if they factor. This allows us to complete a few more double cases. This also gives a verification of the computational infeasibility of some of the F16 and BF16 cases as with a small sample space this search is exhaustive.
 
-Currently, we are limited by the number of extra bits that softfloat provides, but within the constraints of the reference model, we get complete coverage of all possible extra bits.
+Outside of this, a last resort is to use known factors of friendly numbers. For effective addition, we can find multiplicands that yield only 1 in the significand, and push that one as far as possible. For effective subtraction, we just need significands with all ones then all zeros, and attempt to maximize the number of ones. This allows us to round out coverage of quads and doubles reasonably well.
 
 === Converts
 
@@ -115,19 +115,19 @@ Multiplication: We generate stem:[2*nf - 1] total tests per precision. With a sh
 
 This gives a total of 403 tests.
 
-FMA: We generate at least stem:[32nf] tests per precision per operation. As we attempt to have both addends contributing to the operation, the number is generally higher. There are also 4 flavors of fma that are accounted for. Below is a list of precisions and how many tests are generated.
+FMA: We generate at least stem:[2 * nf] tests per precision per operation. As we attempt to have both addends contributing to the operation, the number is generally higher, and aims for stem:[4 * nf], but some cases are impossible depending on the precision and effective operation. There are also 4 flavors of fma that are accounted for. Below is a list of precisions and how many tests are generated.
 
 [cols="2*", options="header"]
 |===
 | Precision | Tests
-| Half | 142
-| BF16 | 104
-| Single | 332
-| Double | 704
-| Quad | 1402
+| Half | 148
+| BF16 | 106
+| Single | 362
+| Double | 828
+| Quad | 1788
 |===
 
-This totals to 2684 tests.
+This totals to 3232 tests.
 
 Converts: We generate stem:[nf - 1] for each CFI, the excess number of excess bits for each CFF, and the number of excess bits minus two for each CIF. Convert tests are only generated in the case of narrowing conversions, so a table below lists the number of conversions for each precision where the number of tests is non-trivial.
 
@@ -155,4 +155,4 @@ This totals (with CFI) to 1695.
 
 === Overall Test Count
 
-Each of these cases sum to a total of 5180 tests.
+Each of these cases sum to a total of 5728 tests.

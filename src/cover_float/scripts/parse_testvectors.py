@@ -13,7 +13,10 @@ Currently supports
 - Flags: 'x' if a flag is raised and '' if none
 """
 
+from pathlib import Path
 from typing import Any, Optional
+
+from cover_float.common.log import progress_bar
 
 FMT_SPECS: dict[str, dict[str, Any]] = {
     "00": {"name": "f16", "type": "float", "exp_bits": 5, "man_bits": 10, "bias": 15, "total_bits": 16},
@@ -268,3 +271,26 @@ def format_output(parsed: dict[str, Any]) -> str:
         base = f"{op} {rnd} {a} {b}"
 
     return f"{base} -> {parsed['result']} ({parsed['res_fmt_name']}){flags}"
+
+
+def auto_parse(model_name: str, output_dir: str) -> None:
+    input_path = Path(output_dir) / "testvectors" / f"{model_name}_tv.txt"
+    output_path = Path(output_dir) / "readable" / f"{model_name}_parsed.txt"
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    count = 0
+    with input_path.open("r") as infile, output_path.open("w") as outfile:
+        input_size = input_path.stat().st_size
+
+        with progress_bar(total=input_size, bar_format="{l_bar}{bar}| [{elapsed}/{remaining}]") as bar:
+            for line in infile:
+                parsed = parse_test_vector(line)
+
+                if parsed:
+                    outfile.write(format_output(parsed) + "\n")
+                    count += 1
+
+                bar.update(len(line))
+
+    print(f"Parsed {count} {model_name} vectors to {output_path}")

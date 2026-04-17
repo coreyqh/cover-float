@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import logging.handlers
 import multiprocessing
-import threading
 import time
 from collections.abc import Generator, Iterable, Sized
 from contextlib import contextmanager
@@ -175,40 +174,39 @@ class LoggingHandler(logging.Handler):
         self.reporter.status_update(self.model_name, record.msg)
 
 
-class AsyncLoggingHandler:
+class AsyncLoggingHandler(logging.handlers.QueueListener):
     _SENTINEL = None
 
-    def __init__(self, reporter: StatusReporter, listen_to: Queue[Any]) -> None:
+    def __init__(self, reporter: StatusReporter, listen_to: Queue[Any], *handlers: logging.Handler) -> None:
+        super().__init__(listen_to, *handlers)
+
         self.reporter = reporter
-        self.monitor_thread: threading.Thread | None = None
-        self.listen_to = listen_to
 
-    def start(self) -> None:
-        self.monitor_thread = threading.Thread(target=self.monitor_fn, daemon=True)
-        self.monitor_thread.start()
+    def handle_progress_update(self, record: dict[Any, Any]) -> None:
+        try:
+            action = record["action"]
+            if action == "update":
+                self.reporter.progress.update(*record["args"], **record["kwargs"])
+            elif action == "advance":
+                self.reporter.progress.advance(*record["args"], **record["kwargs"])
+            elif action == "remove_task":
+                model_name = record["args"][0]
+                self.reporter.progress.remove_task(self.reporter.active_status_bars[model_name])
+                self.reporter.active_status_bars.pop(model_name)
+            else:
+                logging.info(f"Failed to Log {record}")
+        except Exception as e:
+            logging.info(f"Failed to Log {record}", exc_info=e)
 
-    def stop(self) -> None:
-        self.listen_to.put(self._SENTINEL)
-        if self.monitor_thread:
-            self.monitor_thread.join()
-            self.monitor_thread = None
+    def handle(self, record: logging.LogRecord | dict[Any, Any]) -> None:
+        if isinstance(record, logging.LogRecord):
+            super().handle(record)
+        else:
+            self.handle_progress_update(record)
 
-    def monitor_fn(self) -> None:
-        while True:
-            record = self.listen_to.get(block=True)
-            if record is self._SENTINEL:
-                break
-
-            try:
-                action = record["action"]
-                if action == "update":
-                    self.reporter.progress.update(*record["args"], **record["kwargs"])
-                elif action == "advance":
-                    self.reporter.progress.advance(*record["args"], **record["kwargs"])
-                else:
-                    logging.info(f"Failed to Log {record}")
-            except Exception as e:
-                logging.info(f"Failed to Log {record}", exc_info=e)
+        # Unfortunately, we have to do it this way because otherwise rich will data race itself
+        # here we ensure that refreshes happen in only one thread
+        self.reporter.progress.refresh()
 
 
 class StatusReporter:
@@ -221,30 +219,25 @@ class StatusReporter:
             OptionalColumn(lambda t: t.total is not None, BarColumn()),
             OptionalColumn(lambda t: t.fields.get("m_of_n", False), MofNCompleteColumn()),
             OptionalColumn(lambda t: t.total is not None, TextColumn("{task.percentage:>3.0f}%")),
+            auto_refresh=False,
         )
 
         self.manager = multiprocessing.Manager()
 
-        self.progress_queue = self.manager.Queue()
         self.logging_queue = self.manager.Queue()
 
         # This is the actual handler that prints to console
-        self.rich_handler = RichHandler(show_time=True, markup=True)
-        self.queue_listener = logging.handlers.QueueListener(self.logging_queue, self.rich_handler)
-        logging.getLogger().addHandler(self.rich_handler)
-        logging.getLogger().propagate = False
-
-        self.progress_listener = AsyncLoggingHandler(self, self.progress_queue)
+        self.rich_handler = RichHandler(show_time=True, markup=True, console=self.progress.console)
+        self.queue_listener = AsyncLoggingHandler(self, self.logging_queue, self.rich_handler)
+        logging.getLogger().addHandler(logging.handlers.QueueHandler(self.logging_queue))
 
     def __enter__(self) -> StatusReporter:
         self.progress.start()
         self.queue_listener.start()
-        self.progress_listener.start()
         return self
 
     def __exit__(self, exc_type: type | None, exc_value: Exception | None, traceback: TracebackType | None) -> None:
         self.queue_listener.stop()
-        self.progress_listener.stop()
         self.progress.stop()
 
     def start_model(self, model_name: str) -> TaskID:
@@ -253,8 +246,9 @@ class StatusReporter:
         return task_id
 
     def stop_model(self, model_name: str) -> None:
-        self.progress.remove_task(self.active_status_bars[model_name])
-        self.active_status_bars.pop(model_name)
+        # This can be a race condition, if there is logging still in the queue
+        # so we must enqueue the destruction
+        self.logging_queue.put({"action": "remove_task", "args": [model_name], "kwargs": {}})
 
     def status_update(self, model_name: str, status_message: str) -> None:
         task = self.active_status_bars[model_name]

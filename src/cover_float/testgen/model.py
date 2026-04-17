@@ -38,7 +38,6 @@ def _run_model_by_name(
     model_name: str,
     output_dir: Path,
     task_id: TaskID,
-    progress_queue: Queue[Any],
     logging_queue: Queue[Any],
     post_process: bool,
 ) -> None:
@@ -50,15 +49,13 @@ def _run_model_by_name(
 
     if isinstance(model_logger, log.ModelLogger):
         model_logger.task_id = task_id
-        model_logger.msg_queue = progress_queue
-    else:
-        raise ValueError()
+        model_logger.msg_queue = logging_queue
 
     model_logger.handlers = []
     model_logger.propagate = False
 
     # Handle Status Updates
-    handler = MPLoggingHandler(progress_queue, task_id)
+    handler = MPLoggingHandler(logging_queue, task_id)
     handler.addFilter(log.OnlyStatusFilter())
     model_logger.addHandler(handler)
 
@@ -104,7 +101,6 @@ def register_model(
                 model_name,
                 output_dir,
                 task_id,
-                status_reporter.progress_queue,
                 status_reporter.logging_queue,
                 post_process,
             )

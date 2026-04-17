@@ -660,7 +660,7 @@ def convert_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             if rounding_bits == bin(frac_part)[2:].zfill(frac_bits):
                 store_cover_vector(result, test_f, cover_f)
             else:
-                print(f"CFI Generation Failure From: {fmt}, To: {to_fmt}, Extra-Bits: {frac_part:b}")
+                logger.exception(f"CFI Generation Failure From: {fmt}, To: {to_fmt}, Extra-Bits: {frac_part:b}")
 
     # CIF
     for from_fmt in constants.INT_FMTS:

@@ -537,18 +537,18 @@ package coverfloat_pkg;
 
     int exp_bias;
     int unbiased_exp = get_unbiased_exponent(input_val, fmt);
-    int m_bits;
-    logic less_than_one_mantissa;
-    logic less_than_two_mantissa;
-    logic less_than_three_mantissa;
-    logic zero_mantissa;
+    int m_bits;//the first bit in the mantissa is the msb, the last is the lsb. Below examples of the mantissa are half precision
+    logic less_than_one_mantissa;// Checking if the value of the mantissa <= msb; mantissa = [0000_0000_00, 1000_0000_00]
+    logic less_than_two_mantissa;// Checking if the value of the mantissa <= (msb/2); mantissa = [0000_0000_00, 0100_0000_00]
+    logic less_than_three_mantissa;// Checking if the value of the mantissa <= (3msb/2); mantissa = [0000_0000_00, 1100_0000_00]
+    logic zero_mantissa;// flag corresponding to whether the mantissa is all 0s; mantissa = 0000_0000_00
 
     case (fmt)
             FMT_HALF: begin
                 exp_bias = F16_EXP_BIAS;
-                less_than_one_mantissa = (input_val[F16_M_UPPER:0] <= 112'b1 << (F16_M_BITS - 1));
-                less_than_two_mantissa = (input_val[F16_M_UPPER:0] <= 112'b1 << (F16_M_BITS - 2));
-                less_than_three_mantissa = (input_val[F16_M_UPPER:0] <= 112'b11 << (F16_M_BITS - 2));
+                less_than_one_mantissa = (input_val[F16_M_UPPER:0] <= 112'b1 << (F16_M_BITS - 1));// <= 1000_0000_00
+                less_than_two_mantissa = (input_val[F16_M_UPPER:0] <= 112'b1 << (F16_M_BITS - 2));// <= 0100_0000_00
+                less_than_three_mantissa = (input_val[F16_M_UPPER:0] <= 112'b11 << (F16_M_BITS - 2));// <= 1100_0000_00
                 zero_mantissa = (input_val[F16_M_UPPER:0] == '0);
             end
             FMT_BF16: begin
@@ -588,32 +588,33 @@ package coverfloat_pkg;
             end
     endcase
 
-    if((unbiased_exp == -exp_bias) && (zero_mantissa)) begin
-        return 1;
+    //return value corresponds to the test number number which is satisfied
+    if((unbiased_exp == -exp_bias) && (zero_mantissa)) begin//0 must have all 0s unbiased exp and all 0s mantissa
+        return 1;//+-0
     end
-    else if(((unbiased_exp == -2) && (zero_mantissa)) || (unbiased_exp < -2)) begin
-        return 2;
+    else if(((unbiased_exp == -2) && (zero_mantissa)) || (unbiased_exp < -2)) begin//<= 2^-2
+        return 2;//+-(1/4)
     end
-    else if(((unbiased_exp == -1) && (zero_mantissa)) || (unbiased_exp < -1)) begin
-        return 3;
+    else if(((unbiased_exp == -1) && (zero_mantissa)) || (unbiased_exp < -1)) begin//<= 2^-1
+        return 3;//+-(1/2)
     end
-    else if((unbiased_exp == -1) && (less_than_one_mantissa)) begin
-        return 4;
+    else if((unbiased_exp == -1) && (less_than_one_mantissa)) begin//<= 2^-1 + 2^-2
+        return 4;//+-(3/4)
     end
-    else if(((unbiased_exp == 0) && (zero_mantissa)) || (unbiased_exp < 0)) begin
-        return 5;
+    else if(((unbiased_exp == 0) && (zero_mantissa)) || (unbiased_exp < 0)) begin//<= 2^0
+        return 5;//+-1
     end
-    else if(((unbiased_exp == 0) && (less_than_two_mantissa))) begin
-        return 6;
+    else if(((unbiased_exp == 0) && (less_than_two_mantissa))) begin //<= 2^0 + 2^-2
+        return 6;//+-(5/4)
     end
-    else if(((unbiased_exp == 0) && (less_than_one_mantissa))) begin
-        return 7;
+    else if(((unbiased_exp == 0) && (less_than_one_mantissa))) begin//<= 2^0 + 2^-1
+        return 7;//+-(3/2)
     end
-    else if(((unbiased_exp == 0) && (less_than_three_mantissa))) begin
-        return 8;
+    else if(((unbiased_exp == 0) && (less_than_three_mantissa))) begin// <= 2^0 + 2^-1 + 2^-2
+        return 8;//+-(7/4)
     end
     else begin
-        return 0;
+        return 0;//corresponds to no test number, will not satisfy the coverpoint
     end
 
     endfunction

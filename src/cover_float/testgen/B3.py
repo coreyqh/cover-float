@@ -150,12 +150,14 @@ def write_fma_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
                 # Sticky bits should be aligned to already, so
                 signC = signProd
-                sigC_initial = 2 ** common.MANTISSA_BITS[fmt] - sticky_bits
-                sigC = sigC_initial | (1 << common.MANTISSA_BITS[fmt])
+                if op in [common.OP_FMADD, common.OP_FNMSUB]:
+                    # For effective addition, add something to make them go away
+                    sigC_initial = 2 ** common.MANTISSA_BITS[fmt] - sticky_bits
+                else:
+                    # In effective subtraction subtract them off
+                    sigC_initial = sticky_bits
 
-                # Sign Flip if it is a subtraction op
-                if op == common.OP_FMSUB or op == common.OP_FNMADD:
-                    signC ^= 1
+                sigC = sigC_initial | (1 << common.MANTISSA_BITS[fmt])
 
                 # Figure out alignment
                 expC = expProd - common.MANTISSA_BITS[fmt] - 1
@@ -163,14 +165,16 @@ def write_fma_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
                 # Align sigC to correct bits of sigProd, the shifts are a no-op but
                 # they are there for correctness
-                sigZ64 = sigProd + ((sigC << (common.MANTISSA_BITS[fmt] + 1)) >> expDiff)
-                # sigZ64 = sigProd + sigC
+                if op in [common.OP_FMADD, common.OP_FNMSUB]:
+                    sigZ64 = sigProd + ((sigC << (common.MANTISSA_BITS[fmt] + 1)) >> expDiff)
+                else:
+                    sigZ64 = sigProd - ((sigC << (common.MANTISSA_BITS[fmt] + 1)) >> expDiff)
 
                 # In some cases, especially in lower precision formats (i.e. bf16 and half),
                 # we get an "overflow" here (i.e. we move up an exponent and have to shift)
                 # This means we can accidentally cause a shift of guard into the stickt bit
                 # which we do not guarentee to be zero, so we check that here
-                if len(bin(sigZ64)) > len(bin(sigProd)):
+                if len(bin(sigZ64)) != len(bin(sigProd)):
                     continue
 
                 # Get new rounding info, if we want to log it
@@ -234,8 +238,11 @@ def write_add_sub_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                 # Generate a random float for A
                 signA = target["Sign"]
 
-                # If the MSB of sigA_initial is 0, it prevents rounding up to another exponent
+                # If the MSB of sigA_initial is 0, it prevents rounding up to another exponent in addition
                 sigA_initial = random.randint(0, (1 << (common.MANTISSA_BITS[fmt] - 1)) - 1)
+                if op == common.OP_SUB:
+                    # But we want it to be one in subtractions
+                    sigA_initial |= 1 << (common.MANTISSA_BITS[fmt] - 1)
 
                 _sigA = sigA_initial | (1 << common.MANTISSA_BITS[fmt])
                 expA = random.randint(-10, 14)  # + common.BIAS[fmt]
@@ -248,9 +255,17 @@ def write_add_sub_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
                 last_digits = ((target["LSB"] ^ (sigA_initial & 1)) << 2) | (target["Guard"] << 1) | (target["Sticky"])
 
-                sigB_initial = (random.randint(1, (1 << common.MANTISSA_BITS[fmt]) - 1) & (~0b111)) + last_digits
-                _sigB = sigB_initial | (1 << common.MANTISSA_BITS[fmt])
-                signB = signA if op == common.OP_ADD else signA ^ 1
+                if op == common.OP_ADD:
+                    sigB_initial = (random.randint(1, (1 << common.MANTISSA_BITS[fmt]) - 1) & (~0b111)) + last_digits
+                    _sigB = sigB_initial | (1 << common.MANTISSA_BITS[fmt])
+                else:
+                    # For effective subtraction, we need to do a little bit of work
+                    subtraction_target = target["LSB"] << 2 | target["Guard"] << 1 | target["Sticky"]
+                    subtraction_last_digits = (1 << 3 | (sigA_initial & 1) << 2) - subtraction_target
+                    sigB_initial = random.getrandbits(common.MANTISSA_BITS[fmt] - 3) << 3 | subtraction_last_digits
+                    _sigB = sigB_initial | (1 << common.MANTISSA_BITS[fmt])
+
+                signB = signA
 
                 A = generate_float(signA, expA, sigA_initial, fmt)
                 B = generate_float(signB, expB, sigB_initial, fmt)
@@ -262,6 +277,7 @@ def write_add_sub_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                 if info == target:
                     store_cover_vector(result, test_f, cover_f)
                 else:
+                    breakpoint()
                     print(
                         f"AddSub test generation failed: op={op}, target={target}, last_digits={last_digits},"
                         f"A={A}, B={B}"

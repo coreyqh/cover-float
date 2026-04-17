@@ -41,13 +41,14 @@ def add_sub_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
         exp_min += nf
         exp_max -= constants.BIAS[fmt]
 
-        # There are nf possible extra_bits
-        for extra_bit in range(1, nf):
+        # There are nf possible extra_bits for addition, nf + 1 for subtraction
+        is_subtraction = op == constants.OP_SUB
+        for extra_bit in range(1, nf + is_subtraction):
             sigA = random.getrandbits(nf) | (1 << nf)
             sigB = random.getrandbits(nf) | (1 << nf)
 
             exp_a = random.randint(exp_min, exp_max)
-            shift_amount = random.randint(extra_bit + 1, nf)
+            shift_amount = random.randint(extra_bit + 1, nf + is_subtraction)
 
             exp_b = exp_a - shift_amount
             rounding_bits_mask = (1 << shift_amount) - 1
@@ -76,9 +77,9 @@ def add_sub_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             # Mask off 0b, leading one, and significant bits
             rounding_bits = bin(pre_rounding_mantissa)[2 + 1 + nf :]
             # Only get the remaining rounding bits
-            rounding_bits = rounding_bits[:nf]
+            rounding_bits = rounding_bits[: nf + is_subtraction]
 
-            if int(rounding_bits, 2) != 1 << (nf - extra_bit - 1):
+            if int(rounding_bits, 2) != 1 << (nf - extra_bit - 1 + is_subtraction) and rounding_bits.count("1") == 1:
                 print(f"Add Sub Generation Failed: extra_bit: {extra_bit}, op: {op}")
             else:
                 store_cover_vector(result, test_f, cover_f)
@@ -494,7 +495,7 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
         # the leading one from the multiplication mantissa is in the lsb
         placements: list[int] = []
 
-        for target_placement in range(1, 2 * constants.MANTISSA_BITS[fmt]):
+        for target_placement in range(1, 2 * constants.MANTISSA_BITS[fmt] + 1):
             # if target_placement > STICKY_LIMITS.get(fmt, 1000):
             #     # The things that are possible within what softfloat gives us
             #     break
@@ -509,7 +510,7 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
             shift_amount = max(3, target_placement - constants.MANTISSA_BITS[fmt] + 1)
             target_location = target_placement - shift_amount
 
-            if target_placement < STICKY_LIMITS.get(fmt, 1000):
+            if target_placement < STICKY_LIMITS.get(fmt, 2 * constants.MANTISSA_BITS[fmt]):
                 attempted_sigs = multiplicand_generator(
                     target_location, shift_amount, effective_subtraction, constants.MANTISSA_BITS[fmt]
                 )
@@ -544,7 +545,7 @@ def fma_tests(fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
 
                     exp_diff = target_placement - one_location + constants.MANTISSA_BITS[fmt] + 1
 
-                    if exp_diff > constants.MANTISSA_BITS[fmt]:
+                    if exp_diff > constants.MANTISSA_BITS[fmt] + 1:
                         continue
             else:
                 sigA, sigB = attempted_sigs

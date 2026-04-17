@@ -16,10 +16,10 @@
 // `define COVER_B13
 `define COVER_B14
 // `define COVER_B15
-// `define COVER_B16
+`define COVER_B16
 // `define COVER_B17
 // `define COVER_B18
-// `define COVER_B19
+`define COVER_B19
 // `define COVER_B20
 `define COVER_B21
 `define COVER_B22

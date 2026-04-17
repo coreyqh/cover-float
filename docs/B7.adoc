@@ -10,7 +10,7 @@ Aharoni et al.
 
 === Description
 
-This model checks that the sticky bit is calculated correctly in each of the following cases (for every possible combination in the table). The Guard bit should be always 0, and the sign positive, so that miscalculation of the sticky bit will alter the final result.  This model tests every possible value for a shift between the input operands.
+This model checks that the sticky bit is calculated correctly in each of the following cases (for every possible combination in the table). The Guard bit should be always 0, and the sign positive, so that miscalculation of the sticky bit will alter the final result.
 
 [cols="1",options="header"]
 |===
@@ -31,7 +31,7 @@ This model checks that the sticky bit is calculated correctly in each of the fol
 |===
 
 
-*Number of tests:* 1E6
+*Number of tests:* 5728
 
 *Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
 
@@ -44,7 +44,7 @@ This model checks that the sticky bit is calculated correctly in each of the fol
 === Definitions
 
 `nf`:: The number of bits in a float's mantissa
-`extra bits`:: Every bit past the LSB of a float in an intermediate result
+`Extra Bits`:: Every bit past the LSB of a float in an intermediate result
 
 == Background
 
@@ -62,7 +62,7 @@ These tests are simple because the only way to get extra bits in floating point 
 
 This means that we have:
 - ExpA: Random
-- Shift Amount: Random Int between the target extra bit and `nf`
+- Shift Amount: Random Int between the target extra bit and `nf` (`nf+1` for subtraction because the leading one in the guard bit can result in zero with carefully chosen cases)
 - ExpB: ExpA - Shift Amount
 
 We then set any bits that contribute to the sticky to a pattern that generates the target extra bit in both effective addition and effective subtraction.
@@ -93,9 +93,9 @@ a * b \equiv target\_extra\_bits \pmod{2^{nf + shift\_amount + 2}}
 
 However, if we take advantage of the fact that the structure of any target extra bits in effective addition and effective subtraction cases has trailing zeros, we can greatly reduce the base by reducing the target to something odd and subtracting the extraneous zeros from the exponent of the modulus. In most cases, this approach generates a working pair of multiplicands.
 
-If this approach does not work, for doubles and below, we can generate random numbers with the desired structure and see if they factor. This allows us to complete any remaining (double) cases. This also gives a verification of the computational infeasibility of some of the F16 and BF16 cases as with a small sample space this search is exhaustive.
+If this approach does not work, for doubles and below, we can generate random numbers with the desired structure and see if they factor. This allows us to complete a few more double cases. This also gives a verification of the computational infeasibility of some of the F16 and BF16 cases as with a small sample space this search is exhaustive.
 
-Currently, we are limited by the number of extra bits that softfloat provides, but within the constraints of the reference model, we get complete coverage of all possible extra bits.
+Outside of this, a last resort is to use known factors of friendly numbers. For effective addition, we can find multiplicands that yield only 1 in the significand, and push that one as far as possible. For effective subtraction, we just need significands with all ones then all zeros, and attempt to maximize the number of ones. There is an easy solution with one trailing zero, and in many cases it is possible to get no trailing zeros. This allows us to round out coverage of quads and doubles, and see that single, half, and bf16 coverage has impossible cases here.
 
 === Converts
 
@@ -107,52 +107,63 @@ Int to Float: The first nf bits past the leading one are randomized, then the ex
 
 == Test Count Breakdown
 
-Add/Sub: We generate stem:[2 * (nf - 1)] tests per precision, as there are stem:[nf - 1] possible sticky bits for us to set. Note that we cannot get stem:[nf] at that involves placing the leading one on the guard bit, which breaks the rules of this coverpoint
-
-This gives a total of 398 tests.
-
-Multiplication: We generate stem:[2*nf - 1] total tests per precision. With a shift, there are stem:[nf] sticky bits and without there are stem:[nf - 1].
+Add/Sub: For addition, we generate stem:[nf - 1] tests per precision, as there with an addend of size stem:[nf] we can generate stem:[nf - 1] sticky bits by when the one is placed in the lsb, if the one were in the guard bit, it would be forced to be one. This isn't the case for subtraction, so there are stem:[nf] bits possible to be set in subtraction, and therefore we have stem:[2nf-1] bits in total.
 
 This gives a total of 403 tests.
 
-FMA: We generate at least stem:[32nf] tests per precision per operation. As we attempt to have both addends contributing to the operation, the number is generally higher. There are also 4 flavors of fma that are accounted for. Below is a list of precisions and how many tests are generated.
+Multiplication: We generate stem:[2nf - 1] total tests per precision. With a shift, there are stem:[nf] sticky bits and without there are stem:[nf - 1].
 
-[cols="2*", options="header"]
-|===
-| Precision | Tests
-| Half | 142
-| BF16 | 104
-| Single | 332
-| Double | 704
-| Quad | 1402
-|===
+This gives a total of 403 tests.
 
-This totals to 2684 tests.
-
-Converts: We generate stem:[nf - 1] for each CFI, the excess number of excess bits for each CFF, and the number of excess bits minus two for each CIF. Convert tests are only generated in the case of narrowing conversions, so a table below lists the number of conversions for each precision where the number of tests is non-trivial.
-
-CFF
+FMA: We generate tests for two different ways of generating a sticky bit. If in a * b + c or a * b - c, we choose a c value less than a * b, we can hit all stem:[2nf] sticky bits. If c is greater than a * b, we must target a specific multiplication result, which may or may not exist. These values differ for each precision and type of effective operation, and are given below. For the effective subtraction case, the limit is stem:[2nf + 1] while for the effective addition case, there are stem:[2nf] ideal cases.
 [cols="5*", options="header"]
 |===
-| To / From | Half | Single | Double | Quad
-| BF16 | 2 | 15 | 44 | 104
-| Half | 0 | 12 | 41 | 101
-| Single | 0 | 0 | 28 | 88
-| Double | 0 | 0 | 0 | 59
+| Precision | nf | Actual Effective Addition Bits | Actual Effective Subtraction Bits | Impossible Cases (Total)
+| Half | 10 | 17 | 20 | 8
+| BF16 | 7 | 13 | 15 | 2
+| Single | 23 | 45 | 47 | 2
+| Double | 52 | 104 | 105 | 0
+| Quad | 112 | 224 | 225 | 0
 |===
 
-CIF
+One of these bits results in a guard bit, so for effective addition, we have stem:[4nf] cases, and for effective subtraction we have stem:[4nf - 1]. Thus, across 2 effective addition operations and 2 effective subtraction, we ideally have stem:[16nf - 2] total cases. The total counts in practice are given below.
+
+[cols="3*", options="header"]
+|===
+| Precision | Ideal Test Count | Actual Test Count
+| Half | 158 | 150
+| BF16 | 110 | 108
+| Single | 366 | 364
+| Double | 830 | 830
+| Quad | 1790 | 1790
+|===
+
+This totals to 3242 tests.
+
+Converts: We generate stem:[nf - 1] for each CFI (a conversion of where 1 < x < 2, to maximize the number of fractional bits. stem:[nf] bits go to rounding, stem:[nf-1] go to the sticky), the excess number of excess bits minus one for each CFF, and the number of excess bits minus two for each CIF. Convert tests are only generated in the case of narrowing conversions, so a table below lists the number of conversions for each precision where the number of tests is non-trivial.
+
+CFF: We have From - To - 1 total sticky bits
 [cols="5*", options="header"]
 |===
-| To / From | int | long | uint | ulong
-| BF16 | 22 | 54 | 23 | 55
-| Half | 19 | 51 | 20 | 52
-| Single | 6 | 38 | 7 | 39
-| Double | 0 | 9 | 0 | 10
+| To / From | Half (10) | Single (23) | Double (52) | Quad (112)
+| BF16 (7) | 2 | 15 | 44 | 104
+| Half (10) | 0 | 12 | 41 | 101
+| Single (23) | 0 | 0 | 28 | 88
+| Double (52) | 0 | 0 | 0 | 59
+|===
+
+CIF: From each int format, the msb becomes the leading one, nf bits go to the significand, and 1 goes to the guard, leaving From - To - 2 total sticky bits.
+[cols="5*", options="header"]
+|===
+| To / From | int (31) | long (63) | uint (32) | ulong (64)
+| BF16 (7) | 22 | 54 | 23 | 55
+| Half (10) | 19 | 51 | 20 | 52
+| Single (23) | 6 | 38 | 7 | 39
+| Double (52) | 0 | 9 | 0 | 10
 |===
 
 This totals (with CFI) to 1695.
 
 === Overall Test Count
 
-Each of these cases sum to a total of 5180 tests.
+Each of these cases sum to a total of 5743 tests.

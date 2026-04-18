@@ -26,25 +26,19 @@ from cover_float.common.constants import (
     OP_FNMSUB,
     OP_MUL,
     OP_SUB,
+    ROUND_MAX,
+    ROUND_MIN,
+    ROUND_MINMAG,
+    ROUND_NEAR_EVEN,
+    ROUND_NEAR_MAXMAG,
     UNBIASED_EXP,
 )
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
 
 B5_FMTS = [FMT_QUAD, FMT_DOUBLE, FMT_SINGLE, FMT_BF16, FMT_HALF]
-ROUNDING_MODES = ["00", "01", "02", "03", "04", "05"]
+ROUNDING_MODES = [ROUND_NEAR_EVEN, ROUND_MINMAG, ROUND_MIN, ROUND_MAX, ROUND_NEAR_MAXMAG]
 FMA_OPS = [OP_FMADD, OP_FMSUB, OP_FNMADD, OP_FNMSUB]
-
-
-# def generate_FP(
-#     input_e_bitwidth: int, input_sign: str, input_exponent: int, input_mantissa: str, input_bias: int
-# ) -> str:
-#     exponent = f"{input_exponent + input_bias:0{input_e_bitwidth}b}"
-#     complete = input_sign + exponent + input_mantissa
-#     fp_complete = format(int(complete, 2), "X")
-
-
-#     return fp_complete
 
 
 def generate_FP(
@@ -627,14 +621,17 @@ def tests_multiply_7_8(precision: str, rounding_mode: str, test_f: TextIO, cover
 
 def tests_multiply_9(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
     min_exp = UNBIASED_EXP[precision][0]
+    e_bias = EXPONENT_BIAS[precision]
 
     # all values from minNorm.exp to minNorm.exp + 5
-    min_exp_range = min_exp - 1  # SN exp, or minNorm.exp
+    min_exp_range = min_exp + 1  # minNorm.exp + 1, we want it randomized, so add 1 and lsb = 0, r = 1, s = 1
     max_exp_range = min_exp_range + 5
 
     for target_exp in range(min_exp_range, max_exp_range + 1):  # Because end is exclusive
         seed("b5" + OP_MUL + precision + rounding_mode + str(target_exp))
         sign = str(random.randint(0, 1))
+        # print("Unbiased Target_exp:", target_exp)
+        print("Biased Target_exp:", target_exp + e_bias)
 
         mul_div_grs_gen(
             OP_MUL, precision, rounding_mode, "011", target_exp, sign, test_f, cover_f, str(target_exp), True
@@ -642,14 +639,14 @@ def tests_multiply_9(precision: str, rounding_mode: str, test_f: TextIO, cover_f
 
 
 def multiplyTests(test_f: TextIO, cover_f: TextIO) -> None:
-    # for precision in FLOAT_FMTS:
-    precision = FMT_HALF
-    for rounding_mode in ROUNDING_MODES:
-        tests_multiply_1_2(precision, rounding_mode, test_f, cover_f)
-        tests_multiply_3_4(precision, rounding_mode, test_f, cover_f)
-        tests_multiply_5_6(precision, rounding_mode, test_f, cover_f)
-        tests_multiply_7_8(precision, rounding_mode, test_f, cover_f)
-        tests_multiply_9(precision, rounding_mode, test_f, cover_f)
+    for precision in FLOAT_FMTS:
+        # precision = FMT_SINGLE #TODO: Alter to have all precisions
+        for rounding_mode in ROUNDING_MODES:
+            tests_multiply_1_2(precision, rounding_mode, test_f, cover_f)
+            tests_multiply_3_4(precision, rounding_mode, test_f, cover_f)
+            tests_multiply_5_6(precision, rounding_mode, test_f, cover_f)
+            tests_multiply_7_8(precision, rounding_mode, test_f, cover_f)
+            tests_multiply_9(precision, rounding_mode, test_f, cover_f)
 
 
 def fma_gen(

@@ -1,6 +1,7 @@
 import cover_float.testgen.B1 as B1
 import cover_float.testgen.B2 as B2
 import cover_float.testgen.B3 as B3
+import cover_float.testgen.B5 as B5
 import cover_float.testgen.B6 as B6
 import cover_float.testgen.B7 as B7
 import cover_float.testgen.B8 as B8
@@ -22,6 +23,7 @@ __all__ = [
     "B1",
     "B2",
     "B3",
+    "B5",
     "B6",
     "B7",
     "B8",

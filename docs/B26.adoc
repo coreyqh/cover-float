@@ -1,0 +1,35 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+== B26. CvtInt2FP: Number of Significant Bits
+
+Aharoni et al.
+
+=== Description
+
+This model creates a test-case for each possible value of the number of significant bits in the input operand (which is an integer). A test is created with an example from each of the following ranges: [0], [1], [2,3], [4,7], [8,15], …, [(MaxInt+1)/2, MaxInt]
+
+*Number of tests:* 1420
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`, `INT32`, `UINT32`, `INT64`, `UINT64`
+
+*Operations Supported*: `CIF`
+
+*Rounding Mode*: Random
+
+== Background
+
+In an int to float conversion, the hardware must shift the input according to number of leading zeros in the integer it receives. By varying the location of the most significant bit in the integer, we test all possible values for this operation. In addition, we will also generate complementary tests for negative integers when interacting with signed types.
+
+== Test Procedure
+
+We generate an integer with the most significant bit in a desired location, and random entries in the lower bits of the integer. We do this for all bits from bit 0 to bit n-1 where n is the number of non-sign bits in the format (e.g. n=31 for int32). For signed types, we will do this process twice and also test a negative version of a different integer randomly generated according to the same procedure.
+
+== Test Count Breakdown
+
+For signed integers, we produce 2*(n-1) tests where n is the length of the integer, and for unsigned integers we produce n tests where n is the length of the integer. Across 32-bit and 64-bit types, this totals to 284 tests.
+
+As there are 5 floating point formats to convert to, we arrive at a total of 1420 tests.

@@ -1,4 +1,4 @@
-`define COVER_VECTOR_WIDTH 804
+`define COVER_VECTOR_WIDTH 1208
 
 `define INCLUDE_CGS \
     `ifdef COVER_B1 \

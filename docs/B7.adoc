@@ -1,0 +1,169 @@
+= Floating Point Model Documentation
+:toc:
+:toclevels: 3
+:sectnums:
+:stem: latexmath
+
+== B7 Sticky Bit Calculation
+
+Aharoni et al.
+
+=== Description
+
+This model checks that the sticky bit is calculated correctly in each of the following cases (for every possible combination in the table). The Guard bit should be always 0, and the sign positive, so that miscalculation of the sticky bit will alter the final result.
+
+[cols="1",options="header"]
+|===
+| Mask on Extra Bits
+
+| 1000...000
+
+| 0100...000
+
+| 0010...000
+
+| ...
+
+| 0000...010
+
+| 0000...001
+
+|===
+
+
+*Number of tests:* 5728
+
+*Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
+
+*Operations Supported:* Add, Subtract, Mul, FMA (all flavors), Converts
+
+*Rounding Mode:* Positive Infinity (Round Max)
+
+== Implementation
+
+=== Definitions
+
+`nf`:: The number of bits in a float's mantissa
+`Extra Bits`:: Every bit past the LSB of a float in an intermediate result
+
+== Background
+
+These tests ensure that the sticky bit is calculated correctly for every (reasonably) possible bit in the extra bits. This is important to a floating point unit because the extra bits in a rounding result all matter for correctly calculating the rounded result, so we must test that each bit works in isolation.
+
+== General Procedure
+
+The general goal for these tests is to do something similar to the B3 sticky = 0 cases where we either shift operands so that we get the desired extra bits, or just choose significands so that it ends up with a carefully structured result satisfying the condition. For the most part, we choose significands that are random in the bits that do not matter, but give the desired structure when it does matter. This means that multiplication exponents are randomized as much as possible, and addition significands are randomized when it does not matter.
+
+== Test Procedure
+
+=== Add Tests
+
+These tests are simple because the only way to get extra bits in floating point addition is to have misaligned significands. We control the exponents so that the exact amount of desired overhang is achieved. As much as possible, we also randomize how long the overhang is between significands, so that we do not have the last bit of the smaller float contributing to the sticky bit every time.
+
+This means that we have:
+- ExpA: Random
+- Shift Amount: Random Int between the target extra bit and `nf` (`nf+1` for subtraction because the leading one in the guard bit can result in zero with carefully chosen cases)
+- ExpB: ExpA - Shift Amount
+
+We then set any bits that contribute to the sticky to a pattern that generates the target extra bit in both effective addition and effective subtraction.
+
+=== Mul Tests
+
+For multiplication, we generate a result of the form U2.2nf, and either the last nf or the last nf+1 bits are the rounding bits. This means that the extra-bits are just the product mod (2^(nf + 1)). By choosing a random odd first significand, we have an inverse mod 2^(nf + 1), and with enough luck (about a 1/4 chance), we will generate a second significand of the correct size, by solving
+
+[stem]
+++++
+a * b \equiv target\_extra\_bits \pmod{2^{nf+1}}
+++++
+
+Due to the modular arithmetic properties, these significands will work for any desired value of extra_bits. We also pay attention to whether or not there was a shift to normalize the multiplication result back to a format with one leading digit as that could impact sticky calculation as well.
+
+=== FMA Tests
+
+For FMA, the sticky can be calculated in one of two ways: the addition is shifted into the extra bits from the multiplication, or the multiplication is shifted into the extra bits.
+
+The first case is much easier than the second. We can generate random multiplicands as in B3, then an addend can be generated for both effective multiplication and effective subtraction cases so that the target extra bit is generated.
+
+The second case requires multiplication results to be compliant, which introduces another layer of difficulty. Like the Mul case, most of the time we can solve this using modular arithmetic. Normally, we satisfy the equation for a given shift to the multiplicand
+
+[stem]
+++++
+a * b \equiv target\_extra\_bits \pmod{2^{nf + shift\_amount + 2}}
+++++
+
+However, if we take advantage of the fact that the structure of any target extra bits in effective addition and effective subtraction cases has trailing zeros, we can greatly reduce the base by reducing the target to something odd and subtracting the extraneous zeros from the exponent of the modulus. In most cases, this approach generates a working pair of multiplicands.
+
+If this approach does not work, for doubles and below, we can generate random numbers with the desired structure and see if they factor. This allows us to complete a few more double cases. This also gives a verification of the computational infeasibility of some of the F16 and BF16 cases as with a small sample space this search is exhaustive.
+
+Outside of this, a last resort is to use known factors of friendly numbers. For effective addition, we can find multiplicands that yield only 1 in the significand, and push that one as far as possible. For effective subtraction, we just need significands with all ones then all zeros, and attempt to maximize the number of ones. There is an easy solution with one trailing zero, and in many cases it is possible to get no trailing zeros. This allows us to round out coverage of quads and doubles, and see that single, half, and bf16 coverage has impossible cases here.
+
+=== Converts
+
+Float to Float: In a narrowing conversion, we randomize the top bits and set the desired extra bits
+
+Float to Int: Similarly, we let the integral bits be randomized and place the extra bits pattern in the fractional bits.
+
+Int to Float: The first nf bits past the leading one are randomized, then the extra bits are placed immediately after.
+
+== Test Count Breakdown
+
+Add/Sub: For addition, we generate stem:[nf - 1] tests per precision, as there with an addend of size stem:[nf] we can generate stem:[nf - 1] sticky bits by when the one is placed in the lsb, if the one were in the guard bit, it would be forced to be one. This isn't the case for subtraction, so there are stem:[nf] bits possible to be set in subtraction, and therefore we have stem:[2nf-1] bits in total.
+
+This gives a total of 403 tests.
+
+Multiplication: We generate stem:[2nf - 1] total tests per precision. With a shift, there are stem:[nf] sticky bits and without there are stem:[nf - 1].
+
+This gives a total of 403 tests.
+
+FMA: We generate tests for two different ways of generating a sticky bit. If in a * b + c or a * b - c, we choose a c value less than a * b, we can hit all stem:[2nf] sticky bits. If c is greater than a * b, we must target a specific multiplication result, which may or may not exist. These values differ for each precision and type of effective operation, and are given below. For the effective subtraction case, the limit is stem:[2nf + 1] while for the effective addition case, there are stem:[2nf] ideal cases.
+[cols="5*", options="header"]
+|===
+| Precision | nf | Actual Effective Addition Bits | Actual Effective Subtraction Bits | Impossible Cases (Total)
+| Half | 10 | 17 | 20 | 8
+| BF16 | 7 | 13 | 15 | 2
+| Single | 23 | 45 | 47 | 2
+| Double | 52 | 104 | 105 | 0
+| Quad | 112 | 224 | 225 | 0
+|===
+
+One of these bits results in a guard bit, so for effective addition, we have stem:[4nf] cases, and for effective subtraction we have stem:[4nf - 1]. Thus, across 2 effective addition operations and 2 effective subtraction, we ideally have stem:[16nf - 2] total cases. The total counts in practice are given below.
+
+[cols="3*", options="header"]
+|===
+| Precision | Ideal Test Count | Actual Test Count
+| Half | 158 | 150
+| BF16 | 110 | 108
+| Single | 366 | 364
+| Double | 830 | 830
+| Quad | 1790 | 1790
+|===
+
+This totals to 3242 tests.
+
+Converts: We generate stem:[nf - 1] for each CFI (a conversion of where 1 < x < 2, to maximize the number of fractional bits. stem:[nf] bits go to rounding, stem:[nf-1] go to the sticky), the excess number of excess bits minus one for each CFF, and the number of excess bits minus two for each CIF. Convert tests are only generated in the case of narrowing conversions, so a table below lists the number of conversions for each precision where the number of tests is non-trivial.
+
+CFF: We have From - To - 1 total sticky bits
+[cols="5*", options="header"]
+|===
+| To / From | Half (10) | Single (23) | Double (52) | Quad (112)
+| BF16 (7) | 2 | 15 | 44 | 104
+| Half (10) | 0 | 12 | 41 | 101
+| Single (23) | 0 | 0 | 28 | 88
+| Double (52) | 0 | 0 | 0 | 59
+|===
+
+CIF: From each int format, the msb becomes the leading one, nf bits go to the significand, and 1 goes to the guard, leaving From - To - 2 total sticky bits.
+[cols="5*", options="header"]
+|===
+| To / From | int (31) | long (63) | uint (32) | ulong (64)
+| BF16 (7) | 22 | 54 | 23 | 55
+| Half (10) | 19 | 51 | 20 | 52
+| Single (23) | 6 | 38 | 7 | 39
+| Double (52) | 0 | 9 | 0 | 10
+|===
+
+This totals (with CFI) to 1695.
+
+=== Overall Test Count
+
+Each of these cases sum to a total of 5743 tests.

@@ -61,7 +61,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
      ************************************************************************/
 
     // HALF
-    F16_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_HALF) - int'(CFI.c[14:10])) {
+    F16_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_HALF) - int'(CFI.c[F16_E_UPPER : F16_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[ $             : -(2*F16_P + 2)]};
@@ -71,7 +71,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     }
 
     // BF16
-    BF16_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_BF16) - int'(CFI.c[14:7])) {
+    BF16_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_BF16) - int'(CFI.c[BF16_E_UPPER : BF16_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[ $              : -(2*BF16_P + 2)]};
@@ -80,7 +80,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     }
 
     // SINGLE
-    F32_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_SINGLE) - int'(CFI.c[30:23])) {
+    F32_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_SINGLE) - int'(CFI.c[F32_E_UPPER : F32_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[ $             : -(2*F32_P + 2)]};
@@ -89,7 +89,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     }
 
     // DOUBLE
-    F64_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_DOUBLE) - int'(CFI.c[62:52])) {
+    F64_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_DOUBLE) - int'(CFI.c[F64_E_UPPER : F64_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[ $             : -(2*F64_P + 2)]};
@@ -98,7 +98,7 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     }
 
     // QUAD
-    F128_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_QUAD) - int'(CFI.c[126:112])) {
+    F128_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_QUAD) - int'(CFI.c[F128_E_UPPER : F128_E_LOWER])) {
         type_option.weight = 0;
 
         bins small_diff = {[ $              : -(2*F128_P + 2)]};
@@ -113,28 +113,23 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
      ************************************************************************/
 
     `ifdef COVER_F16
-        B14_F16_madd_shift:
-            cross FP_madd_ops, F16_madd_shift, F16_result_fmt;
+        B14_F16_madd_shift:  cross FP_madd_ops, F16_madd_shift,  F16_result_fmt;
     `endif
 
     `ifdef COVER_BF16
-        B14_BF16_madd_shift:
-            cross FP_madd_ops, BF16_madd_shift, BF16_result_fmt;
+        B14_BF16_madd_shift: cross FP_madd_ops, BF16_madd_shift, BF16_result_fmt;
     `endif
 
     `ifdef COVER_F32
-        B14_F32_madd_shift:
-            cross FP_madd_ops, F32_madd_shift, F32_result_fmt;
+        B14_F32_madd_shift:  cross FP_madd_ops, F32_madd_shift,  F32_result_fmt;
     `endif
 
     `ifdef COVER_F64
-        B14_F64_madd_shift:
-            cross FP_madd_ops, F64_madd_shift, F64_result_fmt;
+        B14_F64_madd_shift:  cross FP_madd_ops, F64_madd_shift,  F64_result_fmt;
     `endif
 
     `ifdef COVER_F128
-        B14_F128_madd_shift:
-            cross FP_madd_ops, F128_madd_shift, F128_result_fmt;
+        B14_F128_madd_shift: cross FP_madd_ops, F128_madd_shift, F128_result_fmt;
     `endif
 
 endgroup

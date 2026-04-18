@@ -2,7 +2,7 @@
 
 RM_CMD ?= rm -rf
 
-.PHONY: build clean sim all B1 B9 B10 B12 B14 B3
+.PHONY: build clean sim all B1 B2 B3 B9 B10 B12 B13 B14 B15 B21
 
 # Notice that we pass --managed-python, we do this so that uv (scikit-build-core)
 # will have a python enviornment with Python.h to build with.
@@ -22,8 +22,21 @@ B1:
 
 B5:
 	uv run --managed-python cover-float-testgen --model B5
+
+B2:
+	uv run --managed-python cover-float-testgen --model B2
+
 B3:
 	uv run --managed-python cover-float-testgen --model B3
+
+B6:
+	uv run --managed-python cover-float-testgen --model B6
+
+B7:
+	uv run --managed-python cover-float-testgen --model B7
+
+B8:
+	uv run --managed-python cover-float-testgen --model B8
 
 B9:
 	uv run --managed-python cover-float-testgen --model B9
@@ -31,12 +44,38 @@ B9:
 B10:
 	uv run --managed-python cover-float-testgen --model B10
 
+B11:
+	uv run --managed-python cover-float-testgen --model B11
+
 B12:
 	uv run --managed-python cover-float-testgen --model B12
 
+B13:
+	uv run --managed-python cover-float-testgen --model B13
 
 B14:
 	uv run --managed-python cover-float-testgen --model B14
+
+B15:
+	uv run --managed-python cover-float-testgen --model B15
+
+B20:
+	uv run --managed-python cover-float-testgen --model B20
+
+B21:
+	uv run --managed-python cover-float-testgen --model B21
+
+B25:
+	uv run --managed-python cover-float-testgen --model B25
+
+B26:
+	uv run --managed-python cover-float-testgen --model B26
+
+B27:
+	uv run --managed-python cover-float-testgen --model B27
+
+B29:
+	uv run --managed-python cover-float-testgen --model B29
 
 # Clean target to remove build artifacts
 clean:

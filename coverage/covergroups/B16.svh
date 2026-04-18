@@ -1,4 +1,4 @@
-covergroup B12_cg (virtual coverfloat_interface CFI);
+covergroup B16_cg (virtual coverfloat_interface CFI);
 
     option.per_instance = 0;
 
@@ -8,10 +8,12 @@ covergroup B12_cg (virtual coverfloat_interface CFI);
      *
      ************************************************************************/
 
-    FP_addsub_ops: coverpoint CFI.op {
+    FP_madd_ops: coverpoint CFI.op {
         type_option.weight = 0;
-        bins add = {OP_ADD};
-        bins sub = {OP_SUB};
+        bins op_fmadd  = {OP_FMADD};
+        bins op_fmsub  = {OP_FMSUB};
+        bins op_fnmadd = {OP_FNMADD};
+        bins op_fnmsub = {OP_FNMSUB};
     }
 
     /************************************************************************
@@ -49,78 +51,78 @@ covergroup B12_cg (virtual coverfloat_interface CFI);
      *
      * Cancellation helper coverpoints
      *
-     * cancellation = exp(result) - max(exp(a), exp(b))
+     * cancellation = exp(result) - max(exp(prod), exp(c))
      *
      ************************************************************************/
 
-    F16_cancellation: coverpoint
+    F16_madd_cancellation: coverpoint
         (
             $signed(int'(CFI.intermX)) -
             (
-                (int'(CFI.a[F16_E_UPPER:F16_E_LOWER]) > int'(CFI.b[F16_E_UPPER:F16_E_LOWER]))
-                ? int'(CFI.a[F16_E_UPPER:F16_E_LOWER])
-                : int'(CFI.b[F16_E_UPPER:F16_E_LOWER])
+                (int'(get_product_exponent(CFI.a, CFI.b, FMT_HALF)) > int'(CFI.c[F16_E_UPPER:F16_E_LOWER]))
+                ? int'(get_product_exponent(CFI.a, CFI.b, FMT_HALF))
+                : int'(CFI.c[F16_E_UPPER:F16_E_LOWER])
             )
         )
     {
         type_option.weight = 0;
-        bins cancel[] = {[-F16_P : 1]};
+        bins cancel[] = {[-(2*F16_P + 1) : 1]};
     }
 
-    BF16_cancellation: coverpoint
+    BF16_madd_cancellation: coverpoint
         (
             $signed(int'(CFI.intermX)) -
             (
-                (int'(CFI.a[BF16_E_UPPER:BF16_E_LOWER]) > int'(CFI.b[BF16_E_UPPER:BF16_E_LOWER]))
-                ? int'(CFI.a[BF16_E_UPPER:BF16_E_LOWER])
-                : int'(CFI.b[BF16_E_UPPER:BF16_E_LOWER])
+                (int'(get_product_exponent(CFI.a, CFI.b, FMT_BF16)) > int'(CFI.c[BF16_E_UPPER:BF16_E_LOWER]))
+                ? int'(get_product_exponent(CFI.a, CFI.b, FMT_BF16))
+                : int'(CFI.c[BF16_E_UPPER:BF16_E_LOWER])
             )
         )
     {
         type_option.weight = 0;
-        bins cancel[] = {[-BF16_P : 1]};
+        bins cancel[] = {[-(2*BF16_P + 1) : 1]};
     }
 
-    F32_cancellation: coverpoint
+    F32_madd_cancellation: coverpoint
         (
             $signed(int'(CFI.intermX)) -
             (
-                (int'(CFI.a[F32_E_UPPER:F32_E_LOWER]) > int'(CFI.b[F32_E_UPPER:F32_E_LOWER]))
-                ? int'(CFI.a[F32_E_UPPER:F32_E_LOWER])
-                : int'(CFI.b[F32_E_UPPER:F32_E_LOWER])
+                (int'(get_product_exponent(CFI.a, CFI.b, FMT_SINGLE)) > int'(CFI.c[F32_E_UPPER:F32_E_LOWER]))
+                ? int'(get_product_exponent(CFI.a, CFI.b, FMT_SINGLE))
+                : int'(CFI.c[F32_E_UPPER:F32_E_LOWER])
             )
         )
     {
         type_option.weight = 0;
-        bins cancel[] = {[-F32_P : 1]};
+        bins cancel[] = {[-(2*F32_P + 1) : 1]};
     }
 
-    F64_cancellation: coverpoint
+    F64_madd_cancellation: coverpoint
         (
             $signed(int'(CFI.intermX)) -
             (
-                (int'(CFI.a[F64_E_UPPER:F64_E_LOWER]) > int'(CFI.b[F64_E_UPPER:F64_E_LOWER]))
-                ? int'(CFI.a[F64_E_UPPER:F64_E_LOWER])
-                : int'(CFI.b[F64_E_UPPER:F64_E_LOWER])
+                (int'(get_product_exponent(CFI.a, CFI.b, FMT_DOUBLE)) > int'(CFI.c[F64_E_UPPER:F64_E_LOWER]))
+                ? int'(get_product_exponent(CFI.a, CFI.b, FMT_DOUBLE))
+                : int'(CFI.c[F64_E_UPPER:F64_E_LOWER])
             )
         )
     {
         type_option.weight = 0;
-        bins cancel[] = {[-F64_P : 1]};
+        bins cancel[] = {[-(2*F64_P + 1) : 1]};
     }
 
-    F128_cancellation: coverpoint
+    F128_madd_cancellation: coverpoint
         (
             $signed(int'(CFI.intermX)) -
             (
-                (int'(CFI.a[F128_E_UPPER:F128_E_LOWER]) > int'(CFI.b[F128_E_UPPER:F128_E_LOWER]))
-                ? int'(CFI.a[F128_E_UPPER:F128_E_LOWER])
-                : int'(CFI.b[F128_E_UPPER:F128_E_LOWER])
+                (int'(get_product_exponent(CFI.a, CFI.b, FMT_QUAD)) > int'(CFI.c[F128_E_UPPER:F128_E_LOWER]))
+                ? int'(get_product_exponent(CFI.a, CFI.b, FMT_QUAD))
+                : int'(CFI.c[F128_E_UPPER:F128_E_LOWER])
             )
         )
     {
         type_option.weight = 0;
-        bins cancel[] = {[-F128_P : 1]};
+        bins cancel[] = {[-(2*F128_P + 1) : 1]};
     }
 
     /************************************************************************
@@ -130,23 +132,23 @@ covergroup B12_cg (virtual coverfloat_interface CFI);
      ************************************************************************/
 
     `ifdef COVER_F16
-        B12_F16_addsub_cancel:  cross FP_addsub_ops, F16_cancellation,  F16_result_fmt;
+        B16_F16_madd_cancel:  cross FP_madd_ops, F16_madd_cancellation,  F16_result_fmt;
     `endif
 
     `ifdef COVER_BF16
-        B12_BF16_addsub_cancel: cross FP_addsub_ops, BF16_cancellation, BF16_result_fmt;
+        B16_BF16_madd_cancel: cross FP_madd_ops, BF16_madd_cancellation, BF16_result_fmt;
     `endif
 
     `ifdef COVER_F32
-        B12_F32_addsub_cancel:  cross FP_addsub_ops, F32_cancellation,  F32_result_fmt;
+        B16_F32_madd_cancel:  cross FP_madd_ops, F32_madd_cancellation,  F32_result_fmt;
     `endif
 
     `ifdef COVER_F64
-        B12_F64_addsub_cancel:  cross FP_addsub_ops, F64_cancellation,  F64_result_fmt;
+        B16_F64_madd_cancel:  cross FP_madd_ops, F64_madd_cancellation,  F64_result_fmt;
     `endif
 
     `ifdef COVER_F128
-        B12_F128_addsub_cancel: cross FP_addsub_ops, F128_cancellation, F128_result_fmt;
+        B16_F128_madd_cancel: cross FP_madd_ops, F128_madd_cancellation, F128_result_fmt;
     `endif
 
 endgroup

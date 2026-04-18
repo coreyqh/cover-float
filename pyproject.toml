@@ -11,7 +11,9 @@ authors = [
     { name = "Angela Zheng", email = "angzheng@g.hmc.edu" },
 ]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "sympy==1.14.0",
+]
 
 [project.scripts]
 cover-float-reference = "cover_float.cli:main"

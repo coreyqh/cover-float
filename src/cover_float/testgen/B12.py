@@ -23,8 +23,6 @@ from cover_float.common.constants import (
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
 
-vector_count = 0
-
 
 def decimalComponentsToHex(fmt: str, sign: int, biased_exp: int, mantissa: int) -> str:
     """Converts binary fp components into a 32-character padded hex string."""

@@ -148,4 +148,4 @@ more than one shift.
 | F128      | 113 | 4       | 1,368   | 4       | 1,376
 |===
 
-*Total across 5 formats:* 2,608 vectors.
+*Total across 5 formats:* 2,608 vectors

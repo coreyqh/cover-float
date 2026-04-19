@@ -3,23 +3,15 @@
 :toclevels: 3
 :sectnums:
 
-== B2
+== B2 Near FP Base Values – Hamming Distance
 
 Aharoni et al.
 
 === Description
 
-SUMMARY
-This script generates test vectors for the B2 model: Near FP Base Values - Hamming Distance.
-It takes specific boundary values (Zero, One, MinSubNorm, etc.) and enumerates over
-small deviations by flipping one bit of the significand at a time.
+This model takes specific boundary values (Zero, One, MinSubNorm, etc.) and enumerates over small deviations by flipping one bit of the significand at a time, testing all such significands.
 
-DEFINITION
-Base Values: Zero, One, MinSubNorm, MaxSubNorm, MinNorm, MaxNorm
-Operations: add, sub, multiply, fmadd, fmsub, fnmadd, fnmsub, sqrt
-Total test vectors generated: 19788
-
-For 32 b fp,
+All bases (boundary values) demonstrated with single precision:
 Zero        0.000000 P-126
 One         1.000000 P0
 Minsubnorm  0.000001 P-126
@@ -27,28 +19,130 @@ Maxsubnorm  0.7FFFFF P-126
 MinNorm     1.000000 P-126
 MaxNorm     1.7FFFFF P127
 
-We're only testing arithmetic operations
-=== Design choices & Impossible cases
-1. By significand, we took it as mantissa
-2. We don't test negative values of sqrt because they are tested in other models
-3. Because sqrt require operands that double the desired exponents, we can only generate sqrt cases for One.
-4. For add and subtract operations, we choose to set one of the operand exponents as the desired exponent, because when adding and subtracting numbers with different exponents, the exponents shift, and the loss of precision cannot be fully compensated with adjusting ulps.
+*Operations Supported*: ADD, SUB, MUL, DIV, SQRT, FMADD, FMSUB, FNMADD, FNMSUB (all arithmetic operations)
 
-== General Procedure
+*Precisions Supported*: BF_16, F16, F32, F64, F128
 
-Challenge:
-When we shift ulp, the result will be rounded.
+== Definitions
 
-We have to separate different parts of the desired result because
-1. We need to toggle every bit of the mantissa only
-2. we need to iterate through positive and negative desired values
+`a`:: Operand 1
+`b`:: Operand 2
+`c`:: Operand 3 for fma operations. For example, FMADD is a*b+c
+`bias`:: Exponent bias
+`a_exp, b_exp, c_exp`:: Exponent of a, b, and c
+`a_m, b_m, c_m`:: Mantissa of a, b, and c
+`result`:: Result of the operation, obtained using SoftFloat
+`desired`:: Desired result, which is a floating point value that is one hamming distance away from a base. Our goal is to make `result == desired`
 
-addTest: check for maxnorm and constraints sign for maxnorm
-subTest: check for maxnorm and constraints sign for maxnorm
-mulTest: check for maxnorm to constraint operand exponents
-divTest: check for maxnorm to constraint operand exponents
-sqrtTest: nothing
-fmaddTest (a*b+c = desired result): check maxnorm to constraint operand exponents
-fmsubTest (a*b-c = desired result): check maxnorm to constraint operand exponents
-fnmaddTest (-a*b-c = desired result): check maxnorm to constraint operand exponents
-fnmsubTest (-a*b+c = desired result): check maxnorm to constraint operand exponents
+== Background
+
+Floating-point implementations are vulnerable near boundary values, where one bit of difference in the significant can change rounding and normalization behavior, or transitions between subnormal and normal numbers. By extensively testing all results one hamming distance away from these boundary values, we test the FPU for logic bugs that may result in the bit flip not being correctly registered.
+
+=== Design Choices & Impossible Cases
+1. We don't test negative operands for sqrt be cause they are tested in other models
+2. Because sqrt require operands that double the desired exponents, we can only generate sqrt cases for One
+3. When `desired` is `-0`, we force add and sub vectors to be `(-0) + (-0)` and `(-0) - 0` since those are the only operands that would result in negative zero for them
+4. For add and subtract operations, we choose to set one of the operand exponents as the desired exponent to avoid the need of matching exponents for cancellation. Cancellation is tested in other models
+
+== General Test Procedure
+
+Generally, since we know the desired result, we can randomly generate `a` and reverse-engineer `b` by applying the reverse operation. However, since FPU does not have enough storage to support infinite precision, the results of arithmetic operations are usually rounded. This means that we can expect `b` to be rounded when being reverse-engineered, thus causing a non-zero chance that the forward operation will not produce the exact desired result (ex. `c/a=b` does not necessarily mean `a*b=c`). Thus, we increase the chance of producing an accurate result by checking whether `a` and `b` produces `desired`, and regenerating up to 20 times if it does not. This has proven to be successful for all possible cases.
+
+Specific operation-based constraints and deviations are discussed below in <<Specific Test Procedure>>.
+
+== Specific Test Procedure
+
+=== Add & Subtract
+1. We assign `a_exp` to be the same as the `result` exponent (see 4 in <<Design Choices & Impossible Cases>>)
+2. We check whether the base is maxNorm. If it is, then the sign of `a` has to match the sign of `desired`, because `b_exp` will need to exceed the maximum allowed exponent to bring `result` to the same magnitude as `desired` if `a` and `desired` have opposite signs.
+3. `desired` becomes negative zero when the LSB of MinSubNorm is toggled, and this requires specific operands for add and sub operations (see 3 in <<Design Choices & Impossible Cases>>). Thus, we generate an additional test vector whenever `desired` is `-0` with those specific operands.
+
+=== Multiply & Divide
+1. Since multiplication and division add and subtract exponents, we need to control `a_exp` so that `b_exp` does not clip to either the minimum or the maximum exponent. Consider the following example in single precision multiplication: `desired` has unbiased exponent -126, if `a_exp` is 32, we need `b_exp` to be -158, which clips to -126, the minimum exponent. Thus, to make `b_exp` valid, `a_exp` must be at most `bias` away from the exponent of `desired`. Since our only different `desired` exponents are 0, and the minimum and maximum exponents, we will constrain `a_exp` to be between `bias` and maximum exp if the base is maxNorm, and between minimum exponent and bias for other bases.
+
+=== Square Root
+1. Square Root is a one operand operation, where `a` is the square of `desired`. Thus, square root test cases should always be accurate. And since we already confined square root test space to positive One only in <<Design Choices & Impossible Cases>>, square root does not have any special constraints.
+
+=== FMAs
+1. We would like the exponent of `a*b` to be equal to the exponent of `desired`, so that `c` can have a visible contribution.
+2. Combining the considerations of <<Add & Subtract>> and <<Multiply & Divide>>, we constrain `a_exp` to be between `bias` and maximum exp if the base is maxNorm, and between minimum exponent and bias for other bases. Then, `b_exp` will be the difference between the exponent of `desired` and `a_exp`.
+
+== Test Count Breakdown
+Given that there're 12 bases (6 positive and 6 negative) and each base has `m`, the number of mantissa, iterations, each operation should have `12m` numbers of test cases for each precision. Exceptions are add & sub where they have one more due to the negative zero case, and sqrt where it only iterates on the positive One boundary value.
+
+[cols="1,1,1,1,1,1,1,1,1,1,1,1",options="header"]
+|===
+| Precision | m | Add | Sub | Mul | Div | Sqrt | Fmadd | Fmsub | Fnmadd | Fnmsub | Total
+
+| BF_16
+| 7
+| 85
+| 85
+| 84
+| 84
+| 7
+| 84
+| 84
+| 84
+| 84
+| 681
+
+| FP_16
+| 10
+| 121
+| 121
+| 120
+| 120
+| 10
+| 120
+| 120
+| 120
+| 120
+| 972
+
+| FP_32
+| 23
+| 277
+| 277
+| 276
+| 276
+| 23
+| 276
+| 276
+| 276
+| 276
+| 2233
+
+| FP_64
+| 52
+| 625
+| 625
+| 624
+| 624
+| 52
+| 624
+| 624
+| 624
+| 624
+| 5046
+
+| FP_128
+| 112
+| 1345
+| 1345
+| 1344
+| 1344
+| 112
+| 1344
+| 1344
+| 1344
+| 1344
+| 10866
+|===
+
+[cols="1,1",options="header"]
+|===
+| Description | Value
+
+| Total tests
+| 19798

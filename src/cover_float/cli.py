@@ -88,6 +88,12 @@ def testgen() -> None:
         auto_parse("B20", args.output_dir)
         tg.B21.main()
         auto_parse("B21", args.output_dir)
+        tg.B25.main()
+        auto_parse("B25", args.output_dir)
+        tg.B26.main()
+        auto_parse("B26", args.output_dir)
+        tg.B27.main()
+        auto_parse("B27", args.output_dir)
         tg.B29.main()
         auto_parse("B29", args.output_dir)
     else:
@@ -139,6 +145,15 @@ def testgen() -> None:
         if "B21" in args.models:
             tg.B21.main()
             auto_parse("B21", args.output_dir)
+        if "B25" in args.models:
+            tg.B25.main()
+            auto_parse("B25", args.output_dir)
+        if "B26" in args.models:
+            tg.B26.main()
+            auto_parse("B26", args.output_dir)
+        if "B27" in args.models:
+            tg.B27.main()
+            auto_parse("B27", args.output_dir)
         if "B29" in args.models:
             tg.B29.main()
             auto_parse("B29", args.output_dir)

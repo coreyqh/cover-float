@@ -1,4 +1,8 @@
+import concurrent.futures
 from dataclasses import dataclass
+from typing import Callable, TypeVar
+
+from typing_extensions import ParamSpec
 
 import cover_float.common.constants as constants
 import cover_float.reference as reference
@@ -194,3 +198,20 @@ def extract_rounding_info(cover_vector: str) -> dict[str, int]:
         "Guard": int(guard),
         "Sticky": 1 if any(x == "1" for x in sticky) else 0,
     }
+
+
+T = TypeVar("T")
+P = ParamSpec("P")
+
+
+class SingleThreadedExecutor(concurrent.futures.Executor):
+    def submit(self, fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> concurrent.futures.Future[T]:
+        future: concurrent.futures.Future[T] = concurrent.futures.Future()
+
+        try:
+            result = fn(*args, **kwargs)
+            future.set_result(result)
+        except Exception as e:
+            future.set_exception(e)
+
+        return future

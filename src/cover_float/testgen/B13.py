@@ -6,7 +6,6 @@ Last Edited:    March 30, 2026
 """
 
 import random
-from pathlib import Path
 from random import seed
 from typing import TextIO
 
@@ -20,6 +19,7 @@ from cover_float.common.constants import (
 )
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
+from cover_float.testgen.model import register_model
 
 
 # TODO: Investigate d = -1 case.
@@ -181,17 +181,10 @@ def SubnormCancellationTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                 makeTestVectors(fmt, d, leading_zeros, "sub", test_f, cover_f)
 
 
-def main() -> None:
-    with (
-        Path("./tests/testvectors/B13_tv.txt").open("w") as test_f,
-        Path("./tests/covervectors/B13_cv.txt").open("w") as cover_f,
-    ):
-        test_f.write("// B13 Cancellation + Subnormal Tests\n")
-        test_f.write("// ADD, SUB\n")
+@register_model("B13")
+def main(test_f: TextIO, cover_f: TextIO) -> None:
+    test_f.write("// B13 Cancellation + Subnormal Tests\n")
+    test_f.write("// ADD, SUB\n")
 
-        for fmt in FLOAT_FMTS:
-            SubnormCancellationTests(test_f, cover_f, fmt)
-
-
-if __name__ == "__main__":
-    main()
+    for fmt in FLOAT_FMTS:
+        SubnormCancellationTests(test_f, cover_f, fmt)

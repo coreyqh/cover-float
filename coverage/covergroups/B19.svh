@@ -113,6 +113,28 @@ covergroup B19_cg (virtual coverfloat_interface CFI);
 
     }
 
+    F16_frac_LT: coverpoint $signed(
+        (effective_fraction(CFI.a, FMT_HALF)
+        - effective_fraction(CFI.b, FMT_HALF)))  {
+        type_option.weight = 0;
+
+        bins lt = {[$ : -1]};
+        // bins eq = {0};
+        // bins gt = {[1 : $]};
+
+    }
+
+    F16_frac_GT: coverpoint $signed(
+        (effective_fraction(CFI.a, FMT_HALF)
+        - effective_fraction(CFI.b, FMT_HALF)))  {
+        type_option.weight = 0;
+
+        // bins lt = {[$ : -1]};
+        // bins eq = {0};
+        bins gt = {[1 : $]};
+
+    }
+
 
     BF16_result_fmt: coverpoint CFI.resultFmt == FMT_BF16 {
         type_option.weight = 0;
@@ -214,6 +236,27 @@ covergroup B19_cg (virtual coverfloat_interface CFI);
 
     }
 
+    BF16_frac_LT: coverpoint $signed(
+        (effective_fraction(CFI.a, FMT_BF16)
+        - effective_fraction(CFI.b, FMT_BF16)))  {
+        type_option.weight = 0;
+
+        bins lt = {[$ : -1]};
+        // bins eq = {0};
+        // bins gt = {[1 : $]};
+
+    }
+
+    BF16_frac_GT: coverpoint $signed(
+        (effective_fraction(CFI.a, FMT_BF16)
+        - effective_fraction(CFI.b, FMT_BF16)))  {
+        type_option.weight = 0;
+
+        // bins lt = {[$ : -1]};
+        // bins eq = {0};
+        bins gt = {[1 : $]};
+
+    }
 
     F32_result_fmt: coverpoint CFI.resultFmt == FMT_SINGLE {
         type_option.weight = 0;
@@ -315,6 +358,28 @@ covergroup B19_cg (virtual coverfloat_interface CFI);
 
     }
 
+    F32_frac_LT: coverpoint $signed(
+        (effective_fraction(CFI.a, FMT_SINGLE)
+        - effective_fraction(CFI.b, FMT_SINGLE)))  {
+        type_option.weight = 0;
+
+        bins lt = {[$ : -1]};
+        // bins eq = {0};
+        // bins gt = {[1 : $]};
+
+    }
+
+    F32_frac_GT: coverpoint $signed(
+        (effective_fraction(CFI.a, FMT_SINGLE)
+        - effective_fraction(CFI.b, FMT_SINGLE)))  {
+        type_option.weight = 0;
+
+        // bins lt = {[$ : -1]};
+        // bins eq = {0};
+        bins gt = {[1 : $]};
+
+    }
+
 
     F64_result_fmt: coverpoint CFI.resultFmt == FMT_DOUBLE {
         type_option.weight = 0;
@@ -412,6 +477,28 @@ covergroup B19_cg (virtual coverfloat_interface CFI);
 
         // bins lt = {[$ : -1]};
         bins eq = {0};
+        bins gt = {[1 : $]};
+
+    }
+
+    F64_frac_LT: coverpoint $signed(
+        (effective_fraction(CFI.a, FMT_DOUBLE)
+        - effective_fraction(CFI.b, FMT_DOUBLE)))  {
+        type_option.weight = 0;
+
+        bins lt = {[$ : -1]};
+        // bins eq = {0};
+        // bins gt = {[1 : $]};
+
+    }
+
+    F64_frac_GT: coverpoint $signed(
+        (effective_fraction(CFI.a, FMT_DOUBLE)
+        - effective_fraction(CFI.b, FMT_DOUBLE)))  {
+        type_option.weight = 0;
+
+        // bins lt = {[$ : -1]};
+        // bins eq = {0};
         bins gt = {[1 : $]};
 
     }
@@ -560,10 +647,10 @@ covergroup B19_cg (virtual coverfloat_interface CFI);
                                           /* a.EXP > b.EXP*/       F16_frac_GTE,       F16_result_fmt;
 
         B19_F16__subnorm_x_zero:       cross FP_compare_ops, F16_operand_a_sign, F16_operand_b_sign, F16_a_subnorm, F16_b_zero,
-                                          /* a.EXP > b.EXP*/       F16_frac_GTE,       F16_result_fmt;
+                                          /* a.EXP < b.EXP*/       F16_frac_LT,       F16_result_fmt;
 
         B19_F16__zero_x_subnorm:       cross FP_compare_ops, F16_operand_a_sign, F16_operand_b_sign, F16_a_zero, F16_b_subnorm,
-                                          /* a.EXP < b.EXP*/       F16_frac_LTE,       F16_result_fmt;
+                                          /* a.EXP > b.EXP*/       F16_frac_GT,       F16_result_fmt;
 
         B19_F16__zero_x_zero:       cross FP_compare_ops, F16_operand_a_sign, F16_operand_b_sign, F16_a_zero, F16_b_zero,
                                           /* a.EXP = b.EXP*/    /* a.FRAC = b.FRAC*/   F16_result_fmt;
@@ -590,10 +677,10 @@ covergroup B19_cg (virtual coverfloat_interface CFI);
                                           /* a.EXP > b.EXP*/       BF16_frac_GTE,       BF16_result_fmt;
 
         B19_BF16__subnorm_x_zero:       cross FP_compare_ops, BF16_operand_a_sign, BF16_operand_b_sign, BF16_a_subnorm, BF16_b_zero,
-                                          /* a.EXP > b.EXP*/       BF16_frac_GTE,       BF16_result_fmt;
+                                          /* a.EXP < b.EXP*/       BF16_frac_LT,       BF16_result_fmt;
 
         B19_BF16__zero_x_subnorm:       cross FP_compare_ops, BF16_operand_a_sign, BF16_operand_b_sign, BF16_a_zero, BF16_b_subnorm,
-                                          /* a.EXP < b.EXP*/       BF16_frac_LTE,       BF16_result_fmt;
+                                          /* a.EXP > b.EXP*/       BF16_frac_GT,       BF16_result_fmt;
 
         B19_BF16__zero_x_zero:       cross FP_compare_ops, BF16_operand_a_sign, BF16_operand_b_sign, BF16_a_zero, BF16_b_zero,
                                           /* a.EXP = b.EXP*/    /* a.FRAC = b.FRAC*/   BF16_result_fmt;
@@ -620,10 +707,10 @@ covergroup B19_cg (virtual coverfloat_interface CFI);
                                           /* a.EXP > b.EXP*/       F32_frac_GTE,       F32_result_fmt;
 
         B19_F32__subnorm_x_zero:       cross FP_compare_ops, F32_operand_a_sign, F32_operand_b_sign, F32_a_subnorm, F32_b_zero,
-                                          /* a.EXP > b.EXP*/       F32_frac_GTE,       F32_result_fmt;
+                                          /* a.EXP < b.EXP*/       F32_frac_LT,       F32_result_fmt;
 
         B19_F32__zero_x_subnorm:       cross FP_compare_ops, F32_operand_a_sign, F32_operand_b_sign, F32_a_zero, F32_b_subnorm,
-                                          /* a.EXP < b.EXP*/       F32_frac_LTE,       F32_result_fmt;
+                                          /* a.EXP > b.EXP*/       F32_frac_GT,       F32_result_fmt;
 
         B19_F32__zero_x_zero:       cross FP_compare_ops, F32_operand_a_sign, F32_operand_b_sign, F32_a_zero, F32_b_zero,
                                           /* a.EXP = b.EXP*/    /* a.FRAC = b.FRAC*/   F32_result_fmt;
@@ -650,10 +737,10 @@ covergroup B19_cg (virtual coverfloat_interface CFI);
                                           /* a.EXP > b.EXP*/       F64_frac_GTE,       F64_result_fmt;
 
         B19_F64__subnorm_x_zero:       cross FP_compare_ops, F64_operand_a_sign, F64_operand_b_sign, F64_a_subnorm, F64_b_zero,
-                                          /* a.EXP > b.EXP*/       F64_frac_GTE,       F64_result_fmt;
+                                          /* a.EXP < b.EXP*/       F64_frac_LT,       F64_result_fmt;
 
         B19_F64__zero_x_subnorm:       cross FP_compare_ops, F64_operand_a_sign, F64_operand_b_sign, F64_a_zero, F64_b_subnorm,
-                                          /* a.EXP < b.EXP*/       F64_frac_LTE,       F64_result_fmt;
+                                          /* a.EXP > b.EXP*/       F64_frac_GT,       F64_result_fmt;
 
         B19_F64__zero_x_zero:       cross FP_compare_ops, F64_operand_a_sign, F64_operand_b_sign, F64_a_zero, F64_b_zero,
                                           /* a.EXP = b.EXP*/    /* a.FRAC = b.FRAC*/   F64_result_fmt;

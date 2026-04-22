@@ -1,12 +1,12 @@
 # B26 (rwolk@g.hmc.edu)
 
 import random
-from pathlib import Path
 from typing import TextIO
 
 import cover_float.common.constants as constants
 from cover_float.common.util import generate_test_vector, reproducible_hash
 from cover_float.reference import run_and_store_test_vector
+from cover_float.testgen.model import register_model
 
 
 def generate_B26(int_fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -33,14 +33,7 @@ def generate_B26(int_fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
                 run_and_store_test_vector(tv, test_f, cover_f)
 
 
-def main() -> None:
-    with (
-        Path("tests/testvectors/B26_tv.txt").open("w") as test_f,
-        Path("tests/covervectors/B26_cv.txt").open("w") as cover_f,
-    ):
-        for fmt in constants.INT_FMTS:
-            generate_B26(fmt, test_f, cover_f)
-
-
-if __name__ == "__main__":
-    main()
+@register_model("B26")
+def main(test_f: TextIO, cover_f: TextIO) -> None:
+    for fmt in constants.INT_FMTS:
+        generate_B26(fmt, test_f, cover_f)

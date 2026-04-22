@@ -3,7 +3,6 @@
 # This model tests every possible value for a shift between the input operands
 
 import random
-from pathlib import Path
 from random import seed
 from typing import TextIO
 
@@ -18,6 +17,7 @@ from cover_float.common.constants import (
 )
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
+from cover_float.testgen.model import register_model
 
 
 def decimalComponentsToHex(fmt: str, biased_exp: int) -> str:
@@ -103,16 +103,9 @@ def outerTest(isTestOne: bool, test_f: TextIO, cover_f: TextIO, op: str) -> None
             )
 
 
-def main() -> None:
-    with (
-        Path("./tests/testvectors/B10_tv.txt").open("w") as test_f,
-        Path("./tests/covervectors/B10_cv.txt").open("w") as cover_f,
-    ):
-        for op in [OP_ADD, OP_SUB]:
-            outerTest(True, test_f, cover_f, op)  # Test #1
-            innerTest(test_f, cover_f, op)  # Test #2
-            outerTest(False, test_f, cover_f, op)  # Test #3
-
-
-if __name__ == "__main__":
-    main()
+@register_model("B10")
+def main(test_f: TextIO, cover_f: TextIO) -> None:
+    for op in [OP_ADD, OP_SUB]:
+        outerTest(True, test_f, cover_f, op)  # Test #1
+        innerTest(test_f, cover_f, op)  # Test #2
+        outerTest(False, test_f, cover_f, op)  # Test #3

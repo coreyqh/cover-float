@@ -64,9 +64,9 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     F16_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_HALF) - int'(CFI.c[F16_E_UPPER : F16_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[ $             : -(2*F16_P + 2)]};
-        bins mid_diff[] = {[-(2*F16_P + 1) :  (F16_P + 1)  ]};
-        bins large_diff = {[ (F16_P   + 2) :  $            ]};
+        bins big_neg_shift = {[ $             : -(2*F16_P + 2)]};
+        bins mid_shift[]   = {[-(2*F16_P + 1) :  (F16_P + 1)  ]};~
+        bins big_pos_shift = {[ (F16_P   + 2) :  $            ]};
 
     }
 
@@ -74,36 +74,36 @@ covergroup B14_cg (virtual coverfloat_interface CFI);
     BF16_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_BF16) - int'(CFI.c[BF16_E_UPPER : BF16_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[ $              : -(2*BF16_P + 2)]};
-        bins mid_diff[] = {[-(2*BF16_P + 1) :  (BF16_P + 1)  ]};
-        bins large_diff = {[ (BF16_P   + 2) :  $             ]};
+        bins big_neg_shift = {[ $              : -(2*BF16_P + 2)]};
+        bins mid_shift[]   = {[-(2*BF16_P + 1) :  (BF16_P + 1)  ]};
+        bins big_pos_shift = {[ (BF16_P   + 2) :  $             ]};
     }
 
     // SINGLE
     F32_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_SINGLE) - int'(CFI.c[F32_E_UPPER : F32_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[ $             : -(2*F32_P + 2)]};
-        bins mid_diff[] = {[-(2*F32_P + 1) :  (F32_P + 1)  ]};
-        bins large_diff = {[ (F32_P   + 2) :  $            ]};
+        bins big_neg_shift = {[ $             : -(2*F32_P + 2)]};
+        bins mid_shift[]   = {[-(2*F32_P + 1) :  (F32_P + 1)  ]};
+        bins big_pos_shift = {[ (F32_P   + 2) :  $            ]};
     }
 
     // DOUBLE
     F64_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_DOUBLE) - int'(CFI.c[F64_E_UPPER : F64_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[ $             : -(2*F64_P + 2)]};
-        bins mid_diff[] = {[-(2*F64_P + 1) :  (F64_P + 1)  ]};
-        bins large_diff = {[ (F64_P   + 2) :  $            ]};
+        bins big_neg_shift = {[ $             : -(2*F64_P + 2)]};
+        bins mid_shift[]   = {[-(2*F64_P + 1) :  (F64_P + 1)  ]};
+        bins big_pos_shift = {[ (F64_P   + 2) :  $            ]};
     }
 
     // QUAD
     F128_madd_shift: coverpoint $signed(get_product_exponent(CFI.a, CFI.b, FMT_QUAD) - int'(CFI.c[F128_E_UPPER : F128_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[ $              : -(2*F128_P + 2)]};
-        bins mid_diff[] = {[-(2*F128_P + 1) :  (F128_P + 1)  ]};
-        bins large_diff = {[ (F128_P   + 2) :  $             ]};
+        bins big_neg_shift = {[ $              : -(2*F128_P + 2)]};
+        bins mid_shift[]   = {[-(2*F128_P + 1) :  (F128_P + 1)  ]};
+        bins big_pos_shift = {[ (F128_P   + 2) :  $             ]};
     }
 
     /************************************************************************

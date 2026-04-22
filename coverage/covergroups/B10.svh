@@ -57,45 +57,45 @@ covergroup B10_cg (virtual coverfloat_interface CFI);
     F16_exp_diff: coverpoint $signed(int'(CFI.a[F16_E_UPPER : F16_E_LOWER]) - int'(CFI.b[F16_E_UPPER : F16_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(F16_P + 5) : 0]};
-        bins mid_diff[] = {[-(F16_P + 4) : (F16_P + 4)]};
-        bins large_diff = {[ (F16_P + 5) : $]};
+        bins big_neg_shift = {[$            : -(F16_P + 5)]};
+        bins mid_shift[]   = {[-(F16_P + 4) :  (F16_P + 4)]};
+        bins big_pos_shift = {[ (F16_P + 5) :            $]};
 
     }
 
     BF16_exp_diff: coverpoint $signed(int'(CFI.a[BF16_E_UPPER : BF16_E_LOWER]) - int'(CFI.b[BF16_E_UPPER : BF16_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(BF16_P + 5) : 0]};
-        bins mid_diff[] = {[-(BF16_P + 4) : (BF16_P + 4)]};
-        bins large_diff = {[ (BF16_P + 5) : $]};
+        bins big_neg_shift = {[$             : -(BF16_P + 5)]};
+        bins mid_shift[]   = {[-(BF16_P + 4) :  (BF16_P + 4)]};
+        bins big_pos_shift = {[ (BF16_P + 5) :             $]};
 
     }
 
     F32_exp_diff: coverpoint $signed(int'(CFI.a[F32_E_UPPER : F32_E_LOWER]) - int'(CFI.b[F32_E_UPPER : F32_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(F32_P + 5) : 0]};
-        bins mid_diff[] = {[-(F32_P + 4) : (F32_P + 4)]};
-        bins large_diff = {[ (F32_P + 5) : $]};
+        bins big_neg_shift = {[$            : -(F32_P + 5)]};
+        bins mid_shift[]   = {[-(F32_P + 4) :  (F32_P + 4)]};
+        bins big_pos_shift = {[ (F32_P + 5) :            $]};
 
     }
 
     F64_exp_diff: coverpoint $signed(int'(CFI.a[F64_E_UPPER : F64_E_LOWER]) - int'(CFI.b[F64_E_UPPER : F64_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(F64_P + 5) : 0]};
-        bins mid_diff[] = {[-(F64_P + 4) : (F64_P + 4)]};
-        bins large_diff = {[ (F64_P + 5) : $]};
+        bins big_neg_shift = {[$            : -(F64_P + 5)]};
+        bins mid_shift[]   = {[-(F64_P + 4) :  (F64_P + 4)]};
+        bins big_pos_shift = {[ (F64_P + 5) :            $]};
 
     }
 
     F128_exp_diff: coverpoint $signed(int'(CFI.a[F128_E_UPPER : F128_E_LOWER]) - int'(CFI.b[F128_E_UPPER : F128_E_LOWER])) {
         type_option.weight = 0;
 
-        bins small_diff = {[-(F128_P + 5) : 0]};
-        bins mid_diff[] = {[-(F128_P + 4) : (F128_P + 4)]};
-        bins large_diff = {[ (F128_P + 5) : $]};
+        bins big_neg_shift = {[$             : -(F128_P + 5)]};
+        bins mid_shift[]   = {[-(F128_P + 4) :  (F128_P + 4)]};
+        bins big_pos_shift = {[ (F128_P + 5) :             $]};
 
     }
 

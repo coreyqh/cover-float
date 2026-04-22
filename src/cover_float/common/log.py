@@ -155,8 +155,6 @@ class LoggingHandler(logging.Handler):
 
 
 class AsyncLoggingHandler(logging.handlers.QueueListener):
-    _SENTINEL = None
-
     def __init__(self, reporter: StatusReporter, listen_to: Queue[Any], *handlers: logging.Handler) -> None:
         super().__init__(listen_to, *handlers)
 
@@ -184,9 +182,25 @@ class AsyncLoggingHandler(logging.handlers.QueueListener):
         else:
             self.handle_progress_update(record)
 
-        # Unfortunately, we have to do it this way because otherwise rich will data race itself
-        # here we ensure that refreshes happen in only one thread
-        self.reporter.progress.refresh()
+
+class ProgressAwareLogHandler(logging.Handler):
+    def __init__(self, progress: Progress) -> None:
+        super().__init__()
+        self.progress = progress
+        # We use the rich handler as a formatter
+        self.rich_handler = RichHandler(show_time=True, markup=True, console=progress.console)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            message = self.rich_handler.render_message(record, self.rich_handler.format(record))
+            renderable = self.rich_handler.render(
+                record=record,
+                traceback=None,
+                message_renderable=message,
+            )
+            self.progress.log(renderable)
+        except Exception:
+            self.handleError(record)
 
 
 class StatusReporter:
@@ -199,21 +213,20 @@ class StatusReporter:
             OptionalColumn(lambda t: t.total is not None, BarColumn()),
             OptionalColumn(lambda t: t.fields.get("m_of_n", False), MofNCompleteColumn()),
             OptionalColumn(lambda t: t.total is not None, TextColumn("{task.percentage:>3.0f}%")),
-            auto_refresh=False,
         )
 
         self.manager = multiprocessing.Manager()
-
         self.logging_queue = self.manager.Queue()
 
         # This is the actual handler that prints to console
-        self.rich_handler = RichHandler(show_time=True, markup=True, console=self.progress.console)
+        self.rich_handler = ProgressAwareLogHandler(self.progress)
         self.queue_listener = AsyncLoggingHandler(self, self.logging_queue, self.rich_handler)
         logging.getLogger().addHandler(logging.handlers.QueueHandler(self.logging_queue))
 
     def __enter__(self) -> StatusReporter:
         self.progress.start()
         self.queue_listener.start()
+
         return self
 
     def __exit__(self, exc_type: type | None, exc_value: Exception | None, traceback: TracebackType | None) -> None:

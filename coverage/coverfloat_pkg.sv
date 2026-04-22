@@ -177,17 +177,20 @@ package coverfloat_pkg;
     parameter int SIZEOF_LONG = 64;
 
     // Some Constants For B28
-    parameter int F32_RFI_MAX = (F32_EXP_BIAS + F32_M_BITS) << (F32_M_BITS) | ((1 << F32_M_BITS) - 1); // 'h4b7fffff
-    parameter int F64_RFI_MAX = (F64_EXP_BIAS + F64_M_BITS) << (F64_M_BITS) | ((1 << F64_M_BITS) - 1);
-    parameter int F128_RFI_MAX = (F128_EXP_BIAS + F128_M_BITS) << (F128_M_BITS) | ((1 << F128_M_BITS) - 1);
-    parameter int F16_RFI_MAX = (F16_EXP_BIAS + F16_M_BITS) << (F16_M_BITS) | ((1 << F16_M_BITS) - 1);
-    parameter int BF16_RFI_MAX = (BF16_EXP_BIAS + BF16_M_BITS) << (BF16_M_BITS) | ((1 << BF16_M_BITS) - 1);
+    // This value seems like an odd choice ... because it is a trivial task for rfi,
+    // it seems like the intention should be 1.1111 * 2^(precision-2) as that is the maximum value
+    // that has some meaning when it goes through rfi
+    parameter int F32_RFI_MAX = (F32_EXP_BIAS + F32_M_BITS + 1) << (F32_M_BITS) | ((1 << F32_M_BITS) - 1); // 'h4bff0000
+    parameter int F64_RFI_MAX = (F64_EXP_BIAS + F64_M_BITS + 1) << (F64_M_BITS) | ((1 << F64_M_BITS) - 1);
+    parameter int F128_RFI_MAX = (F128_EXP_BIAS + F128_M_BITS + 1) << (F128_M_BITS) | ((1 << F128_M_BITS) - 1);
+    parameter int F16_RFI_MAX = (F16_EXP_BIAS + F16_M_BITS + 1) << (F16_M_BITS) | ((1 << F16_M_BITS) - 1);
+    parameter int BF16_RFI_MAX = (BF16_EXP_BIAS + BF16_M_BITS + 1) << (BF16_M_BITS) | ((1 << BF16_M_BITS) - 1);
 
     parameter int F32_ONE = (F32_EXP_BIAS) << F32_M_BITS; // 'h3f800000
-    parameter int F64_ONE = (F64_EXP_BIAS) << F64_M_BITS; // 'h3f800000
-    parameter int F128_ONE = (F128_EXP_BIAS) << F128_M_BITS; // 'h3f800000
-    parameter int F16_ONE = (F16_EXP_BIAS) << F16_M_BITS; // 'h3f800000
-    parameter int BF16_ONE = (BF16_EXP_BIAS) << BF16_M_BITS; // 'h3f800000
+    parameter int F64_ONE = (F64_EXP_BIAS) << F64_M_BITS;
+    parameter int F128_ONE = (F128_EXP_BIAS) << F128_M_BITS;
+    parameter int F16_ONE = (F16_EXP_BIAS) << F16_M_BITS;
+    parameter int BF16_ONE = (BF16_EXP_BIAS) << BF16_M_BITS;
 
 
     // Helper functions for difficult coverpoints

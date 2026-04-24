@@ -16,6 +16,7 @@ import cover_float.common.constants as const
 import cover_float.common.log as log
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
+from cover_float.testgen.model import register_model
 
 logger: log.ModelLogger = cast(log.ModelLogger, logging.getLogger("B14"))
 

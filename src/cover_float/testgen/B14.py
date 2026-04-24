@@ -99,7 +99,7 @@ def generate_b14_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                 cover_f,
             )
 
-
+@register_model("B14")
 def main() -> None:
     with (
         Path("./tests/testvectors/B14_tv.txt").open("w") as test_f,

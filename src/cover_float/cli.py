@@ -7,7 +7,6 @@ import cover_float.common.log as log
 import cover_float.testgen as tg
 from cover_float.common.util import SingleThreadedExecutor
 from cover_float.reference import run_test_vector
-from cover_float.scripts.postprocess import postprocess_testvectors
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,13 +29,6 @@ def main() -> None:
                 continue  # Skip empty lines and comments
             result = run_test_vector(line, args.suppress_error_check)
             outfile.write(result)
-
-
-def auto_parse(model_name: str, output_dir: str) -> None:
-    output_directory = Path(output_dir)
-    postprocess_testvectors(
-        model_name, output_directory / "testvectors", output_directory / "processed", output_directory / "readable"
-    )
 
 
 def testgen() -> None:

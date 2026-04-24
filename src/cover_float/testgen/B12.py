@@ -7,7 +7,6 @@ Last Edited:    March 4, 2026
 
 # TODO: For future: implement logic to get different a and b exponents in regular cases
 import random
-from pathlib import Path
 from random import seed
 from typing import TextIO
 
@@ -22,6 +21,7 @@ from cover_float.common.constants import (
 )
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
+from cover_float.testgen.model import register_model
 
 
 def decimalComponentsToHex(fmt: str, sign: int, biased_exp: int, mantissa: int) -> str:
@@ -164,17 +164,10 @@ def CancellationTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
         makeTestVectors(fmt, d, "sub", test_f, cover_f)
 
 
-def main() -> None:
-    with (
-        Path("./tests/testvectors/B12_tv.txt").open("w") as test_f,
-        Path("./tests/covervectors/B12_cv.txt").open("w") as cover_f,
-    ):
-        test_f.write("// Cancellation tests\n")
-        test_f.write("// Operations: ADD, SUB\n")
+@register_model("B12")
+def main(test_f: TextIO, cover_f: TextIO) -> None:
+    test_f.write("// Cancellation tests\n")
+    test_f.write("// Operations: ADD, SUB\n")
 
-        for fmt in FLOAT_FMTS:
-            CancellationTests(test_f, cover_f, fmt)
-
-
-if __name__ == "__main__":
-    main()
+    for fmt in FLOAT_FMTS:
+        CancellationTests(test_f, cover_f, fmt)

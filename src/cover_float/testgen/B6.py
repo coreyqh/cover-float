@@ -3,7 +3,6 @@
 
 
 import random
-from pathlib import Path
 from random import seed
 from typing import TextIO
 
@@ -27,6 +26,7 @@ from cover_float.common.constants import (
 )
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
+from cover_float.testgen.model import register_model
 
 B6_FMTS = [FMT_QUAD, FMT_DOUBLE, FMT_SINGLE, FMT_BF16, FMT_HALF]
 ROUNDING_MODES = ["00", "01", "02", "03", "04", "05"]
@@ -574,14 +574,7 @@ def createTests(test_f: TextIO, cover_f: TextIO) -> None:
                             )
 
 
-def main() -> None:
-    with (
-        Path("./tests/testvectors/B6_tv.txt").open("w") as test_f,
-        Path("./tests/covervectors/B6_cv.txt").open("w") as cover_f,
-    ):
-        convertTests(test_f, cover_f)
-        createTests(test_f, cover_f)
-
-
-if __name__ == "__main__":
-    main()
+@register_model("B6")
+def main(test_f: TextIO, cover_f: TextIO) -> None:
+    convertTests(test_f, cover_f)
+    createTests(test_f, cover_f)

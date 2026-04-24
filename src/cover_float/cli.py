@@ -1,9 +1,15 @@
 import argparse
+import logging
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+import cover_float.common.log as log
 import cover_float.testgen as tg
+from cover_float.common.util import SingleThreadedExecutor
 from cover_float.reference import run_test_vector
 from cover_float.scripts.parse_testvectors import format_output, parse_test_vector
+
+logging.basicConfig(level=logging.INFO)
 
 
 def main() -> None:
@@ -53,102 +59,24 @@ def testgen() -> None:
         help="Model(s) to generate test vectors for",
     )
     parser.add_argument("--output-dir", type=str, default="tests", help="Directory to save generated test vectors")
+    parser.add_argument("--single-thread", action="store_true", help="Run Generation in a Single Thread")
+    parser.add_argument("--jobs", type=int, default=None, help="Number of Jobs to Run When Multi-Threaded")
     args = parser.parse_args()
 
-    if args.models is None:
-        tg.B1.main()
-        auto_parse("B1", args.output_dir)
-        tg.B2.main()
-        auto_parse("B2", args.output_dir)
-        tg.B3.main()
-        auto_parse("B3", args.output_dir)
-        tg.B6.main()
-        auto_parse("B6", args.output_dir)
-        tg.B7.main()
-        auto_parse("B7", args.output_dir)
-        tg.B8.main()
-        auto_parse("B8", args.output_dir)
-        tg.B9.main()
-        auto_parse("B9", args.output_dir)
-        tg.B10.main()
-        auto_parse("B10", args.output_dir)
-        tg.B11.main()
-        auto_parse("B11", args.output_dir)
-        tg.B12.main()
-        auto_parse("B12", args.output_dir)
-        tg.B13.main()
-        auto_parse("B13", args.output_dir)
-        tg.B14.main()
-        auto_parse("B14", args.output_dir)
-        tg.B15.main()
-        auto_parse("B15", args.output_dir)
-        tg.B20.main()
-        auto_parse("B20", args.output_dir)
-        tg.B21.main()
-        auto_parse("B21", args.output_dir)
-        tg.B25.main()
-        auto_parse("B25", args.output_dir)
-        tg.B26.main()
-        auto_parse("B26", args.output_dir)
-        tg.B27.main()
-        auto_parse("B27", args.output_dir)
-        tg.B29.main()
-        auto_parse("B29", args.output_dir)
+    output_dir = Path(args.output_dir)
+
+    single_thread = args.single_thread or (args.models is not None and len(args.models) < 2)
+
+    if single_thread:
+        executor = SingleThreadedExecutor()
     else:
-        if "B1" in args.models:
-            tg.B1.main()
-            auto_parse("B1", args.output_dir)
-        if "B2" in args.models:
-            tg.B2.main()
-            auto_parse("B2", args.output_dir)
-        if "B3" in args.models:
-            tg.B3.main()
-            auto_parse("B3", args.output_dir)
-        if "B6" in args.models:
-            tg.B6.main()
-            auto_parse("B6", args.output_dir)
-        if "B7" in args.models:
-            tg.B7.main()
-            auto_parse("B7", args.output_dir)
-        if "B8" in args.models:
-            tg.B8.main()
-            auto_parse("B8", args.output_dir)
-        if "B9" in args.models:
-            tg.B9.main()
-            auto_parse("B9", args.output_dir)
-        if "B10" in args.models:
-            tg.B10.main()
-            auto_parse("B10", args.output_dir)
-        if "B11" in args.models:
-            tg.B11.main()
-            auto_parse("B11", args.output_dir)
-        if "B12" in args.models:
-            tg.B12.main()
-            auto_parse("B12", args.output_dir)
-        if "B13" in args.models:
-            tg.B13.main()
-            auto_parse("B13", args.output_dir)
-        if "B14" in args.models:
-            tg.B14.main()
-            auto_parse("B14", args.output_dir)
-        if "B15" in args.models:
-            tg.B15.main()
-            auto_parse("B15", args.output_dir)
-        if "B20" in args.models:
-            tg.B20.main()
-            auto_parse("B20", args.output_dir)
-        if "B21" in args.models:
-            tg.B21.main()
-            auto_parse("B21", args.output_dir)
-        if "B25" in args.models:
-            tg.B25.main()
-            auto_parse("B25", args.output_dir)
-        if "B26" in args.models:
-            tg.B26.main()
-            auto_parse("B26", args.output_dir)
-        if "B27" in args.models:
-            tg.B27.main()
-            auto_parse("B27", args.output_dir)
-        if "B29" in args.models:
-            tg.B29.main()
-            auto_parse("B29", args.output_dir)
+        executor = ProcessPoolExecutor() if args.jobs is None else ProcessPoolExecutor(max_workers=args.jobs)
+
+    with log.StatusReporter() as logger, executor:
+        if args.models is None:
+            for model in tg.model.GLOBAL_MODELS:
+                tg.model.GLOBAL_MODELS[model](output_dir, logger, executor)
+        else:
+            for model in args.models:
+                if model in tg.model.GLOBAL_MODELS:
+                    tg.model.GLOBAL_MODELS[model](output_dir, logger, executor)

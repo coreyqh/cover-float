@@ -2,7 +2,6 @@
 # B21 Model
 
 import random
-from pathlib import Path
 from random import seed
 from typing import TextIO
 
@@ -17,6 +16,7 @@ from cover_float.common.constants import (
 )
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
+from cover_float.testgen.model import register_model
 
 
 def generate_FP(precision: str, input_sign: str, input_exponent: int, input_mantissa: int) -> str:
@@ -94,13 +94,6 @@ def genTests(test_f: TextIO, cover_f: TextIO) -> None:
                         )
 
 
-def main() -> None:
-    with (
-        Path("./tests/testvectors/B21_tv.txt").open("w") as test_f,
-        Path("./tests/covervectors/B21_cv.txt").open("w") as cover_f,
-    ):
-        genTests(test_f, cover_f)
-
-
-if __name__ == "__main__":
-    main()
+@register_model("B20")
+def main(test_f: TextIO, cover_f: TextIO) -> None:
+    genTests(test_f, cover_f)

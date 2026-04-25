@@ -1,3 +1,7 @@
+# Commonly Use Constants
+
+from dataclasses import dataclass
+
 # Operation codes for test vectors
 
 OP_ADD = "00000010"
@@ -125,3 +129,12 @@ COVER_VECTOR_WIDTH_HEX = 302
 COVER_VECTOR_WIDTH_HEX_WITH_SEPARATORS = COVER_VECTOR_WIDTH_HEX + 12
 INTER_SIGNIFICAND_LENGTH = (3 * 112) + 4
 RFI_DECIMAL_POINT = INTER_SIGNIFICAND_LENGTH // 2
+
+
+@dataclass
+class Config:
+    FULL_COVERAGE_TESTGEN: int = 1
+    CACHE_DIR: str = "build/cache"
+
+
+config = Config()

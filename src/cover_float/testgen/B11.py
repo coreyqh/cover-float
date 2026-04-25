@@ -117,7 +117,11 @@ def main(test_f: TextIO, cover_f: TextIO) -> None:
         with bins_path.open("w") as generated_coverage:
             sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], "b11" + fmt)
             sigs = [int(sig, 2) for sig in sig_gen.generate(generated_coverage)]
-            interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+
+            if constants.config.FULL_COVERAGE_TESTGEN:
+                interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+            else:
+                interesting_shifts = interesting_shift_ranges(0, 0, fmt)
 
             logger.status(f"Generating {fmt} Tests")
             interesting_tests(sigs, interesting_shifts, fmt, test_f, cover_f)

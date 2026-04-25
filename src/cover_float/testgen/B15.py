@@ -1,11 +1,14 @@
 # B15
 
+from __future__ import annotations
+
 import itertools
 import logging
+import pickle
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, TextIO, cast
+from typing import TYPE_CHECKING, BinaryIO, TextIO, cast
 
 import cover_float.common.constants as constants
 import cover_float.common.log as log
@@ -50,7 +53,7 @@ class B15SignificandGenerator:
         self.fmt = fmt
         self.seed = seed
 
-    def checkerboards(self, patterns: Optional[list[tuple[int, int]]] = None) -> None:
+    def checkerboards(self, patterns: list[tuple[int, int]] | None = None) -> None:
         random.seed(reproducible_hash(self.seed + " Checkers"))
 
         if patterns is None:
@@ -68,7 +71,7 @@ class B15SignificandGenerator:
 
             self.sigs.append(B15Significand(sig1[1:], sig2[1:], res))
 
-    def trailing_zeros(self, counts: Optional[list[int]] = None) -> None:
+    def trailing_zeros(self, counts: list[int] | None = None) -> None:
         random.seed(reproducible_hash(self.seed + " Trailing Zeros"))
 
         if counts is None:
@@ -87,7 +90,7 @@ class B15SignificandGenerator:
 
             self.sigs.append(B15Significand(bin(sig1)[3:], bin(sig2)[3:], res))
 
-    def leading_zeros(self, counts: Optional[list[int]] = None) -> None:
+    def leading_zeros(self, counts: list[int] | None = None) -> None:
         random.seed(reproducible_hash(self.seed + " Leading Zeros"))
 
         if counts is None:
@@ -242,7 +245,7 @@ class B15SignificandGenerator:
 
         return 0, 0
 
-    def trailing_ones(self, counts: Optional[list[int]] = None) -> None:
+    def trailing_ones(self, counts: list[int] | None = None) -> None:
         random.seed(reproducible_hash(self.seed + " Trailing Ones"))
 
         if counts is None:
@@ -281,7 +284,7 @@ class B15SignificandGenerator:
             res = f1 * f2
             self.sigs.append(B15Significand(sig1, sig2, res))
 
-    def leading_ones(self, counts: Optional[list[int]] = None) -> None:
+    def leading_ones(self, counts: list[int] | None = None) -> None:
         random.seed(reproducible_hash(self.seed + "Leading Ones"))
 
         if counts is None:
@@ -330,7 +333,7 @@ class B15SignificandGenerator:
                 res = f1 * f2
                 self.sigs.append(B15Significand(sig1, sig2, res))
 
-    def sparse_ones(self, positions: Optional[list[int]] = None) -> None:
+    def sparse_ones(self, positions: list[int] | None = None) -> None:
         random.seed(reproducible_hash(self.seed + "Sparse Ones"))
 
         if positions is None:
@@ -411,7 +414,7 @@ class B15SignificandGenerator:
             answer.append(int(start + (end - start) * (i / (count - 1))))
         return answer
 
-    def long_run_ones(self, run_lengths_and_offsets: Optional[list[tuple[int, int]]] = None) -> None:
+    def long_run_ones(self, run_lengths_and_offsets: list[tuple[int, int]] | None = None) -> None:
         random.seed(reproducible_hash(self.seed + "Long Run Ones"))
 
         # Right now, what we are going to cover is runs in the middle of nf
@@ -464,7 +467,7 @@ class B15SignificandGenerator:
             res = sig1 * sig2
             self.sigs.append(B15Significand(bin(sig1)[3:], bin(sig2)[3:], res))
 
-    def long_run_zeros(self, run_lengths_and_offsets: Optional[list[tuple[int, int]]] = None) -> None:
+    def long_run_zeros(self, run_lengths_and_offsets: list[tuple[int, int]] | None = None) -> None:
         random.seed(reproducible_hash(self.seed + "Long Run Zeros"))
 
         if run_lengths_and_offsets is None:
@@ -561,7 +564,13 @@ class B15SignificandGenerator:
                 res = best[1] * best[2]
                 self.sigs.append(B15Significand(sig1, sig2, res))
 
-    def generate(self, file: TextIO) -> list[tuple[str, str]]:
+    def generate(self, file: TextIO, *, cache_file_path: Path | None = None) -> list[tuple[str, str]]:
+        if cache_file_path and cache_file_path.exists():
+            logger.info(f"Retrieving Cached Significands from {cache_file_path}")
+            with cache_file_path.open("rb") as cache:
+                self.retrieve_cached_sigs(cache)
+            return [(sig.sig1, sig.sig2) for sig in self.sigs]
+
         logger.status(f"Generating {self.fmt} Checker Boards")
         self.checkerboards()
         logger.status(f"Generating {self.fmt} Trailing Zeros")
@@ -583,11 +592,22 @@ class B15SignificandGenerator:
 
         self.store_sigs(file)
 
+        if cache_file_path is not None:
+            cache_file_path.parent.mkdir(parents=True, exist_ok=True)
+            with cache_file_path.open("wb") as cache:
+                self.cache_sigs(cache)
+
         return [(sig.sig1, sig.sig2) for sig in self.sigs]
 
     def store_sigs(self, file: TextIO) -> None:
         for i, sig in enumerate(self.sigs):
             file.write(f"bins bin_{i} = {{ 'b{sig.result:0{2 * self.nf + 2}b} }}; \n")
+
+    def cache_sigs(self, file: BinaryIO) -> None:
+        pickle.dump(self.sigs, file)
+
+    def retrieve_cached_sigs(self, file: BinaryIO) -> None:
+        self.sigs = pickle.load(file)
 
 
 def interesting_tests(
@@ -712,6 +732,8 @@ def interesting_shift_ranges(low_shifts: int, shifts_from_edge: int, fmt: str) -
 
 @register_model("B15")
 def main(test_f: TextIO, cover_f: TextIO) -> None:
+    cache_dir = Path(constants.config.CACHE_DIR)
+
     for fmt in constants.FLOAT_FMTS:
         hashval = reproducible_hash(fmt + "b15")
         random.seed(hashval)
@@ -722,14 +744,22 @@ def main(test_f: TextIO, cover_f: TextIO) -> None:
         add_sigs_path = bins_path / f"B15_{constants.FMT_TO_STRING[fmt]}_special_sigs.svh"
         mul_sigs_path = bins_path / f"B15_{constants.FMT_TO_STRING[fmt]}_prod_special_sigs.svh"
         with add_sigs_path.open("w") as add_sigs_file, mul_sigs_path.open("w") as mul_sigs_file:
+            cache_file = cache_dir / f"b15-{fmt}-cache.pkl"
+
             logger.status(f"Generating {fmt} Sigs & Shifts")
             b9_sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b15")
             b9_sigs = [int(sig, 2) for sig in b9_sig_gen.generate(add_sigs_file)]
 
             b15_sig_gen = B15SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt, fmt + "b15")
-            b15_sigs = [(int(sig1, 2), int(sig2, 2)) for sig1, sig2 in b15_sig_gen.generate(mul_sigs_file)]
+            b15_sigs = [
+                (int(sig1, 2), int(sig2, 2))
+                for sig1, sig2 in b15_sig_gen.generate(mul_sigs_file, cache_file_path=cache_file)
+            ]
 
-            interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+            if constants.config.FULL_COVERAGE_TESTGEN:
+                interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+            else:
+                interesting_shifts = interesting_shift_ranges(0, 0, fmt)
 
             logger.status(f"Generating {fmt} Tests")
             interesting_tests(b15_sigs, b9_sigs, interesting_shifts, fmt, test_f, cover_f)

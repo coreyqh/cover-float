@@ -79,6 +79,11 @@ RES_OPS = [
 
 # }
 
+# Chooses +-0, +-1, +-min norm, +-max norm, +-max subnorm, +-mid subnorm, +-min subnorm, +-infinity, +-default nan,
+# and one SNaN, and one QNaN. These are the minimal requirements from Aharoni et al. The full coverage model includes
+# the complete set of basic types
+minimal_set = [0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 26, 27, 28, 29, 30, 32]
+
 BASIC_TYPES = {
     const.FMT_SINGLE: [
         "00000000000000000000000000000000",  # Positive 0
@@ -273,7 +278,7 @@ BASIC_TYPES = {
 }
 
 
-def write1SrcTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
+def write1SrcTests(test_f: TextIO, cover_f: TextIO, fmt: str, choices: list[int]) -> None:
 
     rm = const.ROUND_NEAR_EVEN
 
@@ -283,13 +288,14 @@ def write1SrcTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
     for op in SRC1_OPS:
         logger.status(f"OP IS: {op}")
         # print(f"FMT IS: {fmt}")
-        for val in BASIC_TYPES[fmt]:
+        for i in choices:
+            val = BASIC_TYPES[fmt][i]
             run_and_store_test_vector(
                 f"{op}_{rm}_{val}_{32 * '0'}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
             )
 
 
-def writeCvtTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
+def writeCvtTests(test_f: TextIO, cover_f: TextIO, fmt: str, choices: list[int]) -> None:
 
     rm = const.ROUND_NEAR_EVEN
 
@@ -302,36 +308,42 @@ def writeCvtTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
         fmts = const.FLOAT_FMTS if op == const.OP_CFF else const.INT_FMTS
         for resultFmt in fmts:
             if resultFmt != fmt:
-                for val in BASIC_TYPES[fmt]:
+                for i in choices:
+                    val = BASIC_TYPES[fmt][i]
                     run_and_store_test_vector(
                         f"{op}_{rm}_{val}_{32 * '0'}_{32 * '0'}_{fmt}_{32 * '0'}_{resultFmt}_00", test_f, cover_f
                     )
 
 
-def write2SrcTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
+def write2SrcTests(test_f: TextIO, cover_f: TextIO, fmt: str, choices: list[int]) -> None:
 
     rm = const.ROUND_NEAR_EVEN
 
     print("// 2 source operations, all basic type input combinations", file=test_f)
     for op in SRC2_OPS:
         logger.status(f"OP IS: {op}")
-        for val1 in BASIC_TYPES[fmt]:
-            for val2 in BASIC_TYPES[fmt]:
+        for i in choices:
+            val1 = BASIC_TYPES[fmt][i]
+            for j in choices:
+                val2 = BASIC_TYPES[fmt][j]
                 run_and_store_test_vector(
                     f"{op}_{rm}_{val1}_{val2}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
                 )
 
 
-def write3SrcTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
+def write3SrcTests(test_f: TextIO, cover_f: TextIO, fmt: str, choices: list[int]) -> None:
 
     rm = const.ROUND_NEAR_EVEN
 
     print("// 3 source operations, all basic type input combinations", file=test_f)
     for op in SRC3_OPS:
         logger.status(f"OP IS: {op}")
-        for val1 in BASIC_TYPES[fmt]:
-            for val2 in BASIC_TYPES[fmt]:
-                for val3 in BASIC_TYPES[fmt]:
+        for i in choices:
+            val1 = BASIC_TYPES[fmt][i]
+            for j in choices:
+                val2 = BASIC_TYPES[fmt][j]
+                for k in choices:
+                    val3 = BASIC_TYPES[fmt][k]
                     run_and_store_test_vector(
                         f"{op}_{rm}_{val1}_{val2}_{val3}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
                     )
@@ -339,11 +351,13 @@ def write3SrcTests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
 
 @register_model("B1")
 def main(test_vectors: TextIO, cover_vectors: TextIO) -> None:
+    choices = list(range(len(BASIC_TYPES[const.FMT_SINGLE]))) if const.config.FULL_COVERAGE_TESTGEN else minimal_set
+
     for fmt in const.FLOAT_FMTS:
-        write1SrcTests(test_vectors, cover_vectors, fmt)
-        write2SrcTests(test_vectors, cover_vectors, fmt)
-        write3SrcTests(test_vectors, cover_vectors, fmt)
-        writeCvtTests(test_vectors, cover_vectors, fmt)
+        write1SrcTests(test_vectors, cover_vectors, fmt, choices)
+        write2SrcTests(test_vectors, cover_vectors, fmt, choices)
+        write3SrcTests(test_vectors, cover_vectors, fmt, choices)
+        writeCvtTests(test_vectors, cover_vectors, fmt, choices)
         # writeResultTests(f, fmt)
 
 

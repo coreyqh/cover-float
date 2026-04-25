@@ -5,6 +5,7 @@ from pathlib import Path
 
 import cover_float.common.log as log
 import cover_float.testgen as tg
+from cover_float.common.constants import config
 from cover_float.common.util import SingleThreadedExecutor
 from cover_float.reference import run_test_vector
 
@@ -44,11 +45,14 @@ def testgen() -> None:
     parser.add_argument("--output-dir", type=str, default="tests", help="Directory to save generated test vectors")
     parser.add_argument("--single-thread", action="store_true", help="Run Generation in a Single Thread")
     parser.add_argument("--jobs", type=int, default=None, help="Number of Jobs to Run When Multi-Threaded")
+    parser.add_argument(
+        "--partial-output", action="store_true", help="Create a Reduced Number of Tests in Test Heavy Models"
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
-
     single_thread = args.single_thread or (args.models is not None and len(args.models) < 2)
+    config.FULL_COVERAGE_TESTGEN = not args.partial_output
 
     if single_thread:
         executor = SingleThreadedExecutor()

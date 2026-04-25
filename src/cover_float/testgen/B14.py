@@ -22,8 +22,7 @@ logger: log.ModelLogger = cast(log.ModelLogger, logging.getLogger("B14"))
 OPS = [const.OP_FMADD, const.OP_FMSUB, const.OP_FNMADD, const.OP_FNMSUB]
 
 
-def decimalComponentsToHex(fmt: str, sign: int, biased_exp: int,
-                           mantissa: int) -> str:
+def decimalComponentsToHex(fmt: str, sign: int, biased_exp: int, mantissa: int) -> str:
     b_sign = f"{sign:01b}"
     b_exponent = f"{biased_exp:0{const.EXPONENT_BITS[fmt]}b}"
     b_mantissa = f"{mantissa:0{const.MANTISSA_BITS[fmt]}b}"

@@ -60,7 +60,7 @@ OP_TO_INSTRUCTION_INFO = {
     constants.OP_FSGNJ: OperationInfo("fsgnj", FR_TYPE),
     constants.OP_FSGNJN: OperationInfo("fsgnjn", FR_TYPE),
     constants.OP_FSGNJX: OperationInfo("fsgnjx", FR_TYPE),
-    constants.OP_RFI: OperationInfo("fround", FR1_TYPE),
+    constants.OP_RFI: OperationInfo("froundnx", FR1_TYPE),
 }
 
 RISCV_FMT_CODES = {

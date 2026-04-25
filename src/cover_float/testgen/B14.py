@@ -9,7 +9,6 @@
 
 import logging
 import random
-from pathlib import Path
 from typing import TextIO, cast
 
 import cover_float.common.constants as const
@@ -23,7 +22,8 @@ logger: log.ModelLogger = cast(log.ModelLogger, logging.getLogger("B14"))
 OPS = [const.OP_FMADD, const.OP_FMSUB, const.OP_FNMADD, const.OP_FNMSUB]
 
 
-def decimalComponentsToHex(fmt: str, sign: int, biased_exp: int, mantissa: int) -> str:
+def decimalComponentsToHex(fmt: str, sign: int, biased_exp: int,
+                           mantissa: int) -> str:
     b_sign = f"{sign:01b}"
     b_exponent = f"{biased_exp:0{const.EXPONENT_BITS[fmt]}b}"
     b_mantissa = f"{mantissa:0{const.MANTISSA_BITS[fmt]}b}"
@@ -100,15 +100,8 @@ def generate_b14_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                 cover_f,
             )
 
+
 @register_model("B14")
-def main() -> None:
-    with (
-        Path("./tests/testvectors/B14_tv.txt").open("w") as test_f,
-        Path("./tests/covervectors/B14_cv.txt").open("w") as cover_f,
-    ):
-        for fmt in const.FLOAT_FMTS:
-            generate_b14_tests(test_f, cover_f, fmt)
-
-
-if __name__ == "__main__":
-    main()
+def main(test_f: TextIO, cover_f: TextIO) -> None:
+    for fmt in const.FLOAT_FMTS:
+        generate_b14_tests(test_f, cover_f, fmt)

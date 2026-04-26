@@ -2130,6 +2130,7 @@ std::pair<int, std::string> reference_model(
 
         mp::cpp_int mask = (mp::cpp_int(1) << INTERM_SIG_LENGTH) - 1;
         intermResult.sig &= mask;
+        *flags = softFloat_getFlags();
 
         // DO NOT FALL THROUGH TO THE NORMAL POST-PROCESSING!
         return {EXIT_SUCCESS, ""};

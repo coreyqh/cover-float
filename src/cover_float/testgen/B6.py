@@ -238,7 +238,7 @@ def get_grs_mant(operation: str, precision: str, a_exp: int, b_exp: int, hashStr
         a_int = 0
         b_int = 0
 
-        if grs_int == 7 or grs_int == 5:  # G = 1, R = 1, S = 1
+        if grs_int == 7 or grs_int == 5:
             # b and a mantissas have the same range
             b_min_range = b_min
             b_max_range = (2 * b_max) // 3

@@ -23,7 +23,7 @@
 // `define COVER_B20
 `define COVER_B21
 `define COVER_B22
-// `define COVER_B23
+`define COVER_B23
 `define COVER_B24
 // `define COVER_B25
 // `define COVER_B26

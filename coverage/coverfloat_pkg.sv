@@ -174,6 +174,19 @@ package coverfloat_pkg;
 
     parameter int SIZEOF_INT  = 32;
     parameter int SIZEOF_LONG = 64;
+    parameter int UINT_TRAILING_ZEROS = F128_M_BITS - SIZEOF_INT + 1;//add 1 because of hidden 1
+    parameter int INT_TRAILING_ZEROS = F128_M_BITS - SIZEOF_INT + 2;//hidden1 + 1
+    parameter int LONG_TRAILING_ZEROS = F128_M_BITS - SIZEOF_LONG + 2;//hidden1 + 1
+    parameter int ULONG_TRAILING_ZEROS = F128_M_BITS - SIZEOF_LONG + 1;//hidden1
+
+    typedef struct {
+    int max_int_exp;
+    logic [111:0] max_int_mantissa;
+    logic [111:0] one_quarter;
+    logic [111:0] one_half;
+    logic [111:0] three_quarters;
+    logic [111:0] one;
+    } max_int_struct;
 
 
     // Helper functions for difficult coverpoints
@@ -528,6 +541,113 @@ package coverfloat_pkg;
             end
     endcase
         return unbiased_exp;
+    endfunction
+
+    //returns the exponent values associated with each maxInt
+    function automatic max_int_struct get_max_int(
+        input logic [7:0] int_fmt
+    );
+    max_int_struct target_max_int;
+
+    //Setting up the ranges based on the int format
+    case(int_fmt)
+        FMT_UINT: begin
+            target_max_int.max_int_exp = (SIZEOF_INT - 1);//2^31
+            target_max_int.max_int_mantissa = F128_M_BITS'({(SIZEOF_INT - 1){1'b1}}) << (UINT_TRAILING_ZEROS);//upper 31 bits are 1s, lower bits are 0s; 31 bits because of hidden 1
+            target_max_int.one_quarter = F128_M_BITS'(1'b1) << (UINT_TRAILING_ZEROS - 2);//31 0s, 01
+            target_max_int.one_half = F128_M_BITS'(1'b1) << (UINT_TRAILING_ZEROS - 1);//31 0s, 1
+            target_max_int.three_quarters = F128_M_BITS'(2'b11) << (UINT_TRAILING_ZEROS - 2);//31 0s, 11
+            target_max_int.one = F128_M_BITS'(1'b1) << UINT_TRAILING_ZEROS;//30 0s, 1
+        end
+        FMT_INT: begin
+            target_max_int.max_int_exp = (SIZEOF_INT - 2);//2^30
+            target_max_int.max_int_mantissa = F128_M_BITS'({(SIZEOF_INT - 2){1'b1}}) << (INT_TRAILING_ZEROS);//leading 0, next 31 bits are 1s, lower bits are 0s
+            target_max_int.one_quarter = F128_M_BITS'(1'b1) << (INT_TRAILING_ZEROS - 2);//30 0s, 01
+            target_max_int.one_half = F128_M_BITS'(1'b1) << (INT_TRAILING_ZEROS - 1);//30 0s, 1
+            target_max_int.three_quarters = F128_M_BITS'(2'b11) << (INT_TRAILING_ZEROS - 2);//30 0s, 11
+            target_max_int.one = F128_M_BITS'(1'b1) << INT_TRAILING_ZEROS;//30 0s, 1
+        end
+        FMT_ULONG: begin
+            target_max_int.max_int_exp = (SIZEOF_LONG - 1);//2^63
+            target_max_int.max_int_mantissa = F128_M_BITS'({(SIZEOF_LONG - 1){1'b1}}) << (ULONG_TRAILING_ZEROS);//upper 63 bits are 1s, lower bits are 0s
+            target_max_int.one_quarter = F128_M_BITS'(1'b1) << (ULONG_TRAILING_ZEROS - 2);//63 0s, 01
+            target_max_int.one_half = F128_M_BITS'(1'b1) << (ULONG_TRAILING_ZEROS - 1);//63 0s, 1
+            target_max_int.three_quarters = F128_M_BITS'(2'b11) << (ULONG_TRAILING_ZEROS - 2);//63 0s, 11
+            target_max_int.one = F128_M_BITS'(1'b1) << ULONG_TRAILING_ZEROS;//62 0s, 1
+        end
+        FMT_LONG: begin
+            target_max_int.max_int_exp = (SIZEOF_LONG - 2);//2^62
+            target_max_int.max_int_mantissa = F128_M_BITS'({(SIZEOF_LONG - 2){1'b1}}) << (LONG_TRAILING_ZEROS);//leading 0, upper 62 bits are 1s, lower bits are 0s
+            target_max_int.one_quarter = F128_M_BITS'(1'b1) << (LONG_TRAILING_ZEROS - 2);//62 0s, 01
+            target_max_int.one_half = F128_M_BITS'(1'b1) << (LONG_TRAILING_ZEROS - 1);//62 0s, 1
+            target_max_int.three_quarters = F128_M_BITS'(2'b11) << (LONG_TRAILING_ZEROS - 2);//62 0s, 11
+            target_max_int.one = F128_M_BITS'(1'b1) << LONG_TRAILING_ZEROS;//61 0s, 1
+        end
+        default: begin//fill everything with 0s if an unrecognized int_fmt
+            target_max_int.max_int_exp = 0;
+            target_max_int.max_int_mantissa = '0;
+            target_max_int.one_quarter = '0;
+            target_max_int.one_half = '0;
+            target_max_int.three_quarters = '0;
+            target_max_int.one = '0;
+        end
+    endcase
+    return target_max_int;
+    endfunction
+
+    function automatic int get_proximity_to_max_int(
+        input logic [127:0] input_val,
+        input logic [7:0] fp_fmt,
+        input logic [7:0] int_fmt
+    );
+
+    max_int_struct target_int = get_max_int(int_fmt);
+    int input_exp = get_unbiased_exponent(input_val, fp_fmt);
+    logic [111:0] input_mantissa = input_val[111:0];
+
+    //Shift the double mantissa so the mantissa fills the upper bits
+    //This allows for one comparison regardless of whether the input is double or quad
+    if(fp_fmt == FMT_DOUBLE) begin
+        input_mantissa = F128_M_BITS'(input_val[F64_M_UPPER:0]) << (F128_M_BITS - F64_M_BITS);
+    end
+
+    //Comparison, returns the number corresponding to the test that each condition satisfies
+    if(input_exp == target_int.max_int_exp) begin
+        if(input_mantissa == target_int.max_int_mantissa) begin
+            return 1;//+-MaxInt
+        end
+        else if(input_mantissa > target_int.max_int_mantissa) begin
+            if(input_mantissa <= (target_int.max_int_mantissa + target_int.one_quarter)) begin
+                return 2;//+-MaxInt + (1/4)
+            end
+            else if(input_mantissa <= (target_int.max_int_mantissa + target_int.one_half)) begin
+                return 3;//+-MaxInt + (1/2)
+            end
+            else if(input_mantissa <= (target_int.max_int_mantissa + target_int.three_quarters)) begin
+                return 4;//+-MaxInt + (3/4)
+            end
+        end
+        else if(input_mantissa < target_int.max_int_mantissa) begin
+            if(input_mantissa >= (target_int.max_int_mantissa - target_int.one_quarter)) begin
+                return 2;//+-MaxInt - (1/4)
+            end
+            else if(input_mantissa >= (target_int.max_int_mantissa - target_int.one_half)) begin
+                return 3;//+-MaxInt - (1/2)
+            end
+            else if(input_mantissa >= (target_int.max_int_mantissa - target_int.three_quarters)) begin
+                return 4;//+-MaxInt - (3/4)
+            end
+            else if(input_mantissa >= (target_int.max_int_mantissa - target_int.one)) begin
+                return 5;//+-MaxInt - 1
+            end
+        end
+    end
+    else if (input_exp == target_int.max_int_exp + 1)begin
+        if(input_mantissa == '0) begin
+            return 5;//+- MaxInt + 1
+        end
+    end
+    return 0;
     endfunction
 
     function automatic int get_proximity_to_zero(

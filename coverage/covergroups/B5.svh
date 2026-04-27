@@ -25,36 +25,6 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
         bins round_near_maxmag = {ROUND_NEAR_MAXMAG};
     }
 
-    F32_sign: coverpoint CFI.result[31] {
-        type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
-    }
-
-    F64_sign: coverpoint CFI.result[63] {
-        type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
-    }
-
-    F128_sign: coverpoint CFI.result[127] {
-        type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
-    }
-
-    F16_sign: coverpoint CFI.result[15] {
-        type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
-    }
-
-    BF16_sign: coverpoint CFI.result[15] {
-        type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
-    }
-
     F16_result_fmt: coverpoint (CFI.resultFmt == FMT_HALF) {
         type_option.weight = 0;
         bins f16 = {1};
@@ -212,43 +182,43 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     ************************************************************************/
 
     `ifdef COVER_F32
-        B5_F32_subnorm:              cross FP_result_ops, rounding_mode_all, F32_sign, FP_subnorm,              F32_result_fmt;
-        B5_F32_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F32_sign, F32_minSubnorm_pm_3ulp,  F32_result_fmt;
-        B5_F32_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F32_sign, F32_minNorm_pm_3ulp,     F32_result_fmt;
-        B5_F32_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F32_sign, F32_btw_minSubnorm_zero, F32_result_fmt;
-        B5_F32_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, F32_sign, FP_minNorm_p5_exp_range, F32_result_fmt;
+        B5_F32_subnorm:              cross FP_result_ops, rounding_mode_all, FP_subnorm,              F32_result_fmt;
+        B5_F32_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F32_minSubnorm_pm_3ulp,  F32_result_fmt;
+        B5_F32_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F32_minNorm_pm_3ulp,     F32_result_fmt;
+        B5_F32_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F32_btw_minSubnorm_zero, F32_result_fmt;
+        B5_F32_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range, F32_result_fmt;
     `endif
 
     `ifdef COVER_F64
-        B5_F64_subnorm:              cross FP_result_ops, rounding_mode_all, F32_sign, FP_subnorm,              F64_result_fmt;
-        B5_F64_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F32_sign, F64_minSubnorm_pm_3ulp,  F64_result_fmt;
-        B5_F64_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F32_sign, F64_minNorm_pm_3ulp,     F64_result_fmt;
-        B5_F64_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F32_sign, F64_btw_minSubnorm_zero, F64_result_fmt;
-        B5_F64_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, F32_sign, FP_minNorm_p5_exp_range, F64_result_fmt;
+        B5_F64_subnorm:              cross FP_result_ops, rounding_mode_all, FP_subnorm,              F64_result_fmt;
+        B5_F64_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F64_minSubnorm_pm_3ulp,  F64_result_fmt;
+        B5_F64_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F64_minNorm_pm_3ulp,     F64_result_fmt;
+        B5_F64_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F64_btw_minSubnorm_zero, F64_result_fmt;
+        B5_F64_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range, F64_result_fmt;
     `endif
 
     `ifdef COVER_F128
-        B5_F128_subnorm:              cross FP_result_ops, rounding_mode_all, F32_sign, FP_subnorm,               F128_result_fmt;
-        B5_F128_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F32_sign, F128_minSubnorm_pm_3ulp,  F128_result_fmt;
-        B5_F128_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F32_sign, F128_minNorm_pm_3ulp,     F128_result_fmt;
-        B5_F128_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F32_sign, F128_btw_minSubnorm_zero, F128_result_fmt;
-        B5_F128_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, F32_sign, FP_minNorm_p5_exp_range,  F128_result_fmt;
+        B5_F128_subnorm:              cross FP_result_ops, rounding_mode_all, FP_subnorm,               F128_result_fmt;
+        B5_F128_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F128_minSubnorm_pm_3ulp,  F128_result_fmt;
+        B5_F128_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F128_minNorm_pm_3ulp,     F128_result_fmt;
+        B5_F128_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F128_btw_minSubnorm_zero, F128_result_fmt;
+        B5_F128_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range,  F128_result_fmt;
     `endif
 
     `ifdef COVER_F16
-        B5_F16_subnorm:              cross FP_result_ops, rounding_mode_all, F32_sign, FP_subnorm,              F16_result_fmt;
-        B5_F16_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F32_sign, F16_minSubnorm_pm_3ulp,  F16_result_fmt;
-        B5_F16_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F32_sign, F16_minNorm_pm_3ulp,     F16_result_fmt;
-        B5_F16_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F32_sign, F16_btw_minSubnorm_zero, F16_result_fmt;
-        B5_F16_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, F32_sign, FP_minNorm_p5_exp_range, F16_result_fmt;
+        B5_F16_subnorm:              cross FP_result_ops, rounding_mode_all, FP_subnorm,              F16_result_fmt;
+        B5_F16_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F16_minSubnorm_pm_3ulp,  F16_result_fmt;
+        B5_F16_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F16_minNorm_pm_3ulp,     F16_result_fmt;
+        B5_F16_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F16_btw_minSubnorm_zero, F16_result_fmt;
+        B5_F16_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range, F16_result_fmt;
     `endif
 
     `ifdef COVER_BF16
-        B5_BF16_subnorm:              cross FP_result_ops, rounding_mode_all, F32_sign, FP_subnorm,               BF16_result_fmt;
-        B5_BF16_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, F32_sign, BF16_minSubnorm_pm_3ulp,  BF16_result_fmt;
-        B5_BF16_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, F32_sign, BF16_minNorm_pm_3ulp,     BF16_result_fmt;
-        B5_BF16_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, F32_sign, BF16_btw_minSubnorm_zero, BF16_result_fmt;
-        B5_BF16_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, F32_sign, FP_minNorm_p5_exp_range,  BF16_result_fmt;
+        B5_BF16_subnorm:              cross FP_result_ops, rounding_mode_all, FP_subnorm,               BF16_result_fmt;
+        B5_BF16_minSubnorm_pm_3ulp:   cross FP_result_ops, rounding_mode_all, BF16_minSubnorm_pm_3ulp,  BF16_result_fmt;
+        B5_BF16_minNorm_pm_3ulp:      cross FP_result_ops, rounding_mode_all, BF16_minNorm_pm_3ulp,     BF16_result_fmt;
+        B5_BF16_btw_minSubnorm_zero:  cross FP_result_ops, rounding_mode_all, BF16_btw_minSubnorm_zero, BF16_result_fmt;
+        B5_BF16_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range,  BF16_result_fmt;
     `endif
 
 endgroup

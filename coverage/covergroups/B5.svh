@@ -294,6 +294,9 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     Main Coverpoints
     ************************************************************************/
 
+// TODO: Missing certain ignore bins
+// TODO: Missing narrowing converts
+
     `ifdef COVER_F32
         B5_F32_subnorm:              cross FP_result_ops, rounding_mode_all, FP_subnorm,              F32_result_fmt;
         B5_F32_minSubnorm_p_3ulp:    cross FP_result_ops, rounding_mode_all, F32_minSubnorm_p_3ulp,   F32_result_fmt;

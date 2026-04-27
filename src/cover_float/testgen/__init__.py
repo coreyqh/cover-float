@@ -1,3 +1,18 @@
+# Copyright (C) 2025-26 Harvey Mudd College
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, any work distributed under the
+# License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions
+# and limitations under the License.
+
 import cover_float.testgen.B1 as B1
 import cover_float.testgen.B2 as B2
 import cover_float.testgen.B3 as B3
@@ -18,6 +33,7 @@ import cover_float.testgen.B25 as B25
 import cover_float.testgen.B26 as B26
 import cover_float.testgen.B27 as B27
 import cover_float.testgen.B29 as B29
+import cover_float.testgen.model as model
 
 __all__ = [
     "B1",
@@ -40,4 +56,5 @@ __all__ = [
     "B26",
     "B27",
     "B29",
+    "model",
 ]

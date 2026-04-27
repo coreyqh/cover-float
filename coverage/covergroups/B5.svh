@@ -8,8 +8,13 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
 
     FP_result_ops: coverpoint CFI.op {
         type_option.weight = 0;
-        `include "bins_templates/FP_result_op_bins.svh"
-    }
+        bins mul    = {OP_MUL};
+        bins div    = {OP_DIV};
+        bins fmadd  = {OP_FMADD};
+        bins fmsub  = {OP_FMSUB};
+        bins fnmadd = {OP_FNMADD};
+        bins fnmsub = {OP_FNMSUB};
+}
 
     rounding_mode_all: coverpoint CFI.rm {
         type_option.weight = 0;

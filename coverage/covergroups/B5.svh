@@ -311,8 +311,136 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     Main Coverpoints
     ************************************************************************/
 
-// TODO: Missing certain ignore bins
-// TODO: Missing narrowing converts
+// TODO: need to add helper coverpoints for int formats, and fmt coverpoints for available conversion destination formats
+
+    B5_int_convert_subnorm:  cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt,  int_result_fmt {
+        bins narrow_f64_to_int  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_int = binsof(FP_convert_fmt.fmt_quad);
+    }
+    B5_uint_convert_subnorm: cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt, uint_result_fmt {
+        bins narrow_f64_to_uint  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_uint = binsof(FP_convert_fmt.fmt_quad);
+    }
+
+    B5_int_convert_minSubNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, int_minSubNorm_p_3ulp, FP_convert_fmt,  int_result_fmt {
+        bins narrow_f64_to_int  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_int = binsof(FP_convert_fmt.fmt_quad);
+    }
+    B5_uint_convert_minSubNorm_p_3ulp: cross FP_convert_ops, rounding_mode_all, uint_minSubNorm_p_3ulp, FP_convert_fmt, uint_result_fmt {
+        bins narrow_f64_to_uint  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_uint = binsof(FP_convert_fmt.fmt_quad);
+    }
+
+    B5_int_convert_minSubNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, int_minSubNorm_m_3ulp, FP_convert_fmt,  int_result_fmt {
+        bins narrow_f64_to_int  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_int = binsof(FP_convert_fmt.fmt_quad);
+    }
+    B5_uint_convert_minSubNorm_m_3ulp: cross FP_convert_ops, rounding_mode_all, uint_minSubNorm_m_3ulp, FP_convert_fmt, uint_result_fmt {
+        bins narrow_f64_to_uint  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_uint = binsof(FP_convert_fmt.fmt_quad);
+    }
+
+    B5_int_convert_minNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, int_minNorm_p_3ulp, FP_convert_fmt,  int_result_fmt {
+        bins narrow_f64_to_int  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_int = binsof(FP_convert_fmt.fmt_quad);
+    }
+    B5_uint_convert_minNorm_p_3ulp: cross FP_convert_ops, rounding_mode_all, uint_minNorm_p_3ulp, FP_convert_fmt, uint_result_fmt {
+        bins narrow_f64_to_uint  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_uint = binsof(FP_convert_fmt.fmt_quad);
+    }
+
+    B5_int_convert_minNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, int_minNorm_m_3ulp, FP_convert_fmt,  int_result_fmt {
+        bins narrow_f64_to_int  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_int = binsof(FP_convert_fmt.fmt_quad);
+    }
+    B5_uint_convert_minNorm_m_3ulp: cross FP_convert_ops, rounding_mode_all, uint_minNorm_m_3ulp, FP_convert_fmt, uint_result_fmt {
+        bins narrow_f64_to_uint  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_uint = binsof(FP_convert_fmt.fmt_quad);
+    }
+
+    B5_int_convert_btw_minSubNorm_zero:  cross FP_convert_ops, rounding_mode_all, int_btw_minSubNorm_zero, FP_convert_fmt,  int_result_fmt {
+        bins narrow_f64_to_int  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_int = binsof(FP_convert_fmt.fmt_quad);
+    }
+    B5_uint_convert_btw_minSubNorm_zero: cross FP_convert_ops, rounding_mode_all, uint_btw_minSubNorm_zero, FP_convert_fmt, uint_result_fmt {
+        bins narrow_f64_to_uint  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_uint = binsof(FP_convert_fmt.fmt_quad);
+    }
+
+    B5_int_convert_minNorm_p5_exp_range:  cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt,  int_result_fmt {
+        bins narrow_f64_to_int  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_int = binsof(FP_convert_fmt.fmt_quad);
+    }
+    B5_uint_convert_minNorm_p5_exp_range: cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt, uint_result_fmt {
+        bins narrow_f64_to_uint  = binsof(FP_convert_fmt.fmt_double);
+        bins narrow_f128_to_uint = binsof(FP_convert_fmt.fmt_quad);
+    }
+
+    `ifdef COVER_LONG
+
+        B5_long_convert_subnorm:  cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt,  long_result_fmt {
+            bins narrow_f64_to_long  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_long = binsof(FP_convert_fmt.fmt_quad);
+        }
+        B5_ulong_convert_subnorm: cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt, ulong_result_fmt {
+            bins narrow_f64_to_ulong  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_ulong = binsof(FP_convert_fmt.fmt_quad);
+        }
+
+        B5_long_convert_minSubNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, long_minSubNorm_p_3ulp, FP_convert_fmt,  long_result_fmt {
+            bins narrow_f64_to_long  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_long = binsof(FP_convert_fmt.fmt_quad);
+        }
+        B5_ulong_convert_minSubNorm_p_3ulp: cross FP_convert_ops, rounding_mode_all, ulong_minSubNorm_p_3ulp, FP_convert_fmt, ulong_result_fmt {
+            bins narrow_f64_to_ulong  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_ulong = binsof(FP_convert_fmt.fmt_quad);
+        }
+
+        B5_long_convert_minSubNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, long_minSubNorm_m_3ulp, FP_convert_fmt,  long_result_fmt {
+            bins narrow_f64_to_long  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_long = binsof(FP_convert_fmt.fmt_quad);
+        }
+        B5_ulong_convert_minSubNorm_m_3ulp: cross FP_convert_ops, rounding_mode_all, ulong_minSubNorm_m_3ulp, FP_convert_fmt, ulong_result_fmt {
+            bins narrow_f64_to_ulong  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_ulong = binsof(FP_convert_fmt.fmt_quad);
+        }
+
+        B5_long_convert_minNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, long_minNorm_p_3ulp, FP_convert_fmt,  long_result_fmt {
+            bins narrow_f64_to_long  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_long = binsof(FP_convert_fmt.fmt_quad);
+        }
+        B5_ulong_convert_minNorm_p_3ulp: cross FP_convert_ops, rounding_mode_all, ulong_minNorm_p_3ulp, FP_convert_fmt, ulong_result_fmt {
+            bins narrow_f64_to_ulong  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_ulong = binsof(FP_convert_fmt.fmt_quad);
+        }
+
+        B5_long_convert_minNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, long_minNorm_m_3ulp, FP_convert_fmt,  long_result_fmt {
+            bins narrow_f64_to_long  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_long = binsof(FP_convert_fmt.fmt_quad);
+        }
+        B5_ulong_convert_minNorm_m_3ulp: cross FP_convert_ops, rounding_mode_all, ulong_minNorm_m_3ulp, FP_convert_fmt, ulong_result_fmt {
+            bins narrow_f64_to_ulong  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_ulong = binsof(FP_convert_fmt.fmt_quad);
+        }
+
+        B5_long_convert_btw_minSubNorm_zero:  cross FP_convert_ops, rounding_mode_all, long_btw_minSubNorm_zero, FP_convert_fmt,  long_result_fmt {
+            bins narrow_f64_to_long  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_long = binsof(FP_convert_fmt.fmt_quad);
+        }
+        B5_ulong_convert_btw_minSubNorm_zero: cross FP_convert_ops, rounding_mode_all, ulong_btw_minSubNorm_zero, FP_convert_fmt, ulong_result_fmt {
+            bins narrow_f64_to_ulong  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_ulong = binsof(FP_convert_fmt.fmt_quad);
+        }
+
+        B5_long_convert_minNorm_p5_exp_range:  cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt,  long_result_fmt {
+            bins narrow_f64_to_long  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_long = binsof(FP_convert_fmt.fmt_quad);
+        }
+        B5_ulong_convert_minNorm_p5_exp_range: cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt, ulong_result_fmt {
+            bins narrow_f64_to_ulong  = binsof(FP_convert_fmt.fmt_double);
+            bins narrow_f128_to_ulong = binsof(FP_convert_fmt.fmt_quad);
+        }
+    `endif // COVER_LONG
 
     `ifdef COVER_F32
         B5_F32_subnorm:              cross FP_result_ops, rounding_mode_all, FP_subnorm,              F32_result_fmt;
@@ -324,6 +452,106 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
         B5_F32_minNorm_m_3ulp:       cross FP_result_ops, rounding_mode_all, F32_minNorm_m_3ulp,      F32_result_fmt;
         B5_F32_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, F32_btw_minSubNorm_zero, F32_result_fmt;
         B5_F32_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range, F32_result_fmt;
+
+
+        B5_F32_convert_subnorm:  cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt,  F32_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_single);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F32_convert_minSubNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, F32_minSubNorm_p_3ulp, FP_convert_fmt,  F32_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_single);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F32_convert_minSubNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, F32_minSubNorm_m_3ulp, FP_convert_fmt,  F32_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_single);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F32_convert_minNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, F32_minNorm_p_3ulp, FP_convert_fmt,  F32_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_single);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F32_convert_minNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, F32_minNorm_m_3ulp, FP_convert_fmt,  F32_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_single);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F32_convert_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, F32_btw_minSubNorm_zero, F32_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_single);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F32_convert_minNorm_p5_exp_range:  cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt,  F32_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_single);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f32 = binsof(FP_convert_fmt.fmt_single);
+            `endif // COVER_BF16
+
+        }
+
     `endif
 
     `ifdef COVER_F64
@@ -336,6 +564,141 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
         B5_F64_minNorm_m_3ulp:       cross FP_result_ops, rounding_mode_all, F64_minNorm_m_3ulp,      F64_result_fmt;
         B5_F64_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, F64_btw_minSubNorm_zero, F64_result_fmt;
         B5_F64_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range, F64_result_fmt;
+
+
+        B5_F64_convert_subnorm:  cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt,  F64_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_double);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F32
+
+        }
+
+        B5_F64_convert_minSubNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, F64_minSubNorm_p_3ulp, FP_convert_fmt,  F64_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_double);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F32
+
+        }
+
+        B5_F64_convert_minSubNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, F64_minSubNorm_m_3ulp, FP_convert_fmt,  F64_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_double);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F32
+
+        }
+
+        B5_F64_convert_minNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, F64_minNorm_p_3ulp, FP_convert_fmt,  F64_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_double);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F32
+
+        }
+
+        B5_F64_convert_minNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, F64_minNorm_m_3ulp, FP_convert_fmt,  F64_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_double);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F32
+
+        }
+
+        B5_F64_convert_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, F64_btw_minSubNorm_zero, F64_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_double);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F32
+
+        }
+
+        B5_F64_convert_minNorm_p5_exp_range:  cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt,  F64_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_double);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f64 = binsof(FP_convert_fmt.fmt_double);
+            `endif // COVER_F32
+
+        }
+
     `endif
 
     `ifdef COVER_F128
@@ -348,6 +711,176 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
         B5_F128_minNorm_m_3ulp:       cross FP_result_ops, rounding_mode_all, F128_minNorm_m_3ulp,      F128_result_fmt;
         B5_F128_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, F128_btw_minSubNorm_zero, F128_result_fmt;
         B5_F128_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range,  F128_result_fmt;
+
+
+        B5_F128_convert_subnorm:  cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt,  F128_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_quad);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F32
+
+
+            `ifdef COVER_F64
+                ignore_bins widen_f64_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F64
+
+        }
+
+        B5_F128_convert_minSubNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, F128_minSubNorm_p_3ulp, FP_convert_fmt,  F128_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_quad);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F32
+
+
+            `ifdef COVER_F64
+                ignore_bins widen_f64_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F64
+
+        }
+
+        B5_F128_convert_minSubNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, F128_minSubNorm_m_3ulp, FP_convert_fmt,  F128_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_quad);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F32
+
+
+            `ifdef COVER_F64
+                ignore_bins widen_f64_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F64
+
+        }
+
+        B5_F128_convert_minNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, F128_minNorm_p_3ulp, FP_convert_fmt,  F128_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_quad);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F32
+
+
+            `ifdef COVER_F64
+                ignore_bins widen_f64_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F64
+
+        }
+
+        B5_F128_convert_minNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, F128_minNorm_m_3ulp, FP_convert_fmt,  F128_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_quad);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F32
+
+
+            `ifdef COVER_F64
+                ignore_bins widen_f64_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F64
+
+        }
+
+        B5_F128_convert_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, F128_btw_minSubNorm_zero, F128_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_quad);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F32
+
+
+            `ifdef COVER_F64
+                ignore_bins widen_f64_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F64
+
+        }
+
+        B5_F128_convert_minNorm_p5_exp_range:  cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt,  F128_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_quad);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F16
+
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_BF16
+
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F32
+
+
+            `ifdef COVER_F64
+                ignore_bins widen_f64_to_f128 = binsof(FP_convert_fmt.fmt_quad);
+            `endif // COVER_F64
+
+        }
+
     `endif
 
     `ifdef COVER_F16
@@ -360,6 +893,71 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
         B5_F16_minNorm_m_3ulp:       cross FP_result_ops, rounding_mode_all, F16_minNorm_m_3ulp,      F16_result_fmt;
         B5_F16_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, F16_btw_minSubNorm_zero, F16_result_fmt;
         B5_F16_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range, F16_result_fmt;
+
+
+        B5_F16_convert_subnorm:  cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt,  F16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_half);
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f16 = binsof(FP_convert_fmt.fmt_half);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F16_convert_minSubNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, F16_minSubNorm_p_3ulp, FP_convert_fmt,  F16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_half);
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f16 = binsof(FP_convert_fmt.fmt_half);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F16_convert_minSubNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, F16_minSubNorm_m_3ulp, FP_convert_fmt,  F16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_half);
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f16 = binsof(FP_convert_fmt.fmt_half);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F16_convert_minNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, F16_minNorm_p_3ulp, FP_convert_fmt,  F16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_half);
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f16 = binsof(FP_convert_fmt.fmt_half);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F16_convert_minNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, F16_minNorm_m_3ulp, FP_convert_fmt,  F16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_half);
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f16 = binsof(FP_convert_fmt.fmt_half);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F16_convert_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, F16_btw_minSubNorm_zero, F16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_half);
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f16 = binsof(FP_convert_fmt.fmt_half);
+            `endif // COVER_BF16
+
+        }
+
+        B5_F16_convert_minNorm_p5_exp_range:  cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt,  F16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_half);
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f16 = binsof(FP_convert_fmt.fmt_half);
+            `endif // COVER_BF16
+
+        }
+
     `endif
 
     `ifdef COVER_BF16
@@ -372,6 +970,36 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
         B5_BF16_minNorm_m_3ulp:       cross FP_result_ops, rounding_mode_all, BF16_minNorm_m_3ulp,      BF16_result_fmt;
         B5_BF16_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, BF16_btw_minSubNorm_zero, BF16_result_fmt;
         B5_BF16_minNorm_p5_exp_range: cross FP_result_ops, rounding_mode_all, FP_minNorm_p5_exp_range,  BF16_result_fmt;
+
+
+        B5_BF16_convert_subnorm:  cross FP_convert_ops, rounding_mode_all, FP_subnorm, FP_convert_fmt,  BF16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_bf16);
+        }
+
+        B5_BF16_convert_minSubNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, BF16_minSubNorm_p_3ulp, FP_convert_fmt,  BF16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_bf16);
+        }
+
+        B5_BF16_convert_minSubNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, BF16_minSubNorm_m_3ulp, FP_convert_fmt,  BF16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_bf16);
+        }
+
+        B5_BF16_convert_minNorm_p_3ulp:  cross FP_convert_ops, rounding_mode_all, BF16_minNorm_p_3ulp, FP_convert_fmt,  BF16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_bf16);
+        }
+
+        B5_BF16_convert_minNorm_m_3ulp:  cross FP_convert_ops, rounding_mode_all, BF16_minNorm_m_3ulp, FP_convert_fmt,  BF16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_bf16);
+        }
+
+        B5_BF16_convert_btw_minSubNorm_zero:  cross FP_result_ops, rounding_mode_all, BF16_btw_minSubNorm_zero, BF16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_bf16);
+        }
+
+        B5_BF16_convert_minNorm_p5_exp_range:  cross FP_convert_ops, rounding_mode_all, FP_minNorm_p5_exp_range, FP_convert_fmt,  BF16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_bf16);
+        }
+
     `endif
 
 endgroup

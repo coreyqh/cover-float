@@ -36,6 +36,8 @@ from cover_float.common.constants import (
 from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector
 
+# from cover_float.testgen import softfloat_parser
+
 B5_FMTS = [FMT_QUAD, FMT_DOUBLE, FMT_SINGLE, FMT_BF16, FMT_HALF]
 ROUNDING_MODES = [ROUND_NEAR_EVEN, ROUND_MINMAG, ROUND_MIN, ROUND_MAX, ROUND_NEAR_MAXMAG]
 FMA_OPS = [OP_FMADD, OP_FMSUB, OP_FNMADD, OP_FNMSUB]
@@ -633,6 +635,8 @@ def mul_div_grs_gen(
 
     grs_int = int(grs, 2)
 
+    print("GRS_INT:", grs_int)
+
     target_exp = first_bit
     if grs_int == 1:
         smallest_res_exp = min_exp - (2 * m_bits)
@@ -770,7 +774,7 @@ def tests_multiply_5_6(precision: str, rounding_mode: str, test_f: TextIO, cover
         precision, rounding_mode, test_f, cover_f, "010", "1", True
     )  # Negative Test #BF_16 is producing an error
 
-    # #MinNorm + 3 ulp
+    # MinNorm + 3 ulp
     factor_mul_gen(precision, rounding_mode, test_f, cover_f, "011", "0", True)  # Positive Test
     factor_mul_gen(
         precision, rounding_mode, test_f, cover_f, "011", "1", True
@@ -805,7 +809,7 @@ def tests_multiply_9(precision: str, rounding_mode: str, test_f: TextIO, cover_f
 
 def multiplyTests(test_f: TextIO, cover_f: TextIO) -> None:
     for precision in FLOAT_FMTS:
-        # precision = FMT_BF16 #TODO: Alter to have all precisions
+        # precision = FMT_SINGLE #TODO: Alter to have all precisions
         for rounding_mode in ROUNDING_MODES:
             # tests_multiply_1_2(precision, rounding_mode, test_f, cover_f)
             # tests_multiply_3_4(precision, rounding_mode, test_f, cover_f)
@@ -835,8 +839,8 @@ def fma_gen(
     fma_op_key = {
         OP_FMADD: {"mul_sign": 0, "add_sign": 0},
         OP_FMSUB: {"mul_sign": 0, "add_sign": 1},
-        OP_FNMADD: {"mul_sign": 1, "add_sign": 0},
-        OP_FNMSUB: {"mul_sign": 1, "add_sign": 1},
+        OP_FNMADD: {"mul_sign": 1, "add_sign": 1},
+        OP_FNMSUB: {"mul_sign": 1, "add_sign": 0},
     }
 
     # Determine the desired output signs for multiplication and addition
@@ -922,13 +926,13 @@ def tests_fma_3_4(operation: str, precision: str, rounding_mode: str, test_f: Te
 
     minSNPos = min_exp - m_bits
 
-    # MinSN - 3 ulp; G = 0, R = 0, S = 1
+    # MinSN - 3 ulp; G = 1, R = 0, S = 1
     fma_gen(
         operation, precision, rounding_mode, 0, "101", minSNPos, 1, "min_sn", test_f, cover_f, "pos_-3_ulp_3"
     )  # Get rid of G Bit and some more from sticky, result is negative
     fma_gen(operation, precision, rounding_mode, 1, "101", minSNPos, 0, "min_sn", test_f, cover_f, "neg_-3_ulp_4")
 
-    # MinSN - 2 ulp; G = 0, R = 1, S = 0
+    # MinSN - 2 ulp; G = 1, R = 1, S = 0
     fma_gen(
         operation, precision, rounding_mode, 1, "010", minSNPos, 0, "min_sn", test_f, cover_f, "pos_-2_ulp_3"
     )  # Subtract minSN from 1 bit 2*minSN
@@ -961,39 +965,39 @@ def tests_fma_5_6(operation: str, precision: str, rounding_mode: str, test_f: Te
 
     minSNPos = min_exp - m_bits
 
-    # MinN - 3 ulp; G = 1, R = 0, S = 0
+    # MinN - 3 ulp; G = 1, R = 0, S = 1
     fma_gen(
-        operation, precision, rounding_mode, 0, "100", minSNPos + 1, 0, "1*m-1_0", test_f, cover_f, "pos_-3_ulp_5"
+        operation, precision, rounding_mode, 0, "101", minSNPos, 0, "1*m-1_0", test_f, cover_f, "pos_-3_ulp_5"
     )  # Get rid of G Bit and some more from sticky, result is negative
-    fma_gen(operation, precision, rounding_mode, 1, "100", minSNPos + 1, 1, "1*m-1_0", test_f, cover_f, "neg_-3_ulp_6")
+    fma_gen(operation, precision, rounding_mode, 1, "101", minSNPos, 1, "1*m-1_0", test_f, cover_f, "neg_-3_ulp_6")
 
-    # # MinN - 2 ulp; G = 1, R = 0, S = 1
-    # fma_gen(
-    #     operation, precision, rounding_mode, 0, "101", minSNPos, 0, "1*m-1_0", test_f, cover_f, "pos_-2_ulp_5"
-    # )  # Get rid of G Bit and some more from sticky, result is negative
-    # fma_gen(operation, precision, rounding_mode, 1, "101", minSNPos, 1, "1*m-1_0", test_f, cover_f, "neg_-2_ulp_6")
+    # MinN - 2 ulp; G = 1, R = 1, S = 0
+    fma_gen(
+        operation, precision, rounding_mode, 0, "110", minSNPos, 0, "1*m-1_0", test_f, cover_f, "pos_-2_ulp_5"
+    )  # Get rid of G Bit and some more from sticky, result is negative
+    fma_gen(operation, precision, rounding_mode, 1, "110", minSNPos, 1, "1*m-1_0", test_f, cover_f, "neg_-2_ulp_6")
 
-    # # MinN - 1 ulp; G = 1, R = 1, S = 1
-    # fma_gen(
-    #     operation, precision, rounding_mode, 0, "110", minSNPos, 0, "1*m-1_0", test_f, cover_f, "pos_-2_ulp_5"
-    # )  # Get rid of G Bit and some more from sticky, result is negative
-    # fma_gen(operation, precision, rounding_mode, 1, "110", minSNPos, 1, "1*m-1_0", test_f, cover_f, "neg_-2_ulp_6")
+    # MinN - 1 ulp; G = 1, R = 1, S = 1
+    fma_gen(
+        operation, precision, rounding_mode, 0, "111", minSNPos, 0, "1*m-1_0", test_f, cover_f, "pos_-2_ulp_5"
+    )  # Get rid of G Bit and some more from sticky, result is negative
+    fma_gen(operation, precision, rounding_mode, 1, "111", minSNPos, 1, "1*m-1_0", test_f, cover_f, "neg_-2_ulp_6")
 
-    # # MinN
-    # fma_gen(operation, precision, rounding_mode, 1, "100", minSNPos, 0, "1_0*m-1_1", test_f, cover_f, "pos_norm_5")
-    # fma_gen(operation, precision, rounding_mode, 0, "100", minSNPos, 1, "1_0*m-1_1", test_f, cover_f, "neg_norm_6")
+    # MinN
+    fma_gen(operation, precision, rounding_mode, 1, "100", minSNPos, 0, "1_0*m-1_1", test_f, cover_f, "pos_norm_5")
+    fma_gen(operation, precision, rounding_mode, 0, "100", minSNPos, 1, "1_0*m-1_1", test_f, cover_f, "neg_norm_6")
 
-    # # MinN + 1 ulp
-    # fma_gen(operation, precision, rounding_mode, 0, "001", minSNPos, 0, "min_n", test_f, cover_f, "pos_+1_ulp_5")
-    # fma_gen(operation, precision, rounding_mode, 1, "001", minSNPos, 1, "min_n", test_f, cover_f, "neg_+1_ulp_6")
+    # MinN + 1 ulp
+    fma_gen(operation, precision, rounding_mode, 0, "001", minSNPos, 0, "min_n", test_f, cover_f, "pos_+1_ulp_5")
+    fma_gen(operation, precision, rounding_mode, 1, "001", minSNPos, 1, "min_n", test_f, cover_f, "neg_+1_ulp_6")
 
-    # # MinN + 2 ulp
-    # fma_gen(operation, precision, rounding_mode, 0, "010", minSNPos, 0, "min_n", test_f, cover_f, "pos_+2_ulp_5")
-    # fma_gen(operation, precision, rounding_mode, 1, "010", minSNPos, 1, "min_n", test_f, cover_f, "neg_+2_ulp_6")
+    # MinN + 2 ulp
+    fma_gen(operation, precision, rounding_mode, 0, "010", minSNPos, 0, "min_n", test_f, cover_f, "pos_+2_ulp_5")
+    fma_gen(operation, precision, rounding_mode, 1, "010", minSNPos, 1, "min_n", test_f, cover_f, "neg_+2_ulp_6")
 
-    # # MinN + 3 ulp
-    # fma_gen(operation, precision, rounding_mode, 0, "011", minSNPos, 0, "min_n", test_f, cover_f, "pos_+3_ulp_5")
-    # fma_gen(operation, precision, rounding_mode, 1, "011", minSNPos, 1, "min_n", test_f, cover_f, "neg_+3_ulp_6")
+    # MinN + 3 ulp
+    fma_gen(operation, precision, rounding_mode, 0, "011", minSNPos, 0, "min_n", test_f, cover_f, "pos_+3_ulp_5")
+    fma_gen(operation, precision, rounding_mode, 1, "011", minSNPos, 1, "min_n", test_f, cover_f, "neg_+3_ulp_6")
 
 
 def tests_fma_7_8(operation: str, precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -1045,14 +1049,12 @@ def tests_fma_9(operation: str, precision: str, rounding_mode: str, test_f: Text
 def fmaTests(test_f: TextIO, cover_f: TextIO) -> None:
     for operation in FMA_OPS:
         for precision in FLOAT_FMTS:
-            # precision = FMT_HALF
-            # operation = OP_FMADD
             for rounding_mode in ROUNDING_MODES:
-                # tests_fma_1_2(operation, precision, rounding_mode, test_f, cover_f)
-                # tests_fma_3_4(operation, precision, rounding_mode, test_f, cover_f)
+                tests_fma_1_2(operation, precision, rounding_mode, test_f, cover_f)
+                tests_fma_3_4(operation, precision, rounding_mode, test_f, cover_f)
                 tests_fma_5_6(operation, precision, rounding_mode, test_f, cover_f)
-                # tests_fma_7_8(operation, precision, rounding_mode, test_f, cover_f)
-                # tests_fma_9(operation, precision, rounding_mode, test_f, cover_f)
+                tests_fma_7_8(operation, precision, rounding_mode, test_f, cover_f)
+                tests_fma_9(operation, precision, rounding_mode, test_f, cover_f)
 
 
 def div_grs_mant(
@@ -1135,53 +1137,53 @@ def tests_div_3_4(precision: str, rounding_mode: str, test_f: TextIO, cover_f: T
         OP_DIV, precision, rounding_mode, "001", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True
     )  # Negative Test
 
-    # minSN - 2 ulp G = 0, R = 1, S = 0
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "010", minSNPos, "0", test_f, cover_f, "minSN-2ulppos", True
-    )  # Positive Test
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "010", minSNPos, "1", test_f, cover_f, "minSN-2ulpneg", True
-    )  # Negative Test
+    # # minSN - 2 ulp G = 0, R = 1, S = 0
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "010", minSNPos, "0", test_f, cover_f, "minSN-2ulppos", True
+    # )  # Positive Test
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "010", minSNPos, "1", test_f, cover_f, "minSN-2ulpneg", True
+    # )  # Negative Test
 
-    # minSN - 1 ulp G = 0, R = 1, S = 1
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "011", minSNPos, "0", test_f, cover_f, "minSN-1ulppos", True
-    )  # Positive Test
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "011", minSNPos, "1", test_f, cover_f, "minSN-1ulpneg", True
-    )  # Negative Test
+    # # minSN - 1 ulp G = 0, R = 1, S = 1
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "011", minSNPos, "0", test_f, cover_f, "minSN-1ulppos", True
+    # )  # Positive Test
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "011", minSNPos, "1", test_f, cover_f, "minSN-1ulpneg", True
+    # )  # Negative Test
 
-    # minSN G = 1, R = 0, S = 0
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "100", minSNPos, "0", test_f, cover_f, "minSNpos", True
-    )  # Positive Test
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "100", minSNPos, "1", test_f, cover_f, "minSNneg", True
-    )  # Negative Test
+    # # minSN G = 1, R = 0, S = 0
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "100", minSNPos, "0", test_f, cover_f, "minSNpos", True
+    # )  # Positive Test
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "100", minSNPos, "1", test_f, cover_f, "minSNneg", True
+    # )  # Negative Test
 
-    # minSN + 1 ulp G = 1, R = 0, S = 1
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "101", minSNPos, "0", test_f, cover_f, "minSN+1ulppos", True
-    )  # Positive Test
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "101", minSNPos, "1", test_f, cover_f, "minSN+1ulpneg", True
-    )  # Negative Test
+    # # minSN + 1 ulp G = 1, R = 0, S = 1
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "101", minSNPos, "0", test_f, cover_f, "minSN+1ulppos", True
+    # )  # Positive Test
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "101", minSNPos, "1", test_f, cover_f, "minSN+1ulpneg", True
+    # )  # Negative Test
 
-    # minSN + 2 ulp G = 1, R = 1, S = 0
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "110", minSNPos, "0", test_f, cover_f, "minSN+2ulppos", True
-    )  # Positive Test
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "110", minSNPos, "1", test_f, cover_f, "minSN+2ulpneg", True
-    )  # Negative Test
+    # # minSN + 2 ulp G = 1, R = 1, S = 0
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "110", minSNPos, "0", test_f, cover_f, "minSN+2ulppos", True
+    # )  # Positive Test
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "110", minSNPos, "1", test_f, cover_f, "minSN+2ulpneg", True
+    # )  # Negative Test
 
-    # minSN + 3 ulp G = 1, R = 1, S = 1
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "111", minSNPos, "0", test_f, cover_f, "minSN-3ulppos", True
-    )  # Positive Test
-    mul_div_grs_gen(
-        OP_DIV, precision, rounding_mode, "111", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True
-    )  # Negative Test
+    # # minSN + 3 ulp G = 1, R = 1, S = 1
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "111", minSNPos, "0", test_f, cover_f, "minSN-3ulppos", True
+    # )  # Positive Test
+    # mul_div_grs_gen(
+    #     OP_DIV, precision, rounding_mode, "111", minSNPos, "1", test_f, cover_f, "minSN-3ulpneg", True
+    # )  # Negative Test
 
 
 def tests_div_7_8(precision: str, rounding_mode: str, test_f: TextIO, cover_f: TextIO) -> None:
@@ -1211,7 +1213,7 @@ def tests_div_9(precision: str, rounding_mode: str, test_f: TextIO, cover_f: Tex
 
 def divTests(test_f: TextIO, cover_f: TextIO) -> None:
     # for precision in FLOAT_FMTS:
-    precision = FMT_HALF
+    precision = FMT_BF16
     for rounding_mode in ROUNDING_MODES:
         # tests_div_1_2(precision, rounding_mode, test_f, cover_f)
         tests_div_3_4(precision, rounding_mode, test_f, cover_f)
@@ -1372,8 +1374,8 @@ def main() -> None:
         # convertTests(test_f, cover_f)
         # multiplyTests(test_f, cover_f)
         # addSubTests(test_f, cover_f)
-        fmaTests(test_f, cover_f)
-        # divTests(test_f, cover_f)
+        # fmaTests(test_f, cover_f)
+        divTests(test_f, cover_f)
     # input_filename = "./tests/covervectors/B5_cv.txt"
     # output_filename = "./tests/readable/decoded_results.txt"
     # softfloat_parser.parse_test_vectors(TestRange=(1, 50), file=input_filename, output_file=output_filename)

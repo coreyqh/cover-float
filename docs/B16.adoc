@@ -41,6 +41,8 @@ Cancellation occurs when the most significant digits of two operands subtract to
 
 === Design Choices
 
+. If a_exp and b_exp are both negative, their sum must not exceed the lower exponent bound. This means that a_exp + b_exp > min_exp
+. If a_exp and b_exp are both positive, their sum must not exceed the upper exponent bound. This means that a_exp + b_exp < max_exp
 . Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
 . Mantissas for `d = -p, 0, 1` are not randomly generated but are selected based on obvious cases that produce that specific `d`. Again, since we're only interested in the exponents, we should not be concerned with generating all mantissas randomly.
 
@@ -49,8 +51,21 @@ Cancellation occurs when the most significant digits of two operands subtract to
 All explanation in this document will be done with one instead of both operations because the only difference will be sign assignments. All exponents used in the examples are unbiased exponents.
 
 == General Procedure
-
+We need to ensure that the product exponent $(a_{raw} + b_{raw})$ is high enough that even at the most extreme cancellation $(d = -(2p+1))$, the result stays above the subnormal floor ($min\_raw$). Conversely, it must be low enough that at $d=1$, we don't overflow $max\_raw$.
 d = -2(p+1)
+
+Two situations: ab_exp is max, or c_exp is max. When we multiply a, b, the intermediate product is 2p bits wide
+
+product of a and b cannot be too different from desired, otherwise c would dominate and cancellation would be 0
+
+Unlike B2, we cannot use softfloat to generate desired result because ab has 2p precision and softfloat will remove that and round it to p.
+
+For single precision, the `c` only has `m` bits of precision (23 bits for f32). It can only cancel the top $m$ bits of the product $A \times B$. If you want a cancellation depth of 40, bits 24 through 39 of $A \times B$ must be exactly zero. If we use purely random mantissas for $A$ and $B$, their cross-multiplication will fill that gap with random noise, $C$ won't be able to reach deep enough to cancel it, and your depth will permanently collapse back to $\approx -24$.
+
+Case 1: d < 2m, then we have to generate subnormal numbers, so a_raw and b_raw both need to be the smallest exponent possible
+Case 2: other d, current random generation we have
+Case 3: d = 0: We make the exponent of c larger than ab_exp, so the result can be the same exp as c
+Case 4: d = 1: Again we make the exponent of c larger than ab_exp, and force c to be the largest mantissa so the result definitely carries
 
 == Test Count Breakdown
 

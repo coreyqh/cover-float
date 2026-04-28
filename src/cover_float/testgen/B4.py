@@ -2,22 +2,22 @@
 #
 # Implements the Aharoni et al. (2008) overflow model. Three groups per format:
 #
-#   Group 1A – T_k integer-ULP offsets (k ∈ {-3..+3}), both signs, all 5 rounding
+#   Group 1A - T_k integer-ULP offsets (k in {-3..+3}), both signs, all 5 rounding
 #              modes, all 8 arithmetic operations. Targets the overflow detection
 #              comparator.  (560 vectors / format)
 #
-#   Group 1B – LGS sub-ULP bit positions (7 non-zero {L,G,S} configs), both signs,
+#   Group 1B - LGS sub-ULP bit positions (7 non-zero {L,G,S} configs), both signs,
 #              all 5 rounding modes:
 #                Arithmetic (ADD/SUB/FMADD/FMSUB/FNMADD/FNMSUB): 420 / format
 #                MUL/DIV supplement (LGS=100 only):               20  / format
 #
-#   Group 2  – Clear overflow (intermediate ≫ MaxNorm + 3ulp), both signs, all
+#   Group 2  - Clear overflow (intermediate >> MaxNorm + 3ulp), both signs, all
 #              5 rounding modes, all 8 operations. (80 / format)
 #
-#   Group 3  – Exponent sweep [max_biased-3 .. max_biased+3], both signs, all 5
+#   Group 3  - Exponent sweep [max_biased-3 .. max_biased+3], both signs, all 5
 #              rounding modes, all 8 operations. (560 / format)
 #
-#   Total: 1640 / format × 5 formats = 8200 vectors.
+#   Total: 1640 / format * 5 formats = 8200 vectors.
 
 from pathlib import Path
 from typing import Optional, TextIO
@@ -86,7 +86,7 @@ def _unbiased_max(E: int, bias: int) -> int:
 
 
 def _ulp_exp(E: int, M: int, bias: int) -> int:
-    """Base-2 exponent of 1 ULP at MaxNorm: unbiased_max − M."""
+    """Base-2 exponent of 1 ULP at MaxNorm: unbiased_max - M."""
     return _unbiased_max(E, bias) - M
 
 
@@ -101,7 +101,7 @@ def _maxnorm(sign: int, E: int, M: int) -> str:
 
 
 def _maxnorm_m1ulp(sign: int, E: int, M: int) -> str:
-    """±(MaxNorm − 1ulp): same biased_exp, mantissa LSB cleared."""
+    """±(MaxNorm - 1ulp): same biased_exp, mantissa LSB cleared."""
     return _fp_hex(sign, _max_biased(E), (1 << M) - 2, E, M)
 
 
@@ -137,20 +137,20 @@ def _pow2(d: int, E: int, M: int, bias: int) -> str:
 
 def _k_ulp(k: int, E: int, M: int, bias: int) -> str:
     """
-    k × ulp where ulp = 2^ulp_exp.  Returns a signed float: negative for k < 0.
+    k x ulp where ulp = 2^ulp_exp.  Returns a signed float: negative for k < 0.
     Returns ZERO_PAD for k = 0.
 
-    For |k| ∈ {1, 2, 3}:
+    For |k| in {1, 2, 3}:
       |k|=1 → exactly 2^ulp_exp (biased_exp = ulp_exp+bias, mantissa = 0)
       |k|=2 → exactly 2^(ulp_exp+1)
-      |k|=3 → 1.1₂ × 2^(ulp_exp+1)  (mantissa MSB set)
+      |k|=3 → 1.1₂ x 2^(ulp_exp+1)  (mantissa MSB set)
     """
     if k == 0:
         return ZERO_PAD
     sign = 1 if k < 0 else 0
     abs_k = abs(k)
     ue = _ulp_exp(E, M, bias)
-    # abs_k = 1.frac × 2^(b-1) in binary
+    # abs_k = 1.frac x 2^(b-1) in binary
     b = abs_k.bit_length()
     biased_exp = ue + (b - 1) + bias
     frac = abs_k ^ (1 << (b - 1))
@@ -160,9 +160,9 @@ def _k_ulp(k: int, E: int, M: int, bias: int) -> str:
 
 def _t_k_half(k: int, sign: int, E: int, M: int, bias: int) -> str:
     """
-    ±(T_k / 2) = ±(MaxNorm + k·ulp) / 2 for use in OP_MUL/OP_DIV constructions.
+    ±(T_k / 2) = ±(MaxNorm + k*ulp) / 2 for use in OP_MUL/OP_DIV constructions.
 
-    For k ≤ 0: T_k has biased_exp = max_biased, mantissa = (2^M−1)+k.
+    For k <= 0: T_k has biased_exp = max_biased, mantissa = (2^M-1)+k.
                Halving decrements biased_exp by 1 with mantissa unchanged. Exact.
     For k = 1: T_1 = 2^(unbiased_max+1), T_1/2 = 2^unbiased_max.
                biased_exp = max_biased, mantissa = 0.  Exact.
@@ -170,7 +170,7 @@ def _t_k_half(k: int, sign: int, E: int, M: int, bias: int) -> str:
                We use T_1/2 (biased_exp = max_biased, mantissa = 0) as the
                closest representable value.  The resulting intermediate equals
                T_1 rather than T_2; T_1 is still in the ±3ulp coverage window.
-    For k = 3: T_3/2 = (1 + 2^{-M}) × 2^unbiased_max.
+    For k = 3: T_3/2 = (1 + 2^{-M}) x 2^unbiased_max.
                biased_exp = max_biased, mantissa = 1 (LSB). Exact.
     """
     mb = _max_biased(E)
@@ -179,7 +179,7 @@ def _t_k_half(k: int, sign: int, E: int, M: int, bias: int) -> str:
     elif k == 1:
         return _fp_hex(sign, mb, 0, E, M)
     elif k == 2:
-        # Not representable; use T_1/2 (still within ±3ulp window after ×2)
+        # Not representable; use T_1/2 (still within ±3ulp window after x2)
         return _fp_hex(sign, mb, 0, E, M)
     else:  # k == 3
         return _fp_hex(sign, mb, 1, E, M)
@@ -187,8 +187,8 @@ def _t_k_half(k: int, sign: int, E: int, M: int, bias: int) -> str:
 
 def _gs_b(gs: int, sign: int, E: int, M: int, bias: int) -> str:
     """
-    gs × 2^(sub_ulp_exp) where sub_ulp_exp = ulp_exp − 2.
-    gs ∈ {0,1,2,3}: bit 1 → G, bit 0 → S in the intermediate.
+    gs x 2^(sub_ulp_exp) where sub_ulp_exp = ulp_exp - 2.
+    gs in {0,1,2,3}: bit 1 → G, bit 0 → S in the intermediate.
     gs = 0 returns ZERO_PAD (+0.0).
     """
     if gs == 0:
@@ -233,22 +233,22 @@ def _emit(
 
 def _group1a_tk(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover_f: TextIO) -> None:
     """
-    7 k values × 8 operations × 2 signs × 5 rounding modes = 560 vectors.
+    7 k values x 8 operations x 2 signs x 5 rounding modes = 560 vectors.
 
     For each (k, sign, rm), emit one vector per operation using the exact
     construction that drives the infinite-precision intermediate to ±T_k.
 
     Positive intermediate (+T_k), sign=0:
-      ADD:    A = +MaxNorm,    B = +k·ulp
-      SUB:    A = +MaxNorm,    B = −k·ulp          (A − (−k·ulp) = T_k)
+      ADD:    A = +MaxNorm,    B = +k*ulp
+      SUB:    A = +MaxNorm,    B = -k*ulp          (A - (-k*ulp) = T_k)
       MUL:    A = +(T_k/2),   B = 2.0
       DIV:    A = +(T_k/2),   B = 0.5
-      FMADD:  A = +MaxNorm/2, B = 2.0, C = +k·ulp
-      FMSUB:  A = +MaxNorm/2, B = 2.0, C = −k·ulp  (A·B − C = MaxNorm + k·ulp)
-      FNMADD: A = −MaxNorm/2, B = 2.0, C = −k·ulp  (−(A·B) − C = MaxNorm + k·ulp)
-      FNMSUB: A = −MaxNorm/2, B = 2.0, C = +k·ulp  (−(A·B) + C = MaxNorm + k·ulp)
+      FMADD:  A = +MaxNorm/2, B = 2.0, C = +k*ulp
+      FMSUB:  A = +MaxNorm/2, B = 2.0, C = -k*ulp  (A*B - C = MaxNorm + k*ulp)
+      FNMADD: A = -MaxNorm/2, B = 2.0, C = -k*ulp  (-(A*B) - C = MaxNorm + k*ulp)
+      FNMSUB: A = -MaxNorm/2, B = 2.0, C = +k*ulp  (-(A*B) + C = MaxNorm + k*ulp)
 
-    Negative intermediate (−T_k), sign=1: negate all dominant operands.
+    Negative intermediate (-T_k), sign=1: negate all dominant operands.
     """
     two = _two(E, M, bias)
     half = _half_fp(E, M, bias)
@@ -267,8 +267,8 @@ def _group1a_tk(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover_f: Te
             tk2 = _t_k_half(k, sign, E, M, bias)
 
             # For sign=0 the B operand of ADD/SUB uses the raw k_ulp/neg_k_ulp.
-            # For sign=1 we need to produce −T_k = −MaxNorm − k·ulp:
-            #   ADD(-MaxNorm, -(+k·ulp)) = -MaxNorm - k·ulp = -T_k  (k>0 case)
+            # For sign=1 we need to produce -T_k = -MaxNorm - k*ulp:
+            #   ADD(-MaxNorm, -(+k*ulp)) = -MaxNorm - k*ulp = -T_k  (k>0 case)
             #   i.e. sign=1 ADD uses B = neg_k_ulp, SUB uses B = k_ulp.
             if sign == 0:
                 add_b = k_ulp
@@ -303,21 +303,21 @@ def _group1a_tk(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover_f: Te
 
 def _group1b_arithmetic(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover_f: TextIO) -> None:
     """
-    7 LGS configs × 6 operations × 2 signs × 5 rounding modes = 420 vectors.
+    7 LGS configs x 6 operations x 2 signs x 5 rounding modes = 420 vectors.
 
     For each config (use_m1ulp, gs):
-      A_lgs = MaxNorm−1ulp  if use_m1ulp else MaxNorm
-      B_lgs = gs × 2^(sub_ulp_exp)
+      A_lgs = MaxNorm-1ulp  if use_m1ulp else MaxNorm
+      B_lgs = gs x 2^(sub_ulp_exp)
 
     Positive intermediate +(A_lgs + B_lgs):
       ADD:    A = +A_lgs,  B = +B_lgs
-      SUB:    A = +A_lgs,  B = −B_lgs      (A − (−B) = A + B)
+      SUB:    A = +A_lgs,  B = -B_lgs      (A - (-B) = A + B)
       FMADD:  A = +A_lgs,  B = 1.0, C = +B_lgs
-      FMSUB:  A = +A_lgs,  B = 1.0, C = −B_lgs
-      FNMADD: A = −A_lgs,  B = 1.0, C = −B_lgs  (−(−A·1) − (−B) = A + B)
-      FNMSUB: A = −A_lgs,  B = 1.0, C = +B_lgs  (−(−A·1) + B = A + B)
+      FMSUB:  A = +A_lgs,  B = 1.0, C = -B_lgs
+      FNMADD: A = -A_lgs,  B = 1.0, C = -B_lgs  (-(-A*1) - (-B) = A + B)
+      FNMSUB: A = -A_lgs,  B = 1.0, C = +B_lgs  (-(-A*1) + B = A + B)
 
-    Negative intermediate −(A_lgs + B_lgs): negate all operands.
+    Negative intermediate -(A_lgs + B_lgs): negate all operands.
     """
     one = _one(E, M, bias)
 
@@ -335,11 +335,11 @@ def _group1b_arithmetic(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cov
             b_lgs_neg = _gs_b(gs, 1, E, M, bias)
 
             if sign == 0:
-                # Positive intermediate: A = +A_lgs, B/C = +B_lgs (or −B_lgs for SUB/FMSUB)
+                # Positive intermediate: A = +A_lgs, B/C = +B_lgs (or -B_lgs for SUB/FMSUB)
                 a_add = a_lgs_pos
                 b_add = b_lgs_pos
                 a_sub = a_lgs_pos
-                b_sub = b_lgs_neg  # A − (−B) = A+B
+                b_sub = b_lgs_neg  # A - (-B) = A+B
                 a_fmadd = a_lgs_pos
                 c_fmadd = b_lgs_pos
                 a_fmsub = a_lgs_pos
@@ -353,7 +353,7 @@ def _group1b_arithmetic(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cov
                 a_add = a_lgs_neg
                 b_add = b_lgs_neg
                 a_sub = a_lgs_neg
-                b_sub = b_lgs_pos  # −A − B = −(A+B)
+                b_sub = b_lgs_pos  # -A - B = -(A+B)
                 a_fmadd = a_lgs_neg
                 c_fmadd = b_lgs_neg
                 a_fmsub = a_lgs_neg
@@ -379,7 +379,7 @@ def _group1b_arithmetic(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cov
 
 def _group1b_mul_div(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover_f: TextIO) -> None:
     """
-    1 LGS config × 2 operations × 2 signs × 5 rounding modes = 20 vectors.
+    1 LGS config x 2 operations x 2 signs x 5 rounding modes = 20 vectors.
 
     MUL and DIV cannot independently set G and S bits; multiplying or dividing
     MaxNorm by 1.0 always gives LGS=100 (exact MaxNorm, no rounding bits).
@@ -398,29 +398,29 @@ def _group1b_mul_div(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover_
 
 
 # ---------------------------------------------------------------------------
-# Group 2: Clear overflow (intermediate ≫ MaxNorm + 3ulp)
+# Group 2: Clear overflow (intermediate >> MaxNorm + 3ulp)
 # ---------------------------------------------------------------------------
 
 
 def _group2_clear_overflow(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover_f: TextIO) -> None:
     """
-    8 operations × 2 signs × 5 rounding modes = 80 vectors.
+    8 operations x 2 signs x 5 rounding modes = 80 vectors.
 
-    All constructions target 2·MaxNorm as the intermediate, which lies well
+    All constructions target 2*MaxNorm as the intermediate, which lies well
     above MaxNorm + 3ulp for all supported formats.  The result is always ±Inf
     and the overflow flag is always raised, regardless of rounding mode.
 
-    Positive intermediate (+2·MaxNorm), sign=0:
+    Positive intermediate (+2*MaxNorm), sign=0:
       ADD:    A = +MaxNorm,    B = +MaxNorm
-      SUB:    A = +MaxNorm,    B = −MaxNorm       (A − (−B) = 2·MaxNorm)
+      SUB:    A = +MaxNorm,    B = -MaxNorm       (A - (-B) = 2*MaxNorm)
       MUL:    A = +MaxNorm,    B = 2.0
       DIV:    A = +MaxNorm,    B = 0.5
       FMADD:  A = +MaxNorm/2,  B = 2.0, C = +MaxNorm
-      FMSUB:  A = +MaxNorm/2,  B = 2.0, C = −MaxNorm
-      FNMADD: A = −MaxNorm/2,  B = 2.0, C = −MaxNorm  (−(−Mn/2·2) − (−Mn) = 2Mn)
-      FNMSUB: A = −MaxNorm/2,  B = 2.0, C = +MaxNorm  (−(−Mn/2·2) + Mn = 2Mn)
+      FMSUB:  A = +MaxNorm/2,  B = 2.0, C = -MaxNorm
+      FNMADD: A = -MaxNorm/2,  B = 2.0, C = -MaxNorm  (-(-Mn/2*2) - (-Mn) = 2Mn)
+      FNMSUB: A = -MaxNorm/2,  B = 2.0, C = +MaxNorm  (-(-Mn/2*2) + Mn = 2Mn)
 
-    Negative intermediate (−2·MaxNorm), sign=1: negate dominant operands.
+    Negative intermediate (-2*MaxNorm), sign=1: negate dominant operands.
     """
     two = _two(E, M, bias)
 
@@ -431,57 +431,57 @@ def _group2_clear_overflow(fmt: str, E: int, M: int, bias: int, test_f: TextIO, 
 
         mn_op = _maxnorm(1 - sign, E, M)  # opposite-sign MaxNorm, used only for SUB
         for rm in ROUND_MODES:
-            # ADD: ±MaxNorm + ±MaxNorm = ±2·MaxNorm
+            # ADD: ±MaxNorm + ±MaxNorm = ±2*MaxNorm
             _emit(const.OP_ADD, rm, mn, mn, ZERO_PAD, fmt, test_f, cover_f)
-            # SUB: ±MaxNorm − (∓MaxNorm) = ±2·MaxNorm
+            # SUB: ±MaxNorm - (∓MaxNorm) = ±2*MaxNorm
             _emit(const.OP_SUB, rm, mn, mn_op, ZERO_PAD, fmt, test_f, cover_f)
-            # MUL: ±MaxNorm × 2.0 = ±2·MaxNorm
+            # MUL: ±MaxNorm x 2.0 = ±2*MaxNorm
             _emit(const.OP_MUL, rm, mn, two, ZERO_PAD, fmt, test_f, cover_f)
-            # DIV: ±MaxNorm / 0.5 = ±2·MaxNorm
+            # DIV: ±MaxNorm / 0.5 = ±2*MaxNorm
             _emit(const.OP_DIV, rm, mn, _half_fp(E, M, bias), ZERO_PAD, fmt, test_f, cover_f)
-            # FMADD: (±Mn/2 × 2) + ±Mn = ±2·Mn
+            # FMADD: (±Mn/2 x 2) + ±Mn = ±2*Mn
             _emit(const.OP_FMADD, rm, hmn, two, mn, fmt, test_f, cover_f)
-            # FMSUB: (±Mn/2 × 2) − (∓Mn) = ±2·Mn
+            # FMSUB: (±Mn/2 x 2) - (∓Mn) = ±2*Mn
             _emit(const.OP_FMSUB, rm, hmn, two, mn_op, fmt, test_f, cover_f)
-            # FNMADD: −(∓Mn/2 × 2) − (∓Mn) = ±Mn + ±Mn = ±2·Mn
+            # FNMADD: -(∓Mn/2 x 2) - (∓Mn) = ±Mn + ±Mn = ±2*Mn
             _emit(const.OP_FNMADD, rm, hmn_op, two, mn_op, fmt, test_f, cover_f)
-            # FNMSUB: −(∓Mn/2 × 2) + (±Mn) = ±Mn + ±Mn = ±2·Mn
+            # FNMSUB: -(∓Mn/2 x 2) + (±Mn) = ±Mn + ±Mn = ±2*Mn
             _emit(const.OP_FNMSUB, rm, hmn_op, two, mn, fmt, test_f, cover_f)
 
 
 # ---------------------------------------------------------------------------
-# Group 3: Exponent sweep [max_biased−3 .. max_biased+3]
+# Group 3: Exponent sweep [max_biased-3 .. max_biased+3]
 # ---------------------------------------------------------------------------
 
 
 def _group3_exp_sweep(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover_f: TextIO) -> None:
     """
-    7 exponents × 8 operations × 2 signs × 5 rounding modes = 560 vectors.
+    7 exponents x 8 operations x 2 signs x 5 rounding modes = 560 vectors.
 
-    d = target_biased_exp − max_biased, d ∈ {−3..+3}.
+    d = target_biased_exp - max_biased, d in {-3..+3}.
 
-    d ≤ 0: A = representable number with biased_exp = max_biased+d (all-ones
+    d <= 0: A = representable number with biased_exp = max_biased+d (all-ones
            mantissa). Neutral second operand preserves the exponent.
 
       ADD/SUB:             A ± 0
-      MUL/DIV:             A × 1.0 / A ÷ 1.0
-      FMADD/FMSUB:         (A × 1.0) ± 0
-      FNMADD/FNMSUB:       (−A × 1.0) ∓ 0  →  +(−(−A)) = A for positive sign
+      MUL/DIV:             A x 1.0 / A / 1.0
+      FMADD/FMSUB:         (A x 1.0) ± 0
+      FNMADD/FNMSUB:       (-A x 1.0) ∓ 0  →  +(-(-A)) = A for positive sign
 
     d > 0: No representable finite number has biased_exp > max_biased, so the
            intermediate must be produced via overflow arithmetic.
 
-      MUL:    MaxNorm × 2^d
-      DIV:    MaxNorm ÷ 2^(−d)
-      FMADD/FMSUB/FNMADD/FNMSUB: MaxNorm × 2^d ± 0
+      MUL:    MaxNorm x 2^d
+      DIV:    MaxNorm / 2^(-d)
+      FMADD/FMSUB/FNMADD/FNMSUB: MaxNorm x 2^d ± 0
       ADD:    MaxNorm + MaxNorm  (achieves d=1; structural impossibility for d>1)
-      SUB:    MaxNorm − (−MaxNorm) = 2·MaxNorm (same limitation for d>1)
+      SUB:    MaxNorm - (-MaxNorm) = 2*MaxNorm (same limitation for d>1)
 
     For sign=1 the dominant operand is negated in each construction.
 
     Note on structural impossibilities: OP_ADD and OP_SUB cannot produce an
     intermediate with biased_exp > max_biased+1 using representable inputs, so
-    those (OP_ADD/SUB) × (d=2, d=3) cross bins are excluded from the covergroup.
+    those (OP_ADD/SUB) x (d=2, d=3) cross bins are excluded from the covergroup.
     The test vectors are still emitted (they hit d=1 instead).
     """
     mb = _max_biased(E)
@@ -502,29 +502,29 @@ def _group3_exp_sweep(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover
                     _emit(const.OP_DIV, rm, a, one, ZERO_PAD, fmt, test_f, cover_f)
                     _emit(const.OP_FMADD, rm, a, one, ZERO_PAD, fmt, test_f, cover_f)
                     _emit(const.OP_FMSUB, rm, a, one, ZERO_PAD, fmt, test_f, cover_f)
-                    # FNMADD: −(an × 1) − 0 = −an.  For sign=0: an=a_neg, so −an = +a_pos ✓
-                    #                                 For sign=1: an=a_pos, so −an = −a_pos ✓
+                    # FNMADD: -(an x 1) - 0 = -an.  For sign=0: an=a_neg, so -an = +a_pos ✓
+                    #                                 For sign=1: an=a_pos, so -an = -a_pos ✓
                     _emit(const.OP_FNMADD, rm, an, one, ZERO_PAD, fmt, test_f, cover_f)
                     _emit(const.OP_FNMSUB, rm, an, one, ZERO_PAD, fmt, test_f, cover_f)
 
                 else:  # d > 0
                     scale = _pow2(d, E, M, bias)  # +2^d
-                    scale_inv = _pow2(-d, E, M, bias)  # +2^(−d)
+                    scale_inv = _pow2(-d, E, M, bias)  # +2^(-d)
 
                     mn = _maxnorm(0, E, M)  # +MaxNorm
-                    mn_neg = _maxnorm(1, E, M)  # −MaxNorm
+                    mn_neg = _maxnorm(1, E, M)  # -MaxNorm
 
-                    # Dominant: +MaxNorm for sign=0, −MaxNorm for sign=1
+                    # Dominant: +MaxNorm for sign=0, -MaxNorm for sign=1
                     a = mn_neg if sign == 1 else mn
                     # For FNMADD/FNMSUB: need the opposite sign to produce correct sign
-                    # −(a × 2^d) should equal ±MaxNorm×2^d with the desired sign
+                    # -(a x 2^d) should equal ±MaxNormx2^d with the desired sign
                     an = mn if sign == 1 else mn_neg
 
                     # ADD: MaxNorm + MaxNorm (reaches d=1 intermediate; structural
                     #      impossibility for d>1, covergroup excludes those bins)
                     mn_for_add = mn_neg if sign == 1 else mn
                     _emit(const.OP_ADD, rm, mn_for_add, mn_for_add, ZERO_PAD, fmt, test_f, cover_f)
-                    # SUB: MaxNorm − (−MaxNorm) = 2·MaxNorm
+                    # SUB: MaxNorm - (-MaxNorm) = 2*MaxNorm
                     mn_for_sub_b = mn if sign == 1 else mn_neg
                     _emit(const.OP_SUB, rm, mn_for_add, mn_for_sub_b, ZERO_PAD, fmt, test_f, cover_f)
 
@@ -532,8 +532,8 @@ def _group3_exp_sweep(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover
                     _emit(const.OP_DIV, rm, a, scale_inv, ZERO_PAD, fmt, test_f, cover_f)
                     _emit(const.OP_FMADD, rm, a, scale, ZERO_PAD, fmt, test_f, cover_f)
                     _emit(const.OP_FMSUB, rm, a, scale, ZERO_PAD, fmt, test_f, cover_f)
-                    # FNMADD: −(an × 2^d) − 0.  For sign=0: an=mn_neg, −(−Mn×2^d)=+Mn×2^d ✓
-                    #                             For sign=1: an=mn,    −(+Mn×2^d)=−Mn×2^d ✓
+                    # FNMADD: -(an x 2^d) - 0.  For sign=0: an=mn_neg, -(-Mnx2^d)=+Mnx2^d ✓
+                    #                             For sign=1: an=mn,    -(+Mnx2^d)=-Mnx2^d ✓
                     _emit(const.OP_FNMADD, rm, an, scale, ZERO_PAD, fmt, test_f, cover_f)
                     _emit(const.OP_FNMSUB, rm, an, scale, ZERO_PAD, fmt, test_f, cover_f)
 
@@ -546,13 +546,13 @@ def _group3_exp_sweep(fmt: str, E: int, M: int, bias: int, test_f: TextIO, cover
 def get_mul_inputs(fmt: str, E: int, M: int, bias: int, sign: int, k: Optional[int] = None) -> tuple[str, str]:
     """Return the (A, B) hex operands used in B4 MUL test vectors.
 
-    Group 1A – T_k integer-ULP offset tests (pass k ∈ {-3..+3}):
+    Group 1A - T_k integer-ULP offset tests (pass k in {-3..+3}):
       A = ±T_k/2  (``_t_k_half``),  B = +2.0
-      A × B = ±T_k  in infinite precision.
+      A x B = ±T_k  in infinite precision.
 
-    Group 1B – LGS=100 supplement (pass k=None):
+    Group 1B - LGS=100 supplement (pass k=None):
       A = ±MaxNorm,  B = +1.0
-      A × B = ±MaxNorm exactly  (LGS=100, no rounding bits).
+      A x B = ±MaxNorm exactly  (LGS=100, no rounding bits).
 
     Parameters
     ----------

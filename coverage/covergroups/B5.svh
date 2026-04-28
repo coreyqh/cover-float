@@ -173,7 +173,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     F32_minNorm_p_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - F32_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - F32_M_BITS - 2) : 0]}
     //   implicit leading 1 (norm)           all zero fraction (except for Guard and sticky)
-        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -: F32_M_BITS] == 0) {
+        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -1 -: F32_M_BITS] == 0) {
             type_option.weight = 0;
 
             bins minNorm_p_3ulp[] = {[2'b00 : 2'b11]};
@@ -182,7 +182,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     F32_minNorm_m_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - F32_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - F32_M_BITS - 2) : 0]}
     //   implicit leading 0 (subnorm)           all ones fraction (except for Guard and sticky)
-        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -: F32_M_BITS] == '1) {
+        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -1 -: F32_M_BITS] == '1) {
             type_option.weight = 0;
 
             bins minNorm_m_3ulp[] = {[2'b01 : 2'b11]};
@@ -191,7 +191,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     F64_minNorm_p_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - F64_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - F64_M_BITS - 2) : 0]}
     //   implicit leading 1 (norm)           all zero fraction (except for Guard and sticky)
-        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -: F64_M_BITS] == 0) {
+        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -1 -: F64_M_BITS] == 0) {
             type_option.weight = 0;
 
             bins minNorm_p_3ulp[] = {[2'b00 : 2'b11]};
@@ -200,7 +200,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     F64_minNorm_m_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - F64_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - F64_M_BITS - 2) : 0]}
     //   implicit leading 0 (subnorm)           all ones fraction (except for Guard and sticky)
-        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -: F64_M_BITS] == '1) {
+        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -1 -: F64_M_BITS] == '1) {
             type_option.weight = 0;
 
             bins minNorm_m_3ulp[] = {[2'b01 : 2'b11]};
@@ -209,7 +209,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     F128_minNorm_p_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - F128_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - F128_M_BITS - 2) : 0]}
     //   implicit leading 1 (norm)           all zero fraction (except for Guard and sticky)
-        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -: F128_M_BITS] == 0) {
+        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -1 -: F128_M_BITS] == 0) {
             type_option.weight = 0;
 
             bins minNorm_p_3ulp[] = {[2'b00 : 2'b11]};
@@ -218,7 +218,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     F128_minNorm_m_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - F128_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - F128_M_BITS - 2) : 0]}
     //   implicit leading 0 (subnorm)           all ones fraction (except for Guard and sticky)
-        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -: F128_M_BITS] == '1) {
+        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -1 -: F128_M_BITS] == '1) {
             type_option.weight = 0;
 
             bins minNorm_m_3ulp[] = {[2'b01 : 2'b11]};
@@ -227,7 +227,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     F16_minNorm_p_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - F16_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - F16_M_BITS - 2) : 0]}
     //   implicit leading 1 (norm)           all zero fraction (except for Guard and sticky)
-        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -: F16_M_BITS] == 0) {
+        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -1 -: F16_M_BITS] == 0) {
             type_option.weight = 0;
 
             bins minNorm_p_3ulp[] = {[2'b00 : 2'b11]};
@@ -236,7 +236,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     F16_minNorm_m_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - F16_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - F16_M_BITS - 2) : 0]}
     //   implicit leading 0 (subnorm)           all ones fraction (except for Guard and sticky)
-        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -: F16_M_BITS] == '1) {
+        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -1 -: F16_M_BITS] == '1) {
             type_option.weight = 0;
 
             bins minNorm_m_3ulp[] = {[2'b01 : 2'b11]};
@@ -245,7 +245,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     BF16_minNorm_p_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - BF16_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - BF16_M_BITS - 2) : 0]}
     //   implicit leading 1 (norm)           all zero fraction (except for Guard and sticky)
-        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -: BF16_M_BITS] == 0) {
+        iff (CFI.intermX != 0 && CFI.intermM[INTERM_M_BITS -1 -: BF16_M_BITS] == 0) {
             type_option.weight = 0;
 
             bins minNorm_p_3ulp[] = {[2'b00 : 2'b11]};
@@ -254,7 +254,7 @@ covergroup B5_cg (virtual coverfloat_interface CFI);
     //                                          Guard bit                                       sticky bit
     BF16_minNorm_m_3ulp: coverpoint {CFI.intermM[(INTERM_M_BITS - BF16_M_BITS - 1)], |CFI.intermM[(INTERM_M_BITS - BF16_M_BITS - 2) : 0]}
     //   implicit leading 0 (subnorm)           all ones fraction (except for Guard and sticky)
-        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -: BF16_M_BITS] == '1) {
+        iff (CFI.intermX == 0 && CFI.intermM[INTERM_M_BITS -1 -: BF16_M_BITS] == '1) {
             type_option.weight = 0;
 
             bins minNorm_m_3ulp[] = {[2'b01 : 2'b11]};

@@ -1,3 +1,18 @@
+# Copyright (C) 2025-26 Harvey Mudd College
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, any work distributed under the
+# License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions
+# and limitations under the License.
+
 import concurrent.futures
 import logging
 import logging.handlers
@@ -8,7 +23,7 @@ from typing import Any, Callable, TextIO
 from rich.progress import TaskID
 
 import cover_float.common.log as log
-from cover_float.scripts.parse_testvectors import auto_parse
+from cover_float.scripts.postprocess import postprocess_testvectors
 
 GLOBAL_MODELS: dict[
     str, Callable[[Path, log.StatusReporter, concurrent.futures.Executor], concurrent.futures.Future[None]]
@@ -63,15 +78,18 @@ def _run_model_by_name(
     general_handler.addFilter(log.ExcludeStatusFilter())
     model_logger.addHandler(general_handler)
 
-    with tv_path.open("w") as test_f, cv_path.open("w") as cover_f:
-        try:
+    try:
+        with tv_path.open("w") as test_f, cv_path.open("w") as cover_f:
             GLOBAL_MODEL_FUNCTIONS[model_name](test_f, cover_f)
-        except Exception as e:
-            logger = logging.getLogger(model_name)
-            logger.exception(f"[bold red]Fatal Error in {model_name}[/] ", exc_info=e, extra={"markup": True})
 
-    if post_process:
-        auto_parse(model_name, str(output_dir))
+        if post_process:
+            test_vectors_dir = output_dir / "testvectors"
+            readable_vectors_dir = output_dir / "readable"
+            processed_vectors_dir = output_dir / "processed"
+            postprocess_testvectors(model_name, test_vectors_dir, processed_vectors_dir, readable_vectors_dir)
+    except Exception as e:
+        logger = logging.getLogger(model_name)
+        logger.exception(f"[bold red]Fatal Error in {model_name}[/] ", exc_info=e, extra={"markup": True})
 
 
 def register_model(

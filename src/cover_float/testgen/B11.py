@@ -1,3 +1,18 @@
+# Copyright (C) 2025-26 Harvey Mudd College
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, any work distributed under the
+# License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions
+# and limitations under the License.
+
 # B11
 
 # We need slightly modified rules to cover this completely,
@@ -117,7 +132,11 @@ def main(test_f: TextIO, cover_f: TextIO) -> None:
         with bins_path.open("w") as generated_coverage:
             sig_gen = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], "b11" + fmt)
             sigs = [int(sig, 2) for sig in sig_gen.generate(generated_coverage)]
-            interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+
+            if constants.config.FULL_COVERAGE_TESTGEN:
+                interesting_shifts = interesting_shift_ranges(2, 2, fmt)
+            else:
+                interesting_shifts = interesting_shift_ranges(0, 0, fmt)
 
             logger.status(f"Generating {fmt} Tests")
             interesting_tests(sigs, interesting_shifts, fmt, test_f, cover_f)

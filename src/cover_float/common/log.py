@@ -1,11 +1,28 @@
+# Copyright (C) 2025-26 Harvey Mudd College
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, any work distributed under the
+# License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions
+# and limitations under the License.
+
 from __future__ import annotations
 
 import logging
 import logging.handlers
 import multiprocessing
+import threading
 import time
 from collections.abc import Generator, Iterable, Sized
 from contextlib import contextmanager
+from multiprocessing.connection import Connection
 from queue import Queue
 from types import TracebackType
 from typing import Any, Callable, TypeVar
@@ -144,16 +161,6 @@ class OptionalColumn(ProgressColumn):
         return self._real_col.render(task)
 
 
-class LoggingHandler(logging.Handler):
-    def __init__(self, reporter: StatusReporter, model_name: str) -> None:
-        super().__init__()
-        self.reporter = reporter
-        self.model_name = model_name
-
-    def emit(self, record: logging.LogRecord) -> None:
-        self.reporter.status_update(self.model_name, record.msg)
-
-
 class AsyncLoggingHandler(logging.handlers.QueueListener):
     def __init__(self, reporter: StatusReporter, listen_to: Queue[Any], *handlers: logging.Handler) -> None:
         super().__init__(listen_to, *handlers)
@@ -171,6 +178,12 @@ class AsyncLoggingHandler(logging.handlers.QueueListener):
                 model_name = record["args"][0]
                 self.reporter.progress.remove_task(self.reporter.active_status_bars[model_name])
                 self.reporter.active_status_bars.pop(model_name)
+            elif action == "add_task":
+                task_id = self.reporter.progress.add_task(*record["args"], **record["kwargs"])
+                task_id_pipe: Connection = record["pipe_end"]
+                task_id_pipe.send(task_id)
+            elif action == "refresh":
+                self.reporter.progress.refresh()
             else:
                 logging.info(f"Failed to Log {record}")
         except Exception as e:
@@ -198,7 +211,7 @@ class ProgressAwareLogHandler(logging.Handler):
                 traceback=None,
                 message_renderable=message,
             )
-            self.progress.log(renderable)
+            self.progress.print(renderable)
         except Exception:
             self.handleError(record)
 
@@ -213,6 +226,7 @@ class StatusReporter:
             OptionalColumn(lambda t: t.total is not None, BarColumn()),
             OptionalColumn(lambda t: t.fields.get("m_of_n", False), MofNCompleteColumn()),
             OptionalColumn(lambda t: t.total is not None, TextColumn("{task.percentage:>3.0f}%")),
+            auto_refresh=False,
         )
 
         self.manager = multiprocessing.Manager()
@@ -223,26 +237,56 @@ class StatusReporter:
         self.queue_listener = AsyncLoggingHandler(self, self.logging_queue, self.rich_handler)
         logging.getLogger().addHandler(logging.handlers.QueueHandler(self.logging_queue))
 
+        # This keeps all of the refreshes in one thread, eliminating all race conditions
+        self._refresh_thread: threading.Timer = threading.Timer(0.1, self._reset_refresh_timer)
+        self._refresh_thread.daemon = True
+
+        self.exiting = False
+
+    def _reset_refresh_timer(self) -> None:
+        self.logging_queue.put({"action": "refresh", "args": [], "kwargs": {}})
+        self._refresh_thread = threading.Timer(0.1, self._reset_refresh_timer)
+
+        if not self.exiting:
+            self._refresh_thread.daemon = True
+            self._refresh_thread.start()
+
     def __enter__(self) -> StatusReporter:
         self.progress.start()
         self.queue_listener.start()
+        self._refresh_thread.start()
 
         return self
 
     def __exit__(self, exc_type: type | None, exc_value: Exception | None, traceback: TracebackType | None) -> None:
+        self.exiting = True
+
+        if self._refresh_thread:
+            self._refresh_thread.cancel()
+
+            # Cancel stops the timer from firing, but if the firing is already queued, join the thread
+            if self._refresh_thread.is_alive():
+                self._refresh_thread.join()
+
         self.queue_listener.stop()
         self.progress.stop()
 
     def start_model(self, model_name: str) -> TaskID:
-        task_id = self.progress.add_task(f"{model_name}: ", status="Test Generation", total=None)
+        parent_connection, child_connection = multiprocessing.Pipe()
+        self.logging_queue.put(
+            {
+                "action": "add_task",
+                "args": [f"{model_name}: "],
+                "kwargs": {"status": "Test Generation", "total": None},
+                "pipe_end": child_connection,
+            }
+        )
+        task_id: TaskID = parent_connection.recv()
         self.active_status_bars[model_name] = task_id
+
         return task_id
 
     def stop_model(self, model_name: str) -> None:
         # This can be a race condition, if there is logging still in the queue
         # so we must enqueue the destruction
         self.logging_queue.put({"action": "remove_task", "args": [model_name], "kwargs": {}})
-
-    def status_update(self, model_name: str, status_message: str) -> None:
-        task = self.active_status_bars[model_name]
-        self.progress.update(task, status=status_message)

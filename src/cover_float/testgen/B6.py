@@ -1,3 +1,18 @@
+# Copyright (C) 2025-26 Harvey Mudd College
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, any work distributed under the
+# License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific language governing permissions
+# and limitations under the License.
+
 # Lamarr
 # B6 Model
 
@@ -238,7 +253,7 @@ def get_grs_mant(operation: str, precision: str, a_exp: int, b_exp: int, hashStr
         a_int = 0
         b_int = 0
 
-        if grs_int == 7 or grs_int == 5:  # G = 1, R = 1, S = 1
+        if grs_int == 7 or grs_int == 5:
             # b and a mantissas have the same range
             b_min_range = b_min
             b_max_range = (2 * b_max) // 3

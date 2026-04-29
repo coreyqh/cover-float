@@ -3,7 +3,7 @@
 :toclevels: 3
 :sectnums:
 
-== B12 Add: Cancellation
+== B16 Multiply-Add: Cancellation
 
 Aharoni et al.
 

@@ -1,28 +1,18 @@
 """
 Angela Zheng (angela20061015@gmail.com)
 
-B16. Multiply-Add: Cancellation
-This model tests every possible value for cancellation.
-For the difference between the exponent of the intermediate result and the
-maximum between the exponents of the addend and the multiplication result,
-test all values in the range:
- [-(2 * p + 1), 1].
-
-My plan:
-For each of the fmadd, fmsub, fnmadd, fnmsub operations:
-
-We must ensure that a_exp is the largest exp out of the
-three operands because with +c alone would only be able to cancel -p. So,
-randomly generate a_exp, and generate b_exp (would probably be negative) so that b_exp = d
-and make c_exp = a_exp + b_exp and generate a_m, b_m, and c_m so that they don't result in carry or
-more cancellation.
+Created: 4/28/2026
+Last Modified: 4/28/2026
 """
 
+import logging
 import random
+from dataclasses import dataclass
 from pathlib import Path
 from random import seed
-from typing import TextIO
+from typing import TextIO, cast
 
+import cover_float.common.log as log
 from cover_float.common.constants import (
     BIAS,
     EXPONENT_BITS,
@@ -42,6 +32,9 @@ from cover_float.common.util import (
     reproducible_hash,
 )
 from cover_float.reference import run_and_store_test_vector
+from cover_float.testgen.model import register_model
+
+logger: log.ModelLogger = cast(log.ModelLogger, logging.getLogger("B16"))
 
 OPS = [OP_FMADD, OP_FMSUB, OP_FNMADD, OP_FNMSUB]
 SOLVER_OPS = {
@@ -52,210 +45,190 @@ SOLVER_OPS = {
 }
 
 
-def extract_unbiased_exp(fp_hex: str, fmt: str) -> int:
-    bits = int(fp_hex, 16)
-    exp_bits = EXPONENT_BITS[fmt]
-    mant_bits = MANTISSA_BITS[fmt]
-    bias = BIAS[fmt]
-    exp_mask = (1 << exp_bits) - 1
-    exp = (bits >> mant_bits) & exp_mask
-    return exp - bias
+@dataclass(frozen=True)
+class FloatFormat:
+    name: str
+    m_bits: int
+    e_bits: int
+    bias: int
+    min_exp: int
+    max_exp: int
+
+    @property
+    def p(self) -> int:
+        return self.m_bits + 1
+
+    @classmethod
+    def from_name(cls, name: str) -> "FloatFormat":
+        min_e, max_e = UNBIASED_EXP[name]
+        return cls(name, MANTISSA_BITS[name], EXPONENT_BITS[name], BIAS[name], min_e, max_e)
+
+    def to_hex(self, sign: int, exp: int, mant: int) -> str:
+        return decimal_components_to_hex(self.name, sign, exp + self.bias, mant)
+
+    def get_exp(self, fp_hex: str) -> int:
+        bits = int(fp_hex, 16)
+        return ((bits >> self.m_bits) & ((1 << self.e_bits) - 1)) - self.bias
 
 
-def generate_deep_cancel(fmt: str, d: int, op: str, test_f: TextIO, cover_f: TextIO) -> bool:
-    bias = BIAS[fmt]
-    min_raw, max_raw = UNBIASED_EXP[fmt]
+class B16Generator:
+    def __init__(self, fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
+        self.f = FloatFormat.from_name(fmt)
+        self.test_f, self.cover_f = test_f, cover_f
 
-    a_sign, b_sign = random.randint(0, 1), random.randint(0, 1)
+    def get_op_details(self, op: str, a: str, b: str, c: str) -> tuple[int, int]:
+        """Helper to get actual product exp and final result exp."""
+        p_hex = get_result_from_ref(OP_MUL, a, b, "0", self.f.name)
+        r_hex = get_result_from_ref(op, a, b, c, self.f.name)
+        return self.f.get_exp(p_hex), self.f.get_exp(r_hex)
 
-    # Force Result to EXACTLY 0. Zero has an exponent of (min_raw - 1)
-    res_raw = min_raw - 1
-    res_m = 0
-    res_sign = 0
-    res_hex = decimal_components_to_hex(fmt, res_sign, res_raw + bias, res_m)
+    def store(self, op: str, a: str, b: str, c: str) -> None:
+        v = generate_test_vector(op, int(a, 16), int(b, 16), int(c, 16), self.f.name, self.f.name)
+        run_and_store_test_vector(v, self.test_f, self.cover_f)
 
-    # Calculate required product exponent to achieve depth d relative to 0
-    target_prod_exp = res_raw - d
+    def get_random_split(self, target_exp: int) -> tuple[int, int]:
+        """Splits a target product exponent into two valid operand exponents."""
+        lo, hi = self.f.min_exp, self.f.max_exp
+        a_min, a_max = max(lo, target_exp - hi), min(hi, target_exp - lo)
+        a = random.randint(a_min, a_max)
+        return a, target_exp - a
 
-    a_raw_min = max(min_raw, target_prod_exp - max_raw)
-    a_raw_max = min(max_raw, target_prod_exp - min_raw)
-
-    if a_raw_min > a_raw_max:
-        return False
-
-    a_raw = random.randint(a_raw_min, a_raw_max)
-    b_raw = target_prod_exp - a_raw
-
-    # Keep mantissas 0 so A*B is exactly representable, guaranteeing the solver succeeds
-    a_m, b_m = 0, 0
-
-    a_hex = decimal_components_to_hex(fmt, a_sign, a_raw + bias, a_m)
-    b_hex = decimal_components_to_hex(fmt, b_sign, b_raw + bias, b_m)
-
-    try:
-        c_hex = get_result_from_ref(SOLVER_OPS[op], a_hex, b_hex, res_hex, fmt)
-        vector = generate_test_vector(op, int(a_hex, 16), int(b_hex, 16), int(c_hex, 16), fmt, fmt)
-        run_and_store_test_vector(vector, test_f, cover_f)
+    def generate_same_exp(self, d: int, op: str) -> bool:
+        f, m = self.f, self.f.m_bits
+        a_s, b_s = random.randint(0, 1), random.randint(0, 1)
+        c_s = (a_s ^ b_s) if op in [OP_FMADD, OP_FNMADD] else (a_s ^ b_s) ^ 1
+        target_p_exp = random.randint(0, f.max_exp)
+        a_r = random.randint(0, target_p_exp)
+        b_r = target_p_exp - a_r
+        c_r = a_r + b_r + 3
+        a_m, b_m, c_m = random.getrandbits(m), random.getrandbits(m), random.getrandbits(m)
+        a_h = f.to_hex(a_s, a_r, a_m)
+        b_h = f.to_hex(b_s, b_r, b_m)
+        c_h = f.to_hex(c_s, c_r, c_m)
+        r_hex = get_result_from_ref(op, a_h, b_h, c_h, f.name)
+        r_exp = f.get_exp(r_hex)
+        if r_exp != c_r:
+            return False
+        self.store(op, a_h, b_h, c_h)
         return True
-    except Exception:
+
+    def generate_shallow_cancel(self, d: int, op: str) -> bool:
+        f, m = self.f, self.f.m_bits
+        a_s, b_s = random.randint(0, 1), random.randint(0, 1)
+
+        # pick a safe product exponent away from underflow/overflow
+        target_p_exp = random.randint(f.min_exp + 10, f.max_exp - 10)
+        a_min = max(f.min_exp + 5, target_p_exp - (f.max_exp - 5))
+        a_max = min(f.max_exp - 5, target_p_exp - (f.min_exp + 5))
+        a_r = random.randint(a_min, a_max)
+        b_r = target_p_exp - a_r
+
+        # use non-extreme mantissas to avoid accidental exponent carry in a*b
+        a_m = random.randint(1 << (m - 2), (1 << m) - 1)
+        b_m = random.randint(1 << (m - 2), (1 << m) - 1)
+        a_h = f.to_hex(a_s, a_r, a_m)
+        b_h = f.to_hex(b_s, b_r, b_m)
+        p_exp = self.f.get_exp(get_result_from_ref(OP_MUL, a_h, b_h, "0", f.name))
+        res_raw = p_exp + d
+
+        # pick a mid-range result mantissa so rounding is less likely to change exponent
+        r_s = random.randint(0, 1)
+        res_m = random.randint(1 << (m - 2), (1 << (m - 1)) - 1)
+        res_h = f.to_hex(r_s, res_raw, res_m)
+        c_h = get_result_from_ref(SOLVER_OPS[op], a_h, b_h, res_h, f.name)
+        c_exp = f.get_exp(c_h)
+
+        # for shallow cancellation, c should be aligned with the product
+        if c_exp != p_exp:
+            return False
+        # Final validation
+        p_exp2, r_exp = self.get_op_details(op, a_h, b_h, c_h)
+        if (r_exp - max(p_exp2, c_exp)) == d:
+            self.store(op, a_h, b_h, c_h)
+            return True
+        return False
+
+    def generate_deep_cancel(self, d: int, op: str) -> bool:
+        f = self.f
+        a_s, b_s, r_s = random.randint(0, 1), random.randint(0, 1), random.randint(0, 1)
+        res_raw, res_m, a_m, b_m = f.min_exp - 1, 0, 0, 0
+        target_p_exp = res_raw - d
+        split = self.get_random_split(target_p_exp)
+        a_r, b_r = split
+        a_h, b_h = f.to_hex(a_s, a_r, a_m), f.to_hex(b_s, b_r, b_m)
+        p_exp = self.f.get_exp(get_result_from_ref(OP_MUL, a_h, b_h, "0", f.name))
+        res_h = f.to_hex(r_s, p_exp + d, res_m)
+        c_h = get_result_from_ref(SOLVER_OPS[op], a_h, b_h, res_h, f.name)
+        p_exp, r_exp = self.get_op_details(op, a_h, b_h, c_h)
+        c_exp = f.get_exp(c_h)
+        if (r_exp - max(p_exp, c_exp)) == d:
+            self.store(op, a_h, b_h, c_h)
+            return True
+        return False
+
+    def generate(self, d: int, op: str) -> bool:
+        f, m = self.f, self.f.m_bits
+        a_s, b_s, r_s = random.randint(0, 1), random.randint(0, 1), random.randint(0, 1)
+
+        if d <= -(2 * f.p - 1):
+            return self.generate_deep_cancel(d, op)
+        elif d in [-6, -5, -4, -3, -2, -1]:
+            return self.generate_shallow_cancel(d, op)
+        elif d == 0:
+            return self.generate_same_exp(d, op)
+        elif d == 1:  # need result > operands
+            a_raw, b_raw = random.randint(0, f.max_exp // 2), random.randint(0, f.max_exp // 2)
+            c_s = 0 if op in [OP_FMADD, OP_FNMADD] else 1
+            a_h = f.to_hex(a_s, a_raw, random.getrandbits(m))
+            b_h = f.to_hex(a_s, b_raw, random.getrandbits(m))
+            c_h = f.to_hex(c_s, a_raw + b_raw + 1, (1 << m) - 1)
+            self.store(op, a_h, b_h, c_h)
+            return True
+        else:
+            valid_lo = max(f.min_exp, (f.min_exp - 1) - d)
+            valid_hi = min(f.max_exp, f.max_exp - d)
+            target_p_exp = random.randint(valid_lo, valid_hi)
+
+        # generate a and b
+        split = self.get_random_split(target_p_exp)
+        a_r, b_r = split
+
+        # special mantissas for deep cancellation
+        if d < -m:
+            target_depth = abs(d)
+            k = max(0, 2 * m - target_depth) // 2
+            a_m, b_m, res_m = 1 << k, 1 << (max(0, 2 * m - target_depth) - k), 0
+        else:
+            a_m, b_m, res_m = [random.getrandbits(m) for _ in range(3)]
+
+        a_h, b_h = f.to_hex(a_s, a_r, a_m), f.to_hex(b_s, b_r, b_m)
+
+        # solve for c
+        p_exp = self.f.get_exp(get_result_from_ref(OP_MUL, a_h, b_h, "0", f.name))
+        res_h = f.to_hex(r_s, p_exp + d, res_m)
+        c_h = get_result_from_ref(SOLVER_OPS[op], a_h, b_h, res_h, f.name)
+
+        p_exp, r_exp = self.get_op_details(op, a_h, b_h, c_h)
+        c_exp = f.get_exp(c_h)
+
+        if (r_exp - max(p_exp, c_exp)) == d:
+            self.store(op, a_h, b_h, c_h)
+            return True
         return False
 
 
-# Maybe see whether ab_exp is greater than c_exp
-# force c_exp to be greater than ab_exp
-def generate_same_exp(fmt: str, d: int, op: str, test_f: TextIO, cover_f: TextIO) -> bool:
-    m = MANTISSA_BITS[fmt]
-    bias = BIAS[fmt]
-    max_raw = UNBIASED_EXP[fmt][1]
-
-    a_sign, b_sign = random.randint(0, 1), random.randint(0, 1)
-    # res_sign = a_sign ^ b_sign
-    c_sign = (a_sign ^ b_sign) if op in [OP_FMADD, OP_FNMADD] else not (a_sign ^ b_sign)
-
-    # We have to make sure c_exp is the greatest, so a_exp and b_exp must both be positive
-    target_prod_exp = random.randint(0, max_raw)
-    a_raw = random.randint(0, target_prod_exp)
-    b_raw = target_prod_exp - a_raw
-    c_raw = a_raw + b_raw + 3
-
-    a_m, b_m, c_m = random.getrandbits(m), random.getrandbits(m), random.getrandbits(m)
-
-    a_hex = decimal_components_to_hex(fmt, a_sign, a_raw + bias, a_m)
-    b_hex = decimal_components_to_hex(fmt, b_sign, b_raw + bias, b_m)
-
-    # prod_hex = get_result_from_ref(OP_MUL, a_hex, b_hex, "0", fmt)
-    # ab_exp = extract_unbiased_exp(prod_hex, fmt)
-    # c_raw = ab_exp + 2
-
-    # if not (min_raw <= res_raw <= max_raw):
-    #     return False
-
-    # res_hex = decimal_components_to_hex(fmt, res_sign, res_raw + bias, res_m)
-
-    # c_hex = get_result_from_ref(SOLVER_OPS[op], a_hex, b_hex, res_hex, fmt)
-    c_hex = decimal_components_to_hex(fmt, c_sign, c_raw + bias, c_m)
-
-    prod_hex = get_result_from_ref(op, a_hex, b_hex, c_hex, fmt)
-    prod_exp = extract_unbiased_exp(prod_hex, fmt)
-    if prod_exp != c_raw:
-        return False
-    vector = generate_test_vector(op, int(a_hex, 16), int(b_hex, 16), int(c_hex, 16), fmt, fmt)
-    run_and_store_test_vector(vector, test_f, cover_f)
-    return True
-
-
-def generate_carry(fmt: str, d: int, op: str, test_f: TextIO, cover_f: TextIO) -> bool:
-    m = MANTISSA_BITS[fmt]
-    bias = BIAS[fmt]
-    max_raw = UNBIASED_EXP[fmt][1]
-
-    a_m, b_m = random.getrandbits(m), random.getrandbits(m)
-    c_m = (1 << m) - 1
-
-    # Exponents are guarded against overflow by dividing max exponent by two to
-    # account for that the intermediate product exponent is a_raw + b_raw. But as d = 0, both
-    # a_exp and b_exp need to be positive to make C greatest
-    a_raw = random.randint(0, (max_raw - 1) // 2)
-    b_raw = random.randint(0, (max_raw - 1) // 2)
-    c_raw = a_raw + b_raw + 1
-
-    a_sign = random.randint(0, 1)
-    b_sign = a_sign
-    c_sign = 0 if op in [OP_FMADD, OP_FNMADD] else 1
-
-    a_hex = decimal_components_to_hex(fmt, a_sign, a_raw + bias, a_m)
-    b_hex = decimal_components_to_hex(fmt, b_sign, b_raw + bias, b_m)
-    c_hex = decimal_components_to_hex(fmt, c_sign, c_raw + bias, c_m)
-
-    vector = generate_test_vector(op, int(a_hex, 16), int(b_hex, 16), int(c_hex, 16), fmt, fmt)
-    run_and_store_test_vector(vector, test_f, cover_f)
-    return True
-
-
-def generate_standard(fmt: str, d: int, op: str, test_f: TextIO, cover_f: TextIO) -> bool:
-    m = MANTISSA_BITS[fmt]
-    bias = BIAS[fmt]
-    min_raw, max_raw = UNBIASED_EXP[fmt]
-
-    a_sign, b_sign = random.randint(0, 1), random.randint(0, 1)
-    res_sign = random.randint(0, 1)
-
-    valid_min_prod = max(min_raw, (min_raw - 1) - d)
-    valid_max_prod = min(max_raw, max_raw - d)
-
-    if valid_min_prod > valid_max_prod:
-        return False
-
-    target_prod_exp = random.randint(valid_min_prod, valid_max_prod)
-
-    a_raw_min = max(min_raw, target_prod_exp - max_raw)
-    a_raw_max = min(max_raw, target_prod_exp - min_raw)
-
-    if a_raw_min > a_raw_max:
-        return False
-
-    a_raw = random.randint(a_raw_min, a_raw_max)
-    b_raw = target_prod_exp - a_raw
-
-    if d < -m:
-        target_depth = abs(d)
-        sum_kj = max(0, 2 * m - target_depth)
-        k = sum_kj // 2
-        j = sum_kj - k
-        a_m = 1 << k
-        b_m = 1 << j
-        res_m = 0
-    else:
-        a_m, b_m, res_m = random.getrandbits(m), random.getrandbits(m), random.getrandbits(m)
-
-    a_hex = decimal_components_to_hex(fmt, a_sign, a_raw + bias, a_m)
-    b_hex = decimal_components_to_hex(fmt, b_sign, b_raw + bias, b_m)
-
-    prod_hex = get_result_from_ref(OP_MUL, a_hex, b_hex, "0", fmt)
-    ab_exp = extract_unbiased_exp(prod_hex, fmt)
-
-    res_raw = ab_exp + d
-
-    if not (min_raw - 1 <= res_raw <= max_raw):
-        return False
-
-    res_hex = decimal_components_to_hex(fmt, res_sign, res_raw + bias, res_m)
-
-    try:
-        c_hex = get_result_from_ref(SOLVER_OPS[op], a_hex, b_hex, res_hex, fmt)
-        vector = generate_test_vector(op, int(a_hex, 16), int(b_hex, 16), int(c_hex, 16), fmt, fmt)
-        run_and_store_test_vector(vector, test_f, cover_f)
-        return True
-    except Exception:
-        return False
-
-
-def main() -> None:
+@register_model("B16")
+def main(test_f: TextIO, cover_f: TextIO) -> None:
     with (
-        Path("./tests/testvectors/B16_tv.txt").open("w") as test_f,
-        Path("./tests/covervectors/B16_cv.txt").open("w") as cover_f,
+        Path("./tests/testvectors/B16_tv.txt").open("w") as tf,
+        Path("./tests/covervectors/B16_cv.txt").open("w") as cf,
     ):
-        for fmt in FLOAT_FMTS:
-            p = MANTISSA_BITS[fmt] + 1
-            for d in range(-(2 * p + 1), 2):
+        for fmt_name in FLOAT_FMTS:
+            gen = B16Generator(fmt_name, tf, cf)
+            for d in range(-(2 * gen.f.p + 1), 2):
+                retries = 15
                 for op in OPS:
-                    seed(reproducible_hash(f"{fmt}_b16_{d}_{op}"))
-
-                    max_retries = 5
-                    for _ in range(max_retries):
-                        success = False
-
-                        if d <= -(2 * p - 1):
-                            success = generate_deep_cancel(fmt, d, op, test_f, cover_f)
-                        elif d == 0:
-                            success = generate_same_exp(fmt, d, op, test_f, cover_f)
-                        elif d == 1:
-                            success = generate_carry(fmt, d, op, test_f, cover_f)
-                        else:
-                            success = generate_standard(fmt, d, op, test_f, cover_f)
-                        if success:
+                    seed(reproducible_hash(f"{fmt_name}_b16_{d}_{op}"))
+                    for _ in range(retries):
+                        if gen.generate(d, op):
                             break
-
-
-if __name__ == "__main__":
-    main()

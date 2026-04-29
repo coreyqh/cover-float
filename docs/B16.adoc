@@ -46,16 +46,15 @@ Cancellation occurs when the most significant digits of two operands subtract to
 
 . If a_exp and b_exp are both negative, their sum must not exceed the lower exponent bound. This means that a_exp + b_exp > min_exp
 . If a_exp and b_exp are both positive, their sum must not exceed the upper exponent bound. This means that a_exp + b_exp < max_exp
-. Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
-. Mantissas for `d = -p, 0, 1` are not randomly generated but are selected based on obvious cases that produce that specific `d`. Again, since we're only interested in the exponents, we should not be concerned with generating all mantissas randomly.
+. Even though theoretically whether the product exponent is greater or the addend operand is greater should be random, we have the addend exponent to be greater for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, this difference should not be of main concern, but could be a future improvement
+. For extremely deep cancellation cases the only possible result is Zero
 
 === Notes (TODO: CHANGE NOTES)
 
 All explanation in this document will be done with one instead of both operations because the only difference will be sign assignments. All exponents used in the examples are unbiased exponents.
 
 == General Procedure
-We need to ensure that the product exponent $(a_{raw} + b_{raw})$ is high enough that even at the most extreme cancellation $(d = -(2p+1))$, the result stays above the subnormal floor ($min\_raw$). Conversely, it must be low enough that at $d=1$, we don't overflow $max\_raw$.
-d = -2(p+1)
+We need to ensure that the product exponent `a_raw` and `b_raw` is high enough that even at the most extreme cancellation `d = -(2p+1)`, the result stays above the subnormal floor `min_raw`. Conversely, it must be low enough that at `d=1`, we don't overflow `max_raw`.
 
 Two situations: ab_exp is max, or c_exp is max. When we multiply a, b, the intermediate product is 2p bits wide
 

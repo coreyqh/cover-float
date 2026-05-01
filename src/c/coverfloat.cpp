@@ -2205,10 +2205,15 @@ std::pair<int, std::string> reference_model(
 
             if (exp != 0) {
                 sig |= (1 << 23);
-                intermResult.sig = mp::cpp_int(sig) << (INTERM_SIG_LENGTH - 2 - 23);
             }
 
+            intermResult.sig = mp::cpp_int(sig) << (INTERM_SIG_LENGTH - 2 - 23);
+
             intermResult.exp = exp;
+
+            if (exp == 0 && sig != 0) {
+                intermResult.exp = -(INTERM_SIG_LENGTH - 2 - safe_msb(intermResult.sig));
+            }
 
             intermResult.sign = signF32UI(result);
             break;

@@ -860,7 +860,7 @@ function automatic int effective_exponent (
           break;
   end
 
-  return - shift - 1 - bias;
+  return min_norm_exp - shift - 1;
 
 endfunction
 

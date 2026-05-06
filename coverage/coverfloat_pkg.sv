@@ -448,12 +448,15 @@ package coverfloat_pkg;
                 logic [F16_E_BITS-1:0] exp_a = a[14:10];
                 logic [F16_E_BITS-1:0] exp_b = b[14:10];
 
+                logic [F16_M_BITS-1:0] sig_a = a[F16_M_UPPER:0];
+                logic [F16_M_BITS-1:0] sig_b = b[F16_M_UPPER:0];
+
                 E_a = (exp_a == 0) ?
-                        (1 - F16_EXP_BIAS) :
+                        (0 - F16_EXP_BIAS - count_leading_zeros(sig_a, F16_M_BITS)) :
                         (int'(exp_a) - F16_EXP_BIAS);
 
                 E_b = (exp_b == 0) ?
-                        (1 - F16_EXP_BIAS) :
+                        (0 - F16_EXP_BIAS - count_leading_zeros(sig_b, F16_M_BITS)) :
                         (int'(exp_b) - F16_EXP_BIAS);
 
                 bias = F16_EXP_BIAS;
@@ -467,12 +470,15 @@ package coverfloat_pkg;
                 logic [BF16_E_BITS-1:0] exp_a = a[14:7];
                 logic [BF16_E_BITS-1:0] exp_b = b[14:7];
 
+                logic [BF16_M_BITS-1:0] sig_a = a[BF16_M_UPPER:0];
+                logic [BF16_M_BITS-1:0] sig_b = b[BF16_M_UPPER:0];
+
                 E_a = (exp_a == 0) ?
-                        (1 - BF16_EXP_BIAS) :
+                        (0 - BF16_EXP_BIAS - count_leading_zeros(sig_a, BF16_M_BITS)) :
                         (int'(exp_a) - BF16_EXP_BIAS);
 
                 E_b = (exp_b == 0) ?
-                        (1 - BF16_EXP_BIAS) :
+                        (0 - BF16_EXP_BIAS - count_leading_zeros(sig_b, BF16_M_BITS)) :
                         (int'(exp_b) - BF16_EXP_BIAS);
 
                 bias = BF16_EXP_BIAS;
@@ -486,12 +492,15 @@ package coverfloat_pkg;
                 logic [F32_E_BITS-1:0] exp_a = a[30:23];
                 logic [F32_E_BITS-1:0] exp_b = b[30:23];
 
+                logic [F32_M_BITS-1:0] sig_a = a[F32_M_UPPER:0];
+                logic [F32_M_BITS-1:0] sig_b = b[F32_M_UPPER:0];
+
                 E_a = (exp_a == 0) ?
-                        (1 - F32_EXP_BIAS) :
+                        (0 - F32_EXP_BIAS - count_leading_zeros(sig_a, F32_M_BITS)) :
                         (int'(exp_a) - F32_EXP_BIAS);
 
                 E_b = (exp_b == 0) ?
-                        (1 - F32_EXP_BIAS) :
+                        (0 - F32_EXP_BIAS - count_leading_zeros(sig_b, F32_M_BITS)) :
                         (int'(exp_b) - F32_EXP_BIAS);
 
                 bias = F32_EXP_BIAS;
@@ -505,12 +514,15 @@ package coverfloat_pkg;
                 logic [F64_E_BITS-1:0] exp_a = a[62:52];
                 logic [F64_E_BITS-1:0] exp_b = b[62:52];
 
+                logic [F64_M_BITS-1:0] sig_a = a[F64_M_UPPER:0];
+                logic [F64_M_BITS-1:0] sig_b = b[F64_M_UPPER:0];
+
                 E_a = (exp_a == 0) ?
-                        (1 - F64_EXP_BIAS) :
+                        (0 - F64_EXP_BIAS - count_leading_zeros(sig_a, F64_M_BITS)) :
                         (int'(exp_a) - F64_EXP_BIAS);
 
                 E_b = (exp_b == 0) ?
-                        (1 - F64_EXP_BIAS) :
+                        (0 - F64_EXP_BIAS - count_leading_zeros(sig_b, F64_M_BITS)) :
                         (int'(exp_b) - F64_EXP_BIAS);
 
                 bias = F64_EXP_BIAS;
@@ -524,12 +536,15 @@ package coverfloat_pkg;
                 logic [F128_E_BITS-1:0] exp_a = a[126:112];
                 logic [F128_E_BITS-1:0] exp_b = b[126:112];
 
+                logic [F128_M_BITS-1:0] sig_a = a[F128_M_UPPER:0];
+                logic [F128_M_BITS-1:0] sig_b = b[F128_M_UPPER:0];
+
                 E_a = (exp_a == 0) ?
-                        (1 - F128_EXP_BIAS) :
+                        (0 - F128_EXP_BIAS - count_leading_zeros(sig_a, F128_M_BITS)) :
                         (int'(exp_a) - F128_EXP_BIAS);
 
                 E_b = (exp_b == 0) ?
-                        (1 - F128_EXP_BIAS) :
+                        (0 - F128_EXP_BIAS - count_leading_zeros(sig_b, F128_M_BITS)) :
                         (int'(exp_b) - F128_EXP_BIAS);
 
                 bias = F128_EXP_BIAS;

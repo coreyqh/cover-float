@@ -43,6 +43,7 @@ package coverfloat_pkg;
     const logic [31:0] OP_FSGNJ  = 32'h10_1;
     const logic [31:0] OP_FSGNJN = 32'h10_2;
     const logic [31:0] OP_FSGNJX = 32'h10_3;
+    const logic [32:0] OP_RFI    = 32'h11_0;
 
     // const logic [31:0] OP_
 
@@ -84,6 +85,12 @@ package coverfloat_pkg;
     parameter int F32_M_BITS   = 23;
     parameter int F64_M_BITS   = 52;
     parameter int F128_M_BITS  = 112;
+
+    parameter int F32_FMA_PRE_ADDITION_NF = 2 * F32_M_BITS;
+    parameter int F64_FMA_PRE_ADDITION_NF = 2 * F64_M_BITS;
+    parameter int F128_FMA_PRE_ADDITION_NF = 2 * F128_M_BITS;
+    parameter int F16_FMA_PRE_ADDITION_NF = 2 * F16_M_BITS;
+    parameter int BF16_FMA_PRE_ADDITION_NF = 2 * BF16_M_BITS;
 
     // Precision (p = number of significand bits + 1 implicit bits)
     parameter int F16_P   = F16_M_BITS  + 1;
@@ -374,7 +381,32 @@ package coverfloat_pkg;
             longest_seq_of_ones = max_len;
         end
     endfunction
+    function automatic int get_effective_product_exponent(
+        input logic[127:0] a,
+        input logic[127:0] b,
+        input logic[255:0] pre_addition,
+        input logic [7:0] fmt
+    );
+        int shift_one;
 
+        case (fmt)
+            FMT_BF16: begin
+                shift_one = pre_addition[BF16_FMA_PRE_ADDITION_NF+1];
+            end
+            FMT_HALF: begin
+                shift_one = pre_addition[F16_FMA_PRE_ADDITION_NF+1];
+            end
+            FMT_SINGLE: begin
+                shift_one = pre_addition[F32_FMA_PRE_ADDITION_NF+1];
+            end
+            FMT_DOUBLE: begin
+                shift_one = pre_addition[F64_FMA_PRE_ADDITION_NF+1];
+            end
+            FMT_QUAD: begin
+                shift_one = pre_addition[F128_FMA_PRE_ADDITION_NF+1];
+            end
+        endcase
+    endfunction
 
     function automatic int get_product_exponent (
         input logic [127:0] a,

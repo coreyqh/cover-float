@@ -20,6 +20,7 @@ import inspect
 import logging
 import logging.handlers
 import os
+import re
 from pathlib import Path
 from queue import Queue
 from typing import Any, Callable, TextIO
@@ -65,6 +66,8 @@ def _run_model_by_name(
 ) -> None:
     tv_path = output_dir / "testvectors" / f"{model_name}_tv.txt"
     cv_path = output_dir / "covervectors" / f"{model_name}_cv.txt" if not constants.config.RELEASE else Path(os.devnull)
+    tv_stamp_path = output_dir / ".stamp" / f"{model_name}_tv.stamp"
+    cv_stamp_path = output_dir / ".stamp" / f"{model_name}_cv.stamp"
 
     model_logger = logging.getLogger(model_name)
 
@@ -97,6 +100,12 @@ def _run_model_by_name(
             readable_vectors_dir = output_dir / "readable"
             processed_vectors_dir = output_dir / "processed"
             postprocess_testvectors(model_name, test_vectors_dir, processed_vectors_dir, readable_vectors_dir)
+
+        tv_stamp_path.parent.mkdir(parents=True, exist_ok=True)
+        tv_stamp_path.touch()
+        if not constants.config.RELEASE:
+            cv_stamp_path.parent.mkdir(parents=True, exist_ok=True)
+            cv_stamp_path.touch()
     except Exception as e:
         logger = logging.getLogger(model_name)
         logger.exception(f"[bold red]Fatal Error in {model_name}[/] ", exc_info=e, extra={"markup": True})
@@ -121,14 +130,23 @@ def register_model(
             executor: concurrent.futures.Executor,
             post_process: bool = True,
         ) -> concurrent.futures.Future[None] | None:
-            # Check generation time of target files
-            tv_path = output_dir / "testvectors" / f"{model_name}_tv.txt"
-            tv_mod_time = tv_path.stat().st_mtime if tv_path.exists() else 0
-
-            cv_path = output_dir / "covervectors" / f"{model_name}_cv.txt"
-            cv_mod_time = cv_path.stat().st_mtime if cv_path.exists() else 0
+            # Check modification of source files
+            cover_float_sources = Path(__file__).parent.parent.rglob("*.py")
+            max_supporting_mod_time = 0
+            for file in cover_float_sources:
+                if not re.match(r"^B\d+\.py", file.name):
+                    max_supporting_mod_time = max(max_supporting_mod_time, file.stat().st_mtime)
 
             source_mod_time = source_file.stat().st_mtime
+
+            # Check generation time of target files
+            tv_path = output_dir / "testvectors" / f"{model_name}_tv.txt"
+            tv_stamp_path = output_dir / ".stamp" / f"{model_name}_tv.stamp"
+            tv_mod_time = tv_stamp_path.stat().st_mtime if tv_stamp_path.exists() else 0
+
+            cv_path = output_dir / "covervectors" / f"{model_name}_cv.txt"
+            cv_stamp_path = output_dir / ".stamp" / f"{model_name}_cv.stamp"
+            cv_mod_time = cv_stamp_path.stat().st_mtime if cv_stamp_path.exists() else 0
 
             tv_comes_from_partial: bool | None = None
             if tv_path.exists():
@@ -146,10 +164,12 @@ def register_model(
                 not constants.config.RELEASE
                 and (
                     (source_mod_time > cv_mod_time)
+                    or (max_supporting_mod_time > cv_mod_time)
                     or (cv_comes_from_partial != (not constants.config.FULL_COVERAGE_TESTGEN))
                 )
             ) or (
                 (source_mod_time > tv_mod_time)
+                or (max_supporting_mod_time > tv_mod_time)
                 or (tv_comes_from_partial != (not constants.config.FULL_COVERAGE_TESTGEN))
             ):
                 task_id = status_reporter.start_model(model_name)

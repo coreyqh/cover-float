@@ -57,6 +57,7 @@ clean:
 	$(RM_CMD) tests/covervectors/B*_cv.txt
 	$(RM_CMD) tests/readable/B*_parsed.txt
 	$(RM_CMD) tests/processed/*/B*.csv
+	$(RM_CMD) tests/.stamp
 
 # --- Include Dependency Files ---
 # Include auto-generated dependency files if they exist

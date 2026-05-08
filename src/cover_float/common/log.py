@@ -193,8 +193,8 @@ class AsyncLoggingHandler(logging.handlers.QueueListener):
                 self.reporter.progress.refresh()
             else:
                 logging.info(f"Failed to Log {record}")
-        except Exception as e:
-            logging.exception(f"Failed to Log {record}", exc_info=e)
+        except Exception:
+            logging.exception(f"Failed to Log {record}")
 
     def handle(self, record: logging.LogRecord | dict[Any, Any]) -> None:
         if isinstance(record, logging.LogRecord):

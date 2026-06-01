@@ -2,6 +2,8 @@
 
 RM_CMD ?= rm -rf
 AGGRESSIVENESS ?= 1
+PROCESSED_ONLY ?=
+SILENT ?=
 
 COVER_FLOAT_FLAGS =
 
@@ -17,6 +19,9 @@ MODELS := B1 B2 B3 B5 B6 B7 B8 B9 B10 B11 B12 B13 B14 B15 B16 B18 B20 B21 B25 B2
 # will have a python enviornment with Python.h to build with.
 all:
 	uv run --managed-python cover-float-testgen $(COVER_FLOAT_FLAGS)
+
+processed-tests-only:
+	uv run --managed-python cover-float-testgen --partial-output --only-processed-vectors --quiet $(COVER_FLOAT_FLAGS)
 
 # Build target to compile the pybind11 module (if necessary)
 build:
@@ -40,6 +45,11 @@ clean:
 	$(RM_CMD) sim/coverfloat_worklib/
 	$(RM_CMD) sim/transcript
 	$(RM_CMD) sim/coverfloat.ucdb
+	$(RM_CMD) tests/testvectors/B*_tv.txt
+	$(RM_CMD) tests/covervectors/B*_cv.txt
+	$(RM_CMD) tests/readable/B*_parsed.txt
+	$(RM_CMD) tests/processed/*/B*.csv
+	$(RM_CMD) tests/.stamp
 
 # --- Include Dependency Files ---
 # Include auto-generated dependency files if they exist

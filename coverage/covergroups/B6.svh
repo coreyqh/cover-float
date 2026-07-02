@@ -232,14 +232,14 @@ covergroup B6_cg (virtual coverfloat_interface CFI);
     // Main crosses
     `ifdef COVER_F32
         F32_arith_case_i_iv: cross F32_result_fmt, F32_sign, F32_minsubnorm_m1_bit, F32_minsubnorm_m2_bit, F32_minsubnorm_m3_sticky, rounding_mode_all, B6_arith_ops {
-            ignore_bins zero = binsof(F32_minsubnorm_m1_bit) intersect {0} && binsof(F32_minsubnorm_m2_bit) intersect {0} && binsof(F32_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(F32_minsubnorm_m1_bit) intersect {0};
         }
         F32_arith_case_ii_iii: cross F32_result_fmt, F32_sign, F32_minsubnorm_m2_bit, F32_minsubnorm_m3_bit, F32_minsubnorm_m4_sticky, rounding_mode_all, B6_arith_ops {
             ignore_bins zero = binsof(F32_minsubnorm_m2_bit) intersect {0} && binsof(F32_minsubnorm_m3_bit) intersect {0} && binsof(F32_minsubnorm_m4_sticky) intersect {0};
         }
 
         F32_convert_case_i_iv: cross F32_result_fmt, F32_sign, F32_minsubnorm_m1_bit, F32_minsubnorm_m2_bit, F32_minsubnorm_m3_sticky, rounding_mode_all, B6_convert_ops, F32_convert_narrowing_sources {
-            ignore_bins zero = binsof(F32_minsubnorm_m1_bit) intersect {0} && binsof(F32_minsubnorm_m2_bit) intersect {0} && binsof(F32_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(F32_minsubnorm_m1_bit) intersect {0};
         }
         F32_convert_case_ii_iii: cross F32_result_fmt, F32_sign, F32_minsubnorm_m2_bit, F32_minsubnorm_m3_bit, F32_minsubnorm_m4_sticky, rounding_mode_all, B6_convert_ops, F32_convert_narrowing_sources {
             ignore_bins zero = binsof(F32_minsubnorm_m2_bit) intersect {0} && binsof(F32_minsubnorm_m3_bit) intersect {0} && binsof(F32_minsubnorm_m4_sticky) intersect {0};
@@ -248,14 +248,14 @@ covergroup B6_cg (virtual coverfloat_interface CFI);
 
     `ifdef COVER_F64
         F64_arith_case_i_iv: cross F64_result_fmt, F64_sign, F64_minsubnorm_m1_bit, F64_minsubnorm_m2_bit, F64_minsubnorm_m3_sticky, rounding_mode_all, B6_arith_ops {
-            ignore_bins zero = binsof(F64_minsubnorm_m1_bit) intersect {0} && binsof(F64_minsubnorm_m2_bit) intersect {0} && binsof(F64_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(F64_minsubnorm_m1_bit) intersect {0};
         }
         F64_arith_case_ii_iii: cross F64_result_fmt, F64_sign, F64_minsubnorm_m2_bit, F64_minsubnorm_m3_bit, F64_minsubnorm_m4_sticky, rounding_mode_all, B6_arith_ops {
             ignore_bins zero = binsof(F64_minsubnorm_m2_bit) intersect {0} && binsof(F64_minsubnorm_m3_bit) intersect {0} && binsof(F64_minsubnorm_m4_sticky) intersect {0};
         }
 
         F64_convert_case_i_iv: cross F64_result_fmt, F64_sign, F64_minsubnorm_m1_bit, F64_minsubnorm_m2_bit, F64_minsubnorm_m3_sticky, rounding_mode_all, B6_convert_ops, F64_convert_narrowing_sources {
-            ignore_bins zero = binsof(F64_minsubnorm_m1_bit) intersect {0} && binsof(F64_minsubnorm_m2_bit) intersect {0} && binsof(F64_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(F64_minsubnorm_m1_bit) intersect {0};
         }
         F64_convert_case_ii_iii: cross F64_result_fmt, F64_sign, F64_minsubnorm_m2_bit, F64_minsubnorm_m3_bit, F64_minsubnorm_m4_sticky, rounding_mode_all, B6_convert_ops, F64_convert_narrowing_sources {
             ignore_bins zero = binsof(F64_minsubnorm_m2_bit) intersect {0} && binsof(F64_minsubnorm_m3_bit) intersect {0} && binsof(F64_minsubnorm_m4_sticky) intersect {0};
@@ -264,7 +264,7 @@ covergroup B6_cg (virtual coverfloat_interface CFI);
 
     `ifdef COVER_F128
         F128_arith_case_i_iv: cross F128_result_fmt, F128_sign, F128_minsubnorm_m1_bit, F128_minsubnorm_m2_bit, F128_minsubnorm_m3_sticky, rounding_mode_all, B6_arith_ops {
-            ignore_bins zero = binsof(F128_minsubnorm_m1_bit) intersect {0} && binsof(F128_minsubnorm_m2_bit) intersect {0} && binsof(F128_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(F128_minsubnorm_m1_bit) intersect {0};
         }
         F128_arith_case_ii_iii: cross F128_result_fmt, F128_sign, F128_minsubnorm_m2_bit, F128_minsubnorm_m3_bit, F128_minsubnorm_m4_sticky, rounding_mode_all, B6_arith_ops {
             ignore_bins zero = binsof(F128_minsubnorm_m2_bit) intersect {0} && binsof(F128_minsubnorm_m3_bit) intersect {0} && binsof(F128_minsubnorm_m4_sticky) intersect {0};
@@ -275,14 +275,14 @@ covergroup B6_cg (virtual coverfloat_interface CFI);
 
     `ifdef COVER_F16
         F16_arith_case_i_iv: cross F16_result_fmt, F16_sign, F16_minsubnorm_m1_bit, F16_minsubnorm_m2_bit, F16_minsubnorm_m3_sticky, rounding_mode_all, B6_arith_ops {
-            ignore_bins zero = binsof(F16_minsubnorm_m1_bit) intersect {0} && binsof(F16_minsubnorm_m2_bit) intersect {0} && binsof(F16_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(F16_minsubnorm_m1_bit) intersect {0};
         }
         F16_arith_case_ii_iii: cross F16_result_fmt, F16_sign, F16_minsubnorm_m2_bit, F16_minsubnorm_m3_bit, F16_minsubnorm_m4_sticky, rounding_mode_all, B6_arith_ops {
             ignore_bins zero = binsof(F16_minsubnorm_m2_bit) intersect {0} && binsof(F16_minsubnorm_m3_bit) intersect {0} && binsof(F16_minsubnorm_m4_sticky) intersect {0};
         }
 
         F16_convert_case_i_iv: cross F16_result_fmt, F16_sign, F16_minsubnorm_m1_bit, F16_minsubnorm_m2_bit, F16_minsubnorm_m3_sticky, rounding_mode_all, B6_convert_ops, F16_convert_narrowing_sources {
-            ignore_bins zero = binsof(F16_minsubnorm_m1_bit) intersect {0} && binsof(F16_minsubnorm_m2_bit) intersect {0} && binsof(F16_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(F16_minsubnorm_m1_bit) intersect {0};
         }
         F16_convert_case_ii_iii: cross F16_result_fmt, F16_sign, F16_minsubnorm_m2_bit, F16_minsubnorm_m3_bit, F16_minsubnorm_m4_sticky, rounding_mode_all, B6_convert_ops, F16_convert_narrowing_sources {
             ignore_bins zero = binsof(F16_minsubnorm_m2_bit) intersect {0} && binsof(F16_minsubnorm_m3_bit) intersect {0} && binsof(F16_minsubnorm_m4_sticky) intersect {0};
@@ -291,14 +291,14 @@ covergroup B6_cg (virtual coverfloat_interface CFI);
 
     `ifdef COVER_BF16
         BF16_arith_case_i_iv: cross BF16_result_fmt, BF16_sign, BF16_minsubnorm_m1_bit, BF16_minsubnorm_m2_bit, BF16_minsubnorm_m3_sticky, rounding_mode_all, B6_arith_ops {
-            ignore_bins zero = binsof(BF16_minsubnorm_m1_bit) intersect {0} && binsof(BF16_minsubnorm_m2_bit) intersect {0} && binsof(BF16_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(BF16_minsubnorm_m1_bit) intersect {0};
         }
         BF16_arith_case_ii_iii: cross BF16_result_fmt, BF16_sign, BF16_minsubnorm_m2_bit, BF16_minsubnorm_m3_bit, BF16_minsubnorm_m4_sticky, rounding_mode_all, B6_arith_ops {
             ignore_bins zero = binsof(BF16_minsubnorm_m2_bit) intersect {0} && binsof(BF16_minsubnorm_m3_bit) intersect {0} && binsof(BF16_minsubnorm_m4_sticky) intersect {0};
         }
 
         BF16_convert_case_i_iv: cross BF16_result_fmt, BF16_sign, BF16_minsubnorm_m1_bit, BF16_minsubnorm_m2_bit, BF16_minsubnorm_m3_sticky, rounding_mode_all, B6_convert_ops, BF16_convert_narrowing_sources {
-            ignore_bins zero = binsof(BF16_minsubnorm_m1_bit) intersect {0} && binsof(BF16_minsubnorm_m2_bit) intersect {0} && binsof(BF16_minsubnorm_m3_sticky) intersect {0};
+            ignore_bins zero = binsof(BF16_minsubnorm_m1_bit) intersect {0};
         }
         BF16_convert_case_ii_iii: cross BF16_result_fmt, BF16_sign, BF16_minsubnorm_m2_bit, BF16_minsubnorm_m3_bit, BF16_minsubnorm_m4_sticky, rounding_mode_all, B6_convert_ops, BF16_convert_narrowing_sources {
             ignore_bins zero = binsof(BF16_minsubnorm_m2_bit) intersect {0} && binsof(BF16_minsubnorm_m3_bit) intersect {0} && binsof(BF16_minsubnorm_m4_sticky) intersect {0};
